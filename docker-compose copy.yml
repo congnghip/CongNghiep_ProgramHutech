@@ -1,0 +1,46 @@
+services:
+  program-db:
+    image: postgres:15-alpine
+    container_name: program-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-program_db}
+      POSTGRES_USER: ${DB_USER:-program}
+      POSTGRES_PASSWORD: ${DB_PASS:-program123}
+    volumes:
+      - program_db_data:/var/lib/postgresql/data
+    ports:
+      - "5434:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U program"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  program-app:
+    image: node:20-alpine
+    container_name: program-app
+    restart: unless-stopped
+    working_dir: /app
+    command: sh -c "npm install --production && npm start"
+    volumes:
+      - .:/app
+      - program_node_modules:/app/node_modules
+    ports:
+      - "3601:3600"
+    depends_on:
+      program-db:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      DB_HOST: program-db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-program_db}
+      DB_USER: ${DB_USER:-program}
+      DB_PASS: ${DB_PASS:-program123}
+      PORT: 3600
+
+volumes:
+  program_db_data:
+  program_node_modules:
