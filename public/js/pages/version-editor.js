@@ -631,15 +631,15 @@ window.VersionEditorPage = {
                 
                 return p.pis.map((pi, piIndex) => {
                   const piMapping = piMapObj[`${c.id}-${pi.id}`];
-                  const isPiAssigned = !!piMapping;
-                  const canEdit = isPloMapped && isPiAssigned;
+                  const canEdit = isPloMapped;
                   const val = piMapping ? (piMapping.contribution_level || 0) : 0;
                   
+                  const isDisabled = !(canEdit && editable);
                   return `<td style="text-align:center;${piIndex===0?'border-left:2px solid var(--border);':''}">
-                    <select class="pi-select" data-vc="${c.id}" data-pi="${pi.id}" data-plo="${p.id}" 
+                    <select class="pi-select" data-vc="${c.id}" data-pi="${pi.id}" data-plo="${p.id}"
                             style="width:34px;padding:1px;font-size:11px;border:1px solid var(--border);border-radius:var(--radius);font-family:inherit;
-                                   ${!canEdit ? 'background:var(--bg-secondary);opacity:0.5;cursor:not-allowed;' : ''}" 
-                            ${!(canEdit && editable) ? 'disabled' : ''}>
+                                   ${isDisabled ? 'background:var(--bg-secondary);opacity:0.5;cursor:not-allowed;' : 'cursor:pointer;'}"
+                            ${isDisabled ? 'disabled' : ''}>
                       <option value="0" ${val === 0 ? 'selected' : ''}>—</option>
                       <option value="1" ${val === 1 ? 'selected' : ''}>1</option>
                       <option value="2" ${val === 2 ? 'selected' : ''}>2</option>
@@ -658,8 +658,7 @@ window.VersionEditorPage = {
       const pi_mappings = [];
       piSelects.forEach(s => {
         if (!s.disabled) {
-          const val = parseInt(s.value);
-          pi_mappings.push({ course_id: parseInt(s.dataset.vc), pi_id: parseInt(s.dataset.pi), contribution_level: val });
+          pi_mappings.push({ course_id: parseInt(s.dataset.vc), pi_id: parseInt(s.dataset.pi), contribution_level: parseInt(s.value) });
         }
       });
       try {
