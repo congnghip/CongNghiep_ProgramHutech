@@ -262,12 +262,13 @@ app.get('/api/users', authMiddleware, requirePerm('rbac.manage_users'), async (r
   try {
     const result = await pool.query(`
       SELECT u.id, u.username, u.display_name, u.email, u.is_active, u.created_at,
-        COALESCE(json_agg(json_build_object('role_code', r.code, 'role_name', r.name, 'dept_code', d.code, 'dept_name', d.name, 'department_id', ur.department_id))
+        COALESCE(json_agg(json_build_object('role_code', r.code, 'role_name', r.name, 'dept_code', d.code, 'dept_name', d.name, 'department_id', ur.department_id, 'parent_dept_name', pd.name))
         FILTER (WHERE r.id IS NOT NULL), '[]') as roles
       FROM users u
       LEFT JOIN user_roles ur ON u.id = ur.user_id
       LEFT JOIN roles r ON ur.role_id = r.id
       LEFT JOIN departments d ON ur.department_id = d.id
+      LEFT JOIN departments pd ON d.parent_id = pd.id
       GROUP BY u.id ORDER BY u.created_at
     `);
     res.json(result.rows);
@@ -464,15 +465,18 @@ app.get('/api/programs', authMiddleware, async (req, res) => {
         JOIN roles r ON ur.role_id = r.id
         WHERE ur.user_id = $1
       )
-      SELECT p.*, d.name as dept_name, d.code as dept_code,
+      SELECT p.*, d.name as dept_name, d.code as dept_code, d.type as dept_type,
+             pd.id as parent_dept_id, pd.name as parent_dept_name, pd.code as parent_dept_code,
              (SELECT COUNT(*) FROM program_versions pv WHERE pv.program_id=p.id
                ${!admin ? ` AND (
-                 (pv.status = 'published' AND EXISTS (SELECT 1 FROM user_perms up WHERE up.code = 'programs.view_published' AND (up.department_id = p.department_id OR up.level >= 4)))
+                 (pv.status = 'published' AND EXISTS (SELECT 1 FROM user_perms up WHERE up.code = 'programs.view_published' AND (up.department_id = p.department_id OR up.department_id = (SELECT parent_id FROM departments WHERE id = p.department_id) OR up.level >= 4)))
                  OR
-                 (pv.status != 'published' AND EXISTS (SELECT 1 FROM user_perms up WHERE up.code = 'programs.view_draft' AND (up.department_id = p.department_id OR up.level >= 4)))
+                 (pv.status != 'published' AND EXISTS (SELECT 1 FROM user_perms up WHERE up.code = 'programs.view_draft' AND (up.department_id = p.department_id OR up.department_id = (SELECT parent_id FROM departments WHERE id = p.department_id) OR up.level >= 4)))
                )` : ""}
              ) as version_count
-      FROM programs p JOIN departments d ON p.department_id = d.id
+      FROM programs p
+      JOIN departments d ON p.department_id = d.id
+      LEFT JOIN departments pd ON d.parent_id = pd.id
     `;
     const params = [req.user.id];
     const conditions = [];
@@ -482,9 +486,9 @@ app.get('/api/programs', authMiddleware, async (req, res) => {
       conditions.push(`EXISTS (
         SELECT 1 FROM program_versions pv WHERE pv.program_id = p.id
         AND (
-          (pv.status = 'published' AND EXISTS (SELECT 1 FROM user_perms up WHERE up.code = 'programs.view_published' AND (up.department_id = p.department_id OR up.level >= 4)))
+          (pv.status = 'published' AND EXISTS (SELECT 1 FROM user_perms up WHERE up.code = 'programs.view_published' AND (up.department_id = p.department_id OR up.department_id = (SELECT parent_id FROM departments WHERE id = p.department_id) OR up.level >= 4)))
           OR
-          (pv.status != 'published' AND EXISTS (SELECT 1 FROM user_perms up WHERE up.code = 'programs.view_draft' AND (up.department_id = p.department_id OR up.level >= 4)))
+          (pv.status != 'published' AND EXISTS (SELECT 1 FROM user_perms up WHERE up.code = 'programs.view_draft' AND (up.department_id = p.department_id OR up.department_id = (SELECT parent_id FROM departments WHERE id = p.department_id) OR up.level >= 4)))
         )
       )`);
     }
@@ -493,7 +497,7 @@ app.get('/api/programs', authMiddleware, async (req, res) => {
       query += ` WHERE ` + conditions.join(' AND ');
     }
 
-    query += ` ORDER BY d.name, p.name`;
+    query += ` ORDER BY COALESCE(pd.name, d.name), d.name, p.name`;
     const result = await pool.query(query, params);
     res.json(result.rows);
   } catch (e) { res.status(500).json({ error: e.message }); }
