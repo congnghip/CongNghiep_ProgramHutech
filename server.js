@@ -500,11 +500,11 @@ app.get('/api/programs', authMiddleware, async (req, res) => {
 });
 
 app.post('/api/programs', authMiddleware, requirePerm('programs.create'), async (req, res) => {
-  const { name, code, department_id, degree, total_credits } = req.body;
+  const { name, name_en, code, department_id, degree, total_credits, institution, degree_name, training_mode, notes } = req.body;
   try {
     const result = await pool.query(
-      'INSERT INTO programs (name, code, department_id, degree, total_credits) VALUES ($1,$2,$3,$4,$5) RETURNING *',
-      [name, code, department_id, degree || 'Đại học', total_credits]
+      'INSERT INTO programs (name, name_en, code, department_id, degree, total_credits, institution, degree_name, training_mode, notes) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING *',
+      [name, name_en, code, department_id, degree || 'Đại học', total_credits, institution, degree_name, training_mode, notes]
     );
     res.json(result.rows[0]);
   } catch (e) { res.status(400).json({ error: e.message }); }
@@ -632,11 +632,13 @@ app.post('/api/programs/:programId/versions', authMiddleware, requirePerm('progr
 
 // ============ PROGRAM EDIT ============
 app.put('/api/programs/:id', authMiddleware, requirePerm('programs.edit'), async (req, res) => {
-  const { name, code, department_id, degree, total_credits } = req.body;
+  const { name, name_en, code, department_id, degree, total_credits, institution, degree_name, training_mode, notes } = req.body;
   try {
     const result = await pool.query(
-      'UPDATE programs SET name=COALESCE($1,name), code=COALESCE($2,code), department_id=COALESCE($3,department_id), degree=COALESCE($4,degree), total_credits=COALESCE($5,total_credits) WHERE id=$6 RETURNING *',
-      [name, code, department_id, degree, total_credits, req.params.id]
+      `UPDATE programs SET name=COALESCE($1,name), name_en=$2, code=COALESCE($3,code), department_id=COALESCE($4,department_id),
+       degree=COALESCE($5,degree), total_credits=COALESCE($6,total_credits), institution=$7, degree_name=$8, training_mode=$9, notes=$10
+       WHERE id=$11 RETURNING *`,
+      [name, name_en, code, department_id, degree, total_credits, institution, degree_name, training_mode, notes, req.params.id]
     );
     res.json(result.rows[0]);
   } catch (e) { res.status(400).json({ error: e.message }); }
@@ -659,11 +661,25 @@ app.get('/api/versions/:id', authMiddleware, requireViewVersion, async (req, res
 });
 
 app.put('/api/versions/:id', authMiddleware, requireDraft('id'), async (req, res) => {
-  const { status, completion_pct } = req.body;
+  const { status, completion_pct, academic_year, version_name, total_credits, training_duration,
+          change_type, effective_date, change_summary, grading_scale, graduation_requirements,
+          job_positions, further_education, reference_programs, training_process,
+          admission_targets, admission_criteria } = req.body;
   try {
     const result = await pool.query(
-      'UPDATE program_versions SET status=COALESCE($1,status), completion_pct=COALESCE($2,completion_pct), updated_at=NOW() WHERE id=$3 RETURNING *',
-      [status, completion_pct, req.params.id]
+      `UPDATE program_versions SET
+        status=COALESCE($1,status), completion_pct=COALESCE($2,completion_pct),
+        academic_year=COALESCE($3,academic_year), version_name=$4, total_credits=$5,
+        training_duration=$6, change_type=$7, effective_date=$8, change_summary=$9,
+        grading_scale=$10, graduation_requirements=$11, job_positions=$12,
+        further_education=$13, reference_programs=$14, training_process=$15,
+        admission_targets=$16, admission_criteria=$17, updated_at=NOW()
+      WHERE id=$18 RETURNING *`,
+      [status, completion_pct, academic_year, version_name, total_credits,
+       training_duration, change_type, effective_date || null, change_summary,
+       grading_scale, graduation_requirements, job_positions,
+       further_education, reference_programs, training_process,
+       admission_targets, admission_criteria, req.params.id]
     );
     res.json(result.rows[0]);
   } catch (e) { res.status(400).json({ error: e.message }); }
@@ -1038,8 +1054,10 @@ app.put('/api/versions/:vId/course-pi-map', authMiddleware, requireDraft('vId', 
     await client.query('BEGIN');
     for (const m of pi_mappings) {
       await client.query(
-        'UPDATE version_pi_courses SET contribution_level = $1 WHERE version_id = $2 AND course_id = $3 AND pi_id = $4',
-        [m.contribution_level, req.params.vId, m.course_id, m.pi_id]
+        `INSERT INTO version_pi_courses (version_id, pi_id, course_id, contribution_level)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (pi_id, course_id) DO UPDATE SET contribution_level = EXCLUDED.contribution_level`,
+        [req.params.vId, m.pi_id, m.course_id, m.contribution_level]
       );
     }
     await client.query('COMMIT');

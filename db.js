@@ -74,27 +74,65 @@ async function initDB() {
         id SERIAL PRIMARY KEY,
         department_id INT REFERENCES departments(id),
         name VARCHAR(300) NOT NULL,
+        name_en VARCHAR(300),
         code VARCHAR(30),
         degree VARCHAR(50) DEFAULT 'Đại học',
         total_credits INT,
+        institution VARCHAR(300),
+        degree_name VARCHAR(300),
+        training_mode VARCHAR(100),
+        notes TEXT,
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
+      ALTER TABLE programs ADD COLUMN IF NOT EXISTS name_en VARCHAR(300);
+      ALTER TABLE programs ADD COLUMN IF NOT EXISTS institution VARCHAR(300);
+      ALTER TABLE programs ADD COLUMN IF NOT EXISTS degree_name VARCHAR(300);
+      ALTER TABLE programs ADD COLUMN IF NOT EXISTS training_mode VARCHAR(100);
+      ALTER TABLE programs ADD COLUMN IF NOT EXISTS notes TEXT;
 
       -- Program Versions (phiên bản theo năm học)
       CREATE TABLE IF NOT EXISTS program_versions (
         id SERIAL PRIMARY KEY,
         program_id INT REFERENCES programs(id) ON DELETE CASCADE,
         academic_year VARCHAR(20) NOT NULL,
+        version_name VARCHAR(300),
         status VARCHAR(30) DEFAULT 'draft',
         is_locked BOOLEAN DEFAULT false,
         copied_from_id INT REFERENCES program_versions(id),
         completion_pct INT DEFAULT 0,
+        total_credits INT,
+        training_duration VARCHAR(50),
+        change_type VARCHAR(50),
+        effective_date DATE,
+        change_summary TEXT,
+        grading_scale TEXT,
+        graduation_requirements TEXT,
+        job_positions TEXT,
+        further_education TEXT,
+        reference_programs TEXT,
+        training_process TEXT,
+        admission_targets TEXT,
+        admission_criteria TEXT,
         created_at TIMESTAMPTZ DEFAULT NOW(),
         updated_at TIMESTAMPTZ DEFAULT NOW(),
         is_rejected BOOLEAN DEFAULT false,
         rejection_reason TEXT,
         UNIQUE(program_id, academic_year)
       );
+      ALTER TABLE program_versions ADD COLUMN IF NOT EXISTS version_name VARCHAR(300);
+      ALTER TABLE program_versions ADD COLUMN IF NOT EXISTS total_credits INT;
+      ALTER TABLE program_versions ADD COLUMN IF NOT EXISTS training_duration VARCHAR(50);
+      ALTER TABLE program_versions ADD COLUMN IF NOT EXISTS change_type VARCHAR(50);
+      ALTER TABLE program_versions ADD COLUMN IF NOT EXISTS effective_date DATE;
+      ALTER TABLE program_versions ADD COLUMN IF NOT EXISTS change_summary TEXT;
+      ALTER TABLE program_versions ADD COLUMN IF NOT EXISTS grading_scale TEXT;
+      ALTER TABLE program_versions ADD COLUMN IF NOT EXISTS graduation_requirements TEXT;
+      ALTER TABLE program_versions ADD COLUMN IF NOT EXISTS job_positions TEXT;
+      ALTER TABLE program_versions ADD COLUMN IF NOT EXISTS further_education TEXT;
+      ALTER TABLE program_versions ADD COLUMN IF NOT EXISTS reference_programs TEXT;
+      ALTER TABLE program_versions ADD COLUMN IF NOT EXISTS training_process TEXT;
+      ALTER TABLE program_versions ADD COLUMN IF NOT EXISTS admission_targets TEXT;
+      ALTER TABLE program_versions ADD COLUMN IF NOT EXISTS admission_criteria TEXT;
 
       -- Version Objectives (PO)
       CREATE TABLE IF NOT EXISTS version_objectives (
