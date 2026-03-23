@@ -33,6 +33,10 @@ window.ProgramsPage = {
                   <select id="prog-dept" required></select>
                 </div>
                 <div class="input-group">
+                  <label>Ngành</label>
+                  <select id="prog-nganh"><option value="">— Toàn khoa —</option></select>
+                </div>
+                <div class="input-group">
                   <label>Bậc đào tạo</label>
                   <select id="prog-degree">
                     <option value="Đại học">Đại học</option>
@@ -231,6 +235,7 @@ window.ProgramsPage = {
         fetch('/api/departments').then(r => r.json()),
       ]);
       this.programs = programs;
+      this.allDepartments = depts;
       this.departments = depts.filter(d => ['KHOA', 'VIEN', 'TRUNG_TAM'].includes(d.type));
       if (this.routeParams && (this.routeParams.deptId || this.routeParams.deptName)) {
         this.programs = this.programs.filter(p => 
@@ -257,35 +262,53 @@ window.ProgramsPage = {
       return;
     }
 
-    // Group by department
-    const grouped = {};
+    // Group by Khoa → Ngành → CTĐT
+    // Structure: { khoaName: { directProgs: [...], nganhs: { nganhName: [...] } } }
+    const tree = {};
     this.programs.forEach(p => {
-      if (!grouped[p.dept_name]) grouped[p.dept_name] = [];
-      grouped[p.dept_name].push(p);
+      const isNganh = p.dept_type === 'BO_MON' && p.parent_dept_name;
+      const khoaName = isNganh ? p.parent_dept_name : p.dept_name;
+      const nganhName = isNganh ? p.dept_name : null;
+
+      if (!tree[khoaName]) tree[khoaName] = { directProgs: [], nganhs: {} };
+      if (nganhName) {
+        if (!tree[khoaName].nganhs[nganhName]) tree[khoaName].nganhs[nganhName] = [];
+        tree[khoaName].nganhs[nganhName].push(p);
+      } else {
+        tree[khoaName].directProgs.push(p);
+      }
     });
 
-    content.innerHTML = Object.entries(grouped).map(([dept, progs]) => `
-      <div style="margin-bottom:20px;">
-        <h3 style="font-size:14px;font-weight:600;margin-bottom:10px;color:var(--text);">${dept}</h3>
-        <div style="display:grid;gap:10px;">
-          ${progs.map(p => `
-            <div class="tree-node" style="display:flex;justify-content:space-between;align-items:center;">
-              <div>
-                <div style="font-weight:600;font-size:14px;">${p.name}</div>
-                <div style="font-size:11px;color:var(--text-muted);">
-                  Mã: ${p.code || '—'} · ${p.degree} · ${p.total_credits || '?'} TC ·
-                  <span class="badge badge-neutral">${p.version_count} phiên bản</span>
-                </div>
-              </div>
-              <div style="display:flex;gap:4px;">
-                <button class="btn btn-secondary btn-sm" onclick="window.ProgramsPage.viewVersions(${p.id},'${p.name.replace(/'/g,"\\'")}')">Phiên bản</button>
-                ${window.App.hasPerm('programs.create_version') ? `<button class="btn btn-secondary btn-sm" onclick="window.ProgramsPage.openVersionModal(${p.id})">+ Phiên bản</button>` : ''}
-                ${window.App.hasPerm('programs.edit') ? `<button class="btn btn-secondary btn-sm" onclick="window.ProgramsPage.openEditModal(${p.id})">✏️</button>` : ''}
-                ${window.App.hasPerm('programs.delete_draft') ? `<button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="window.ProgramsPage.deleteProgram(${p.id}, '${p.name.replace(/'/g, "\\'")}')">🗑️</button>` : ''}
-              </div>
-            </div>
-          `).join('')}
+    const renderProg = (p) => `
+      <div class="tree-node" style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div style="font-weight:600;font-size:14px;">${p.name}</div>
+          <div style="font-size:11px;color:var(--text-muted);">
+            Mã: ${p.code || '—'} · ${p.degree} · ${p.total_credits || '?'} TC ·
+            <span class="badge badge-neutral">${p.version_count} phiên bản</span>
+          </div>
         </div>
+        <div style="display:flex;gap:4px;">
+          <button class="btn btn-secondary btn-sm" onclick="window.ProgramsPage.viewVersions(${p.id},'${p.name.replace(/'/g,"\\'")}')">Phiên bản</button>
+          ${window.App.hasPerm('programs.create_version') ? `<button class="btn btn-secondary btn-sm" onclick="window.ProgramsPage.openVersionModal(${p.id})">+ Phiên bản</button>` : ''}
+          ${window.App.hasPerm('programs.edit') ? `<button class="btn btn-secondary btn-sm" onclick="window.ProgramsPage.openEditModal(${p.id})">✏️</button>` : ''}
+          ${window.App.hasPerm('programs.delete_draft') ? `<button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="window.ProgramsPage.deleteProgram(${p.id}, '${p.name.replace(/'/g, "\\'")}')">🗑️</button>` : ''}
+        </div>
+      </div>
+    `;
+
+    content.innerHTML = Object.entries(tree).map(([khoa, data]) => `
+      <div style="margin-bottom:24px;">
+        <h3 style="font-size:15px;font-weight:700;margin-bottom:10px;color:var(--text);border-bottom:2px solid var(--border);padding-bottom:6px;">${khoa}</h3>
+        ${data.directProgs.length ? `<div style="display:grid;gap:8px;margin-bottom:12px;">${data.directProgs.map(renderProg).join('')}</div>` : ''}
+        ${Object.entries(data.nganhs).map(([nganh, progs]) => `
+          <div style="margin-left:20px;margin-bottom:14px;">
+            <h4 style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--text-muted);">${nganh}</h4>
+            <div style="display:grid;gap:8px;">
+              ${progs.map(renderProg).join('')}
+            </div>
+          </div>
+        `).join('')}
       </div>
     `).join('');
   },
@@ -334,11 +357,36 @@ window.ProgramsPage = {
     document.getElementById('prog-modal').classList.add('active');
   },
 
-  populateDeptSelect(selectedId) {
+  populateDeptSelect(selectedDeptId) {
     const sel = document.getElementById('prog-dept');
     sel.innerHTML = this.departments.map(d =>
-      `<option value="${d.id}" ${d.id == selectedId ? 'selected' : ''}>${d.name} (${d.code})</option>`
+      `<option value="${d.id}">${d.name} (${d.code})</option>`
     ).join('');
+
+    // Determine if selectedDeptId is a ngành (BO_MON) or a khoa
+    const selectedDept = this.allDepartments.find(d => d.id == selectedDeptId);
+    if (selectedDept && selectedDept.type === 'BO_MON' && selectedDept.parent_id) {
+      sel.value = selectedDept.parent_id;
+      this.populateNganhSelect(selectedDept.parent_id, selectedDeptId);
+    } else if (selectedDeptId) {
+      sel.value = selectedDeptId;
+      this.populateNganhSelect(selectedDeptId, null);
+    } else {
+      this.populateNganhSelect(sel.value, null);
+    }
+
+    sel.onchange = () => this.populateNganhSelect(sel.value, null);
+  },
+
+  populateNganhSelect(khoaId, selectedNganhId) {
+    const nganhSel = document.getElementById('prog-nganh');
+    const children = this.allDepartments.filter(
+      d => d.parent_id == khoaId && d.type === 'BO_MON'
+    );
+    nganhSel.innerHTML = '<option value="">— Toàn khoa —</option>' +
+      children.map(d =>
+        `<option value="${d.id}" ${d.id == selectedNganhId ? 'selected' : ''}>${d.name} (${d.code})</option>`
+      ).join('');
   },
 
   closeModal() { document.getElementById('prog-modal').classList.remove('active'); },
@@ -348,7 +396,8 @@ window.ProgramsPage = {
     const name = document.getElementById('prog-name').value.trim();
     const name_en = document.getElementById('prog-name-en').value.trim();
     const code = document.getElementById('prog-code').value.trim();
-    const department_id = document.getElementById('prog-dept').value;
+    const nganhVal = document.getElementById('prog-nganh').value;
+    const department_id = nganhVal || document.getElementById('prog-dept').value;
     const degree = document.getElementById('prog-degree').value;
     const total_credits = parseInt(document.getElementById('prog-credits').value) || null;
     const institution = document.getElementById('prog-institution').value.trim() || null;

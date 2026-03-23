@@ -323,6 +323,15 @@ async function seedData(client) {
     { code: 'TT.GDTC', name: 'TT Giáo dục Thể chất', type: 'TRUNG_TAM', parent: 'HUTECH' },
     { code: 'TT.GDCT-QP', name: 'TT Giáo dục CT-QP', type: 'TRUNG_TAM', parent: 'HUTECH' },
     { code: 'TT.TH-NN-KN', name: 'TT Tin học-NN-KN', type: 'TRUNG_TAM', parent: 'HUTECH' },
+    // Ngành (BO_MON) — đơn vị con của Khoa
+    { code: 'N.CNPM', name: 'Ngành Công nghệ phần mềm', type: 'BO_MON', parent: 'K.CNTT' },
+    { code: 'N.HTTT', name: 'Ngành Hệ thống thông tin', type: 'BO_MON', parent: 'K.CNTT' },
+    { code: 'N.KTPM', name: 'Ngành Kỹ thuật phần mềm', type: 'BO_MON', parent: 'K.CNTT' },
+    { code: 'N.TTNT', name: 'Ngành Trí tuệ nhân tạo', type: 'BO_MON', parent: 'K.CNTT' },
+    { code: 'N.TMDT', name: 'Ngành Thương mại điện tử', type: 'BO_MON', parent: 'K.QTKD' },
+    { code: 'N.QTKD-TH', name: 'Ngành Quản trị kinh doanh tổng hợp', type: 'BO_MON', parent: 'K.QTKD' },
+    { code: 'N.TACN', name: 'Ngành Tiếng Anh chuyên ngành', type: 'BO_MON', parent: 'K.TA' },
+    { code: 'N.TATM', name: 'Ngành Tiếng Anh thương mại', type: 'BO_MON', parent: 'K.TA' },
   ];
   for (const d of depts) {
     let parentId = null;
@@ -458,10 +467,12 @@ async function getUserPermissions(userId) {
 async function getUserRoles(userId) {
   const result = await pool.query(`
     SELECT r.code as role_code, r.name as role_name, r.level,
-           d.code as dept_code, d.name as dept_name, ur.department_id
+           d.code as dept_code, d.name as dept_name, ur.department_id,
+           pd.name as parent_dept_name
     FROM user_roles ur
     JOIN roles r ON ur.role_id = r.id
     JOIN departments d ON ur.department_id = d.id
+    LEFT JOIN departments pd ON d.parent_id = pd.id
     WHERE ur.user_id = $1
     ORDER BY r.level DESC
   `, [userId]);
@@ -469,35 +480,32 @@ async function getUserRoles(userId) {
 }
 
 async function hasPermission(userId, permCode, deptId = null) {
-  const permCodes = [permCode];
-  
-  const query = `
-    SELECT r.level, ur.department_id as user_role_dept
-    FROM user_roles ur
-    JOIN role_permissions rp ON ur.role_id = rp.role_id
-    JOIN permissions p ON rp.permission_id = p.id
-    JOIN roles r ON ur.role_id = r.id
-    WHERE ur.user_id = $1 AND p.code = ANY($2)
-  `;
-  const result = await pool.query(query, [userId, permCodes]);
-  if (result.rows.length === 0) return false;
-
-  // 2. Check if any role satisfies the condition
-  for (const row of result.rows) {
-    // If it's a high-level role (PDT/BGH/ADMIN), they have global access
-    if (row.level >= 4) return true;
-
-    // If we have a specific department context (deptId)
-    if (deptId !== null) {
-      if (row.user_role_dept === parseInt(deptId)) return true;
-    } else {
-      // If deptId is null, it means we're checking for general existence of this permission
-      // for this user in ANY context.
-      return true;
-    }
+  if (deptId !== null) {
+    // Check permission with hierarchical dept matching:
+    // User assigned at Khoa level also has access to child departments (Ngành)
+    const result = await pool.query(`
+      SELECT 1 FROM user_roles ur
+      JOIN role_permissions rp ON ur.role_id = rp.role_id
+      JOIN permissions p ON rp.permission_id = p.id
+      JOIN roles r ON ur.role_id = r.id
+      WHERE ur.user_id = $1 AND p.code = $2
+        AND (r.level >= 4
+             OR ur.department_id = $3
+             OR ur.department_id = (SELECT parent_id FROM departments WHERE id = $3))
+      LIMIT 1
+    `, [userId, permCode, parseInt(deptId)]);
+    return result.rows.length > 0;
+  } else {
+    // No dept context — check if user has this permission in ANY context
+    const result = await pool.query(`
+      SELECT 1 FROM user_roles ur
+      JOIN role_permissions rp ON ur.role_id = rp.role_id
+      JOIN permissions p ON rp.permission_id = p.id
+      WHERE ur.user_id = $1 AND p.code = $2
+      LIMIT 1
+    `, [userId, permCode]);
+    return result.rows.length > 0;
   }
-
-  return false;
 }
 
 // Check if user is ADMIN (bypass all)

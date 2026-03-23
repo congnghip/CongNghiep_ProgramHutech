@@ -94,7 +94,8 @@ window.RBACAdminPage = {
             <div id="ra-current" style="margin-bottom:16px;"></div>
             <div style="display:flex;gap:8px;align-items:end;">
               <div class="input-group" style="flex:1;margin:0;"><label>Vai trò</label><select id="ra-role"></select></div>
-              <div class="input-group" style="flex:1;margin:0;"><label>Đơn vị</label><select id="ra-dept"></select></div>
+              <div class="input-group" style="flex:1;margin:0;"><label>Khoa</label><select id="ra-dept"></select></div>
+              <div class="input-group" style="flex:1;margin:0;"><label>Ngành</label><select id="ra-nganh"><option value="">— Toàn khoa —</option></select></div>
               <button class="btn btn-primary btn-sm" onclick="window.RBACAdminPage.assignRole()">Gán</button>
             </div>
             <div class="modal-footer" style="padding-top:16px;">
@@ -121,7 +122,7 @@ window.RBACAdminPage = {
       ? '<tr><td colspan="5" style="color:var(--text-muted);text-align:center;">Không tìm thấy</td></tr>'
       : filtered.map(u => {
         const rolesBadges = u.roles?.length && u.roles[0]?.role_code
-          ? u.roles.map(r => `<span class="badge badge-primary" style="margin:1px;">${r.role_name}@${r.dept_code}</span>`).join(' ')
+          ? u.roles.map(r => `<span class="badge badge-primary" style="margin:1px;">${r.role_name}@${r.parent_dept_name ? r.dept_name : r.dept_code}</span>`).join(' ')
           : '<span class="text-muted">Chưa gán</span>';
         return `<tr>
           <td style="font-weight:500;">${u.username}</td>
@@ -210,12 +211,24 @@ window.RBACAdminPage = {
       ? '<p style="color:var(--text-muted);font-size:12px;">Chưa có vai trò</p>'
       : roles.map(r => `
         <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:var(--bg-secondary);border-radius:var(--radius);margin-bottom:4px;font-size:12px;">
-          <span><span class="badge badge-primary">${r.role_name}</span> <span class="text-muted">@ ${r.dept_name}</span></span>
+          <span><span class="badge badge-primary">${r.role_name}</span> <span class="text-muted">@ ${r.parent_dept_name ? r.parent_dept_name + ' > ' : ''}${r.dept_name}</span></span>
           <button class="btn btn-secondary btn-sm" style="color:var(--danger);padding:2px 6px;" onclick="window.RBACAdminPage.removeRole(${userId},'${r.role_code}',${r.department_id})">✕</button>
         </div>
       `).join('');
     document.getElementById('ra-role').innerHTML = this.roles.map(r => `<option value="${r.code}">${r.name} (L${r.level}, ${r.perm_count || 0} quyền)</option>`).join('');
-    document.getElementById('ra-dept').innerHTML = this.departments.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+    // Only show faculty-level departments (Khoa/Viện/TT) in dropdown
+    const khoaDepts = this.departments.filter(d => ['KHOA', 'VIEN', 'TRUNG_TAM', 'ROOT', 'PHONG'].includes(d.type));
+    const deptSel = document.getElementById('ra-dept');
+    deptSel.innerHTML = khoaDepts.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+    // Wire cascading Ngành dropdown
+    const populateNganh = (khoaId) => {
+      const nganhSel = document.getElementById('ra-nganh');
+      const children = this.departments.filter(d => d.parent_id == khoaId && d.type === 'BO_MON');
+      nganhSel.innerHTML = '<option value="">— Toàn khoa —</option>' +
+        children.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+    };
+    deptSel.onchange = () => populateNganh(deptSel.value);
+    populateNganh(deptSel.value);
     document.getElementById('role-assign-modal').classList.add('active');
   },
 
@@ -224,7 +237,7 @@ window.RBACAdminPage = {
     try {
       const res = await fetch(`/api/users/${userId}/roles`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role_code: document.getElementById('ra-role').value, department_id: document.getElementById('ra-dept').value })
+        body: JSON.stringify({ role_code: document.getElementById('ra-role').value, department_id: document.getElementById('ra-nganh').value || document.getElementById('ra-dept').value })
       });
       if (!res.ok) throw new Error((await res.json()).error);
       window.toast.success('Đã gán');
