@@ -2,6 +2,7 @@
 window.VersionEditorPage = {
   versionId: null,
   version: null,
+  routeContext: {},
   activeTab: 0,
 
   tabs: [
@@ -27,8 +28,9 @@ window.VersionEditorPage = {
     return map[status] || null;
   },
 
-  async render(container, versionId) {
+  async render(container, versionId, params = {}) {
     this.versionId = versionId;
+    this.routeContext = params || {};
     container.innerHTML = '<div class="spinner"></div>';
     try {
       this.version = await fetch(`/api/versions/${versionId}`).then(r => r.json());
@@ -46,14 +48,12 @@ window.VersionEditorPage = {
     
     // Filter visible tabs: must have both version-status-view-perm AND the tab's specific viewPerm (if any)
     this.visibleTabs = this.tabs.filter(t => window.App.hasPerm(statusPerm));
+    const requestedTabIndex = this.visibleTabs.findIndex(t => t.key === this.routeContext.tabKey);
+    const initialTabIndex = requestedTabIndex >= 0 ? requestedTabIndex : 0;
 
     container.innerHTML = `
       <div style="margin-bottom:24px;">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-          <button class="btn btn-secondary btn-sm" onclick="window.App.navigate('programs', { programId: ${this.version.program_id}, programName: '${(this.version.program_name || '').replace(/'/g, "\\'")}' })">← Quay lại</button>
-          <span style="color:var(--text-muted);">/ ${this.version.dept_name} /</span>
-          <span style="font-weight:600;">${this.version.program_name}</span>
-        </div>
+        <div id="version-breadcrumb" style="margin-bottom:8px;"></div>
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <div>
             <h1 style="font-size:24px;font-weight:700;letter-spacing:-0.3px;">${this.version.academic_year}</h1>
@@ -83,7 +83,7 @@ window.VersionEditorPage = {
         </div>
       ` : ''}
       <div class="tab-bar" id="editor-tabs">
-        ${this.visibleTabs.map((t, i) => `<div class="tab-item ${i === 0 ? 'active' : ''}" data-index="${i}">${t.label}</div>`).join('')}
+        ${this.visibleTabs.map((t, i) => `<div class="tab-item ${i === initialTabIndex ? 'active' : ''}" data-index="${i}">${t.label}</div>`).join('')}
       </div>
       <div id="tab-content"><div class="spinner"></div></div>
 
@@ -106,7 +106,7 @@ window.VersionEditorPage = {
           </div>
         </div>
       </div>
-    `;
+      `;
 
     document.querySelectorAll('#editor-tabs .tab-item').forEach(el => {
       el.addEventListener('click', () => {
@@ -116,13 +116,43 @@ window.VersionEditorPage = {
         this.renderTab();
       });
     });
-    this.activeTab = 0;
+    this.activeTab = initialTabIndex;
+    document.querySelector(`#editor-tabs .tab-item[data-index="${this.activeTab}"]`)?.classList.add('active');
+    this.updateBreadcrumb();
     this.renderTab();
+  },
+
+  getActiveTabLabel() {
+    return this.visibleTabs?.[this.activeTab]?.label || 'Thông tin';
+  },
+
+  getBreadcrumbItems() {
+    const items = [];
+    if (this.routeContext.programId && this.routeContext.programName) {
+      items.push({ label: 'Chương trình đào tạo', page: 'programs' });
+      items.push({
+        label: 'Phiên bản',
+        page: 'programs',
+        params: {
+          programId: this.routeContext.programId,
+          programName: this.routeContext.programName
+        }
+      });
+    }
+    items.push({ label: 'Soạn thảo' });
+    items.push({ label: this.getActiveTabLabel() });
+    return items;
+  },
+
+  updateBreadcrumb() {
+    const breadcrumb = document.getElementById('version-breadcrumb');
+    if (breadcrumb) breadcrumb.innerHTML = window.App.renderBreadcrumb(this.getBreadcrumbItems());
   },
 
   async renderTab() {
     const body = document.getElementById('tab-content');
     body.innerHTML = '<div class="spinner"></div>';
+    this.updateBreadcrumb();
     const tab = this.visibleTabs[this.activeTab];
     const tabKey = tab.key;
     const locked = this.version.is_locked;
@@ -813,7 +843,7 @@ window.VersionEditorPage = {
                 <td>${syl ? `<span class="badge badge-info">${statusLabels[syl.status]}</span>` : '<span class="badge badge-neutral">Chưa tạo</span>'}</td>
                 <td style="white-space:nowrap;">
                   ${syl
-          ? `<button class="btn btn-secondary btn-sm" onclick="window.App.navigate('syllabus-editor',{syllabusId:${syl.id}})">${(editable && syl.status === 'draft') ? 'Soạn' : 'Xem'}</button>`
+          ? `<button class="btn btn-secondary btn-sm" onclick="window.App.navigate('syllabus-editor',{syllabusId:${syl.id}, versionId:${this.versionId}, programId:${this.version.program_id}, programName:'${(this.version.program_name || '').replace(/'/g, "\\'")}', tabKey:'syllabi'})">${(editable && syl.status === 'draft') ? 'Soạn' : 'Xem'}</button>`
           : (editable ? `<button class="btn btn-primary btn-sm" onclick="window.VersionEditorPage.createSyllabus(${c.course_id})">Tạo ĐC</button>` : '')}
                 </td>
               </tr>`;
@@ -896,7 +926,13 @@ window.VersionEditorPage = {
       if (!res.ok) throw new Error((await res.json()).error);
       const syl = await res.json();
       window.toast.success('Đã tạo đề cương');
-      window.App.navigate('syllabus-editor', { syllabusId: syl.id });
+      window.App.navigate('syllabus-editor', {
+        syllabusId: syl.id,
+        versionId: this.versionId,
+        programId: this.version.program_id,
+        programName: this.version.program_name,
+        tabKey: 'syllabi'
+      });
     } catch (e) { window.toast.error(e.message); }
   },
 

@@ -629,9 +629,12 @@ window.ProgramsPage = {
 
       content.innerHTML = `
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-          <button class="btn btn-secondary btn-sm" onclick="window.ProgramsPage.backToList()">← Quay lại</button>
-          <h3 style="font-size:15px;font-weight:600;">Phiên bản: ${programName}</h3>
+          ${window.App.renderBreadcrumb([
+            { label: 'Chương trình đào tạo', page: 'programs' },
+            { label: 'Phiên bản' }
+          ])}
         </div>
+        <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;">Phiên bản: ${programName}</h3>
         ${versions.length === 0
           ? '<div class="empty-state"><div class="icon">📭</div><p>Chưa có phiên bản nào</p></div>'
           : `<div style="display:grid;gap:10px;">
@@ -653,7 +656,7 @@ window.ProgramsPage = {
                 <div style="display:flex;gap:4px;">
                   ${window.App.hasPerm('programs.create_version') ? `<button class="btn btn-secondary btn-sm" title="Nhân bản phiên bản này" onclick="window.ProgramsPage.cloneVersion(${programId}, ${v.id}, '${v.academic_year}')">📋 Nhân bản</button>` : ''}
                   ${window.App.hasPerm('programs.edit') && v.status === 'draft' ? `<button class="btn btn-secondary btn-sm" title="Chỉnh sửa phiên bản" onclick="window.ProgramsPage.openVersionEditModal(${v.id}, ${programId}, '${programName.replace(/'/g, "\\'")}')">✏️</button>` : ''}
-                  <button class="btn btn-primary btn-sm" onclick="window.App.navigate('version-editor',{versionId:${v.id}})">${v.status === 'draft' ? 'Soạn thảo' : 'Xem'}</button>
+                  <button class="btn btn-primary btn-sm" onclick="window.App.navigate('version-editor',{versionId:${v.id}, programId:${programId}, programName:'${programName.replace(/'/g, "\\'")}'})">${v.status === 'draft' ? 'Soạn thảo' : 'Xem'}</button>
                   ${window.App.hasPerm('programs.delete_draft') && v.status === 'draft' ? `
                     <button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="window.ProgramsPage.deleteVersion(${v.id}, '${v.academic_year}', ${programId}, '${programName.replace(/'/g, "\\'")}')">🗑️</button>
                   ` : ''}

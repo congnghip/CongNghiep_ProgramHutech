@@ -50,6 +50,36 @@
       return this.userRoles.some(role => role.role_code === roleCode);
     },
 
+    escapeHtml(value = '') {
+      return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    },
+
+    navigateFromEncoded(page, encodedParams) {
+      const params = encodedParams ? JSON.parse(decodeURIComponent(encodedParams)) : undefined;
+      return this.navigate(page, params);
+    },
+
+    renderBreadcrumb(items = []) {
+      const parts = items
+        .filter(item => item && item.label)
+        .map((item) => {
+          const label = this.escapeHtml(item.label);
+          if (!item.page) {
+            return `<span style="font-weight:600;color:var(--text);">${label}</span>`;
+          }
+
+          const encodedParams = encodeURIComponent(JSON.stringify(item.params || {}));
+          return `<button type="button" onclick="window.App.navigateFromEncoded('${item.page}','${encodedParams}')" style="background:none;border:none;padding:0;color:var(--text-muted);cursor:pointer;font:inherit;">${label}</button>`;
+        });
+
+      return `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">${parts.join('<span style="color:var(--text-muted);">/</span>')}</div>`;
+    },
+
     // ====== LOGIN ======
     renderLogin() {
       document.getElementById('app').innerHTML = `
@@ -189,13 +219,13 @@
 
       if (page === 'version-editor' && params?.versionId) {
         this.currentPage = window.VersionEditorPage;
-        await window.VersionEditorPage.render(container, params.versionId);
+        await window.VersionEditorPage.render(container, params.versionId, params);
         this.checkPermissions(container);
         return;
       }
       if (page === 'syllabus-editor' && params?.syllabusId) {
         this.currentPage = window.SyllabusEditorPage;
-        await window.SyllabusEditorPage.render(container, params.syllabusId);
+        await window.SyllabusEditorPage.render(container, params.syllabusId, params);
         this.checkPermissions(container);
         return;
       }

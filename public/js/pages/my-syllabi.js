@@ -59,7 +59,7 @@ window.MySyllabiPage = {
         <td style="font-size:12px;color:var(--text-muted);">${s.program_name} <br/> <small>${s.dept_name || ''}</small></td>
         <td><span class="badge badge-info">${statusLabels[s.status] || s.status}</span></td>
         <td>
-          <button class="btn btn-primary btn-sm" onclick="window.App.navigate('syllabus-editor', { syllabusId: ${s.id} })">
+          <button class="btn btn-primary btn-sm" onclick="window.App.navigate('syllabus-editor', { syllabusId: ${s.id}, sourcePage: 'my-syllabi' })">
             ${s.status === 'draft' ? 'Soạn thảo' : 'Xem chi tiết'}
           </button>
         </td>

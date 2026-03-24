@@ -2,12 +2,14 @@
 window.SyllabusEditorPage = {
   syllabusId: null,
   syllabus: null,
+  routeContext: {},
   clos: [],
   plos: [],
   activeTab: 0,
 
-  async render(container, syllabusId) {
+  async render(container, syllabusId, params = {}) {
     this.syllabusId = syllabusId;
+    this.routeContext = params || {};
     container.innerHTML = '<div class="spinner"></div>';
     try {
       this.syllabus = await fetch(`/api/syllabi/${syllabusId}`).then(r => r.json());
@@ -22,11 +24,7 @@ window.SyllabusEditorPage = {
 
     container.innerHTML = `
       <div style="margin-bottom:24px;">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-          <button class="btn btn-secondary btn-sm" onclick="window.App.navigate('programs')">← Quay lại</button>
-          <span style="color:var(--text-muted);">/ Đề cương /</span>
-          <span style="font-weight:500;">${s.course_code} — ${s.course_name}</span>
-        </div>
+        <div id="syllabus-breadcrumb" style="margin-bottom:8px;"></div>
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <div>
             <h1 style="font-size:22px;font-weight:700;letter-spacing:-0.3px;">${s.course_name}</h1>
@@ -57,12 +55,55 @@ window.SyllabusEditorPage = {
         this.renderSylTab();
       });
     });
+    this.updateBreadcrumb();
     this.renderSylTab();
+  },
+
+  getBreadcrumbItems() {
+    if (this.routeContext.programId && this.routeContext.programName) {
+      return [
+        { label: 'Chương trình đào tạo', page: 'programs' },
+        {
+          label: 'Phiên bản',
+          page: 'programs',
+          params: {
+            programId: this.routeContext.programId,
+            programName: this.routeContext.programName
+          }
+        },
+        {
+          label: 'Soạn thảo',
+          page: 'version-editor',
+          params: {
+            versionId: this.routeContext.versionId || this.syllabus.version_id,
+            programId: this.routeContext.programId,
+            programName: this.routeContext.programName,
+            tabKey: this.routeContext.tabKey || 'syllabi'
+          }
+        },
+        { label: 'Đề cương' }
+      ];
+    }
+
+    if (this.routeContext.sourcePage === 'my-syllabi') {
+      return [
+        { label: 'Đề cương của tôi', page: 'my-syllabi' },
+        { label: 'Đề cương' }
+      ];
+    }
+
+    return [{ label: 'Đề cương' }];
+  },
+
+  updateBreadcrumb() {
+    const breadcrumb = document.getElementById('syllabus-breadcrumb');
+    if (breadcrumb) breadcrumb.innerHTML = window.App.renderBreadcrumb(this.getBreadcrumbItems());
   },
 
   async renderSylTab() {
     const body = document.getElementById('syl-tab-content');
     body.innerHTML = '<div class="spinner"></div>';
+    this.updateBreadcrumb();
     const editable = this.syllabus.status === 'draft';
     const c = this.syllabus.content || {};
     try {
