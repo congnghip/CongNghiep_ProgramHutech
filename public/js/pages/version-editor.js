@@ -86,6 +86,26 @@ window.VersionEditorPage = {
         ${this.visibleTabs.map((t, i) => `<div class="tab-item ${i === 0 ? 'active' : ''}" data-index="${i}">${t.label}</div>`).join('')}
       </div>
       <div id="tab-content"><div class="spinner"></div></div>
+
+      <!-- Assignment Modal -->
+      <div id="assign-modal" class="modal-overlay">
+        <div class="modal">
+          <div class="modal-header"><h2>Phân công soạn đề cương</h2></div>
+          <div class="modal-body">
+            <input type="hidden" id="as-syllabus-id">
+            <div class="input-group">
+              <label>Giảng viên soạn thảo (có thể chọn nhiều)</label>
+              <div id="as-user-list" style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:4px;padding:8px;background:var(--bg-secondary);">
+                <div class="spinner"></div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-secondary" onclick="document.getElementById('assign-modal').classList.remove('active')">Đóng</button>
+              <button class="btn btn-primary" onclick="window.VersionEditorPage.saveAssignment()">Lưu phân công</button>
+            </div>
+          </div>
+        </div>
+      </div>
     `;
 
     document.querySelectorAll('#editor-tabs .tab-item').forEach(el => {
@@ -128,7 +148,11 @@ window.VersionEditorPage = {
         case 'plan': await this.renderPlanTab(body, tabEditable); break;
         case 'course_plo': await this.renderCoursePLOMatrix(body, tabEditable); break;
         case 'assessment': await this.renderAssessmentTab(body, tabEditable); break;
-        case 'syllabi': await this.renderSyllabiTab(body, tabEditable); break;
+        case 'syllabi': {
+          const canAssign = !locked && window.App.hasPerm('syllabus.assign');
+          await this.renderSyllabiTab(body, tabEditable, canAssign);
+          break;
+        }
       }
     } catch (e) {
       body.innerHTML = `<p style="color:var(--danger);">Lỗi: ${e.message}</p>`;
@@ -757,7 +781,7 @@ window.VersionEditorPage = {
   },
 
   // ===== TAB 10: Syllabi =====
-  async renderSyllabiTab(body, editable) {
+  async renderSyllabiTab(body, editable, canAssign = false) {
     const [syllabi, vCourses] = await Promise.all([
       fetch(`/api/versions/${this.versionId}/syllabi`).then(r => r.json()),
       fetch(`/api/versions/${this.versionId}/courses`).then(r => r.json()),
@@ -773,15 +797,19 @@ window.VersionEditorPage = {
       </div>
       ${vCourses.length === 0 ? '<p style="color:var(--text-muted);font-size:13px;">Hãy gán HP vào CTĐT trước.</p>' : `
         <table class="data-table">
-          <thead><tr><th>Mã</th><th>Tên HP</th><th>TC</th><th>Tác giả</th><th>Trạng thái</th><th></th></tr></thead>
+          <thead><tr><th>Mã</th><th>Tên HP</th><th>TC</th><th>Tác giả / Phân công</th><th>Trạng thái</th><th></th></tr></thead>
           <tbody>
             ${vCourses.map(c => {
       const syl = syllabiMap[c.course_id];
+      const authors = (syl && syl.authors) ? syl.authors.map(a => a.display_name).join(', ') : '—';
       return `<tr>
                 <td><strong>${c.course_code}</strong></td>
                 <td>${c.course_name}</td>
                 <td style="text-align:center;">${c.credits}</td>
-                <td style="color:var(--text-muted);">${syl ? syl.author_name || '?' : '—'}</td>
+                <td style="color:var(--text-muted);font-size:12px;">
+                  ${authors}
+                  ${syl && canAssign ? `<button class="btn btn-secondary btn-sm" style="padding:2px 4px;margin-left:8px;" onclick="window.VersionEditorPage.openAssignModal(${syl.id})">Phân công</button>` : ''}
+                </td>
                 <td>${syl ? `<span class="badge badge-info">${statusLabels[syl.status]}</span>` : '<span class="badge badge-neutral">Chưa tạo</span>'}</td>
                 <td style="white-space:nowrap;">
                   ${syl
@@ -794,6 +822,69 @@ window.VersionEditorPage = {
         </table>
       `}
     `;
+  },
+
+  async openAssignModal(sId) {
+    document.getElementById('as-syllabus-id').value = sId;
+    document.getElementById('as-user-list').innerHTML = '<div class="spinner"></div>';
+    document.getElementById('assign-modal').classList.add('active');
+    
+    try {
+      const [usersRes, assignmentsRes] = await Promise.all([
+        fetch(`/api/users/assignable?syllabus_id=${sId}`),
+        fetch(`/api/assignments/${sId}`)
+      ]);
+      const parseJsonSafely = async (res, fallbackMessage) => {
+        const text = await res.text();
+        try {
+          return JSON.parse(text);
+        } catch (err) {
+          if (text.trim().startsWith('<')) {
+            throw new Error(`${fallbackMessage}. API có thể chưa được nạp, route chưa tồn tại, hoặc server chưa restart.`);
+          }
+          throw new Error(fallbackMessage);
+        }
+      };
+
+      const users = await parseJsonSafely(usersRes, 'Không tải được danh sách giảng viên');
+      const assignments = await parseJsonSafely(assignmentsRes, 'Không tải được phân công hiện tại');
+
+      if (!usersRes.ok) throw new Error(users.error || 'Không tải được danh sách giảng viên');
+      if (!assignmentsRes.ok) throw new Error(assignments.error || 'Không tải được phân công hiện tại');
+
+      const safeUsers = Array.isArray(users) ? users : [];
+      const safeAssignments = Array.isArray(assignments) ? assignments : [];
+      const assignedIds = new Set(safeAssignments.map(a => a.user_id));
+
+      if (safeUsers.length === 0) {
+        document.getElementById('as-user-list').innerHTML = '<p style="color:var(--text-muted);font-size:13px;">Không có giảng viên phù hợp trong phạm vi được phân công.</p>';
+        return;
+      }
+
+      document.getElementById('as-user-list').innerHTML = safeUsers.map(u => `
+        <label style="display:flex;align-items:center;gap:8px;padding:4px;cursor:pointer;">
+          <input type="checkbox" value="${u.id}" ${assignedIds.has(u.id) ? 'checked' : ''}>
+          <span style="font-size:13px;">${u.display_name} (${u.username}) - ${u.dept_name || 'Không đơn vị'}</span>
+        </label>
+      `).join('');
+    } catch (e) {
+      document.getElementById('as-user-list').innerHTML = `<p style="color:var(--danger);">Lỗi: ${e.message}</p>`;
+    }
+  },
+
+  async saveAssignment() {
+    const sId = document.getElementById('as-syllabus-id').value;
+    const userIds = Array.from(document.querySelectorAll('#as-user-list input:checked')).map(el => parseInt(el.value));
+    try {
+      const res = await fetch('/api/assignments', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ syllabus_id: parseInt(sId), user_ids: userIds })
+      });
+      if (!res.ok) throw new Error((await res.json()).error);
+      window.toast.success('Đã cập nhật phân công');
+      document.getElementById('assign-modal').classList.remove('active');
+      this.renderTab();
+    } catch (e) { window.toast.error(e.message); }
   },
 
   async createSyllabus(courseId) {

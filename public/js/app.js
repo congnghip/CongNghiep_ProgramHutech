@@ -9,6 +9,7 @@
 
     async init() {
       this.initToast();
+      this.initModalDismiss();
       try {
         const res = await fetch('/api/auth/me');
         if (res.ok) {
@@ -39,6 +40,14 @@
     getHighestRole() {
       if (!this.userRoles.length) return { role_name: 'N/A', dept_name: '' };
       return this.userRoles.reduce((a, b) => a.level > b.level ? a : b);
+    },
+
+    getUserRoles() {
+      return this.userRoles;
+    },
+
+    hasRole(roleCode) {
+      return this.userRoles.some(role => role.role_code === roleCode);
     },
 
     // ====== LOGIN ======
@@ -110,6 +119,10 @@
               ${this.hasPerm('courses.view') ? `
               <div class="nav-item" data-page="courses">
                 <span class="icon">📚</span> Học phần
+              </div>` : ''}
+              ${this.hasRole('GIANG_VIEN') ? `
+              <div class="nav-item" data-page="my-syllabi">
+                <span class="icon">📝</span> Đề cương của tôi
               </div>` : ''}
               <div class="nav-item" data-page="approval">
                 <span class="icon">📬</span> Phê duyệt
@@ -193,6 +206,7 @@
         users: window.UsersPage,
         programs: window.ProgramsPage,
         courses: window.CoursesPage,
+        'my-syllabi': window.MySyllabiPage,
         approval: window.ApprovalPage,
         'audit-logs': window.AuditLogsPage,
         'rbac-admin': window.RBACAdminPage,
@@ -291,6 +305,116 @@
         warning(m) { this.show(m, 'warning', 4000); },
         info(m) { this.show(m, 'info'); },
       };
+    },
+
+    initModalDismiss() {
+      const shouldHandleCloseButton = (target) => {
+        const btn = target.closest('.modal-footer .btn.btn-secondary');
+        if (!btn || btn.type === 'submit') return false;
+        const label = (btn.textContent || '').trim().toLowerCase();
+        return ['huy', 'hủy', 'dong', 'đóng', 'tat', 'tắt'].includes(label);
+      };
+
+      const observer = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+          if (mutation.type === 'attributes') {
+            if (!(mutation.target instanceof HTMLElement)) return;
+            const overlay = mutation.target;
+            if (!overlay.classList.contains('modal-overlay') || !overlay.classList.contains('active')) return;
+            this.captureModalState(overlay);
+            return;
+          }
+
+          const activeOverlay = mutation.target instanceof HTMLElement
+            ? mutation.target.closest('.modal-overlay.active')
+            : null;
+          if (!activeOverlay || activeOverlay.dataset.modalTouched === 'true') return;
+          this.captureModalState(activeOverlay);
+        });
+      });
+
+      observer.observe(document.body, {
+        subtree: true,
+        attributes: true,
+        childList: true,
+        attributeFilter: ['class']
+      });
+
+      document.addEventListener('input', (event) => {
+        const overlay = event.target.closest('.modal-overlay.active');
+        if (overlay) overlay.dataset.modalTouched = 'true';
+      });
+
+      document.addEventListener('change', (event) => {
+        const overlay = event.target.closest('.modal-overlay.active');
+        if (overlay) overlay.dataset.modalTouched = 'true';
+      });
+
+      document.addEventListener('click', (event) => {
+        const overlay = event.target.closest('.modal-overlay.active');
+        if (!overlay) return;
+        const isBackdropClick = event.target === overlay;
+        const isCloseButtonClick = shouldHandleCloseButton(event.target);
+        if (!isBackdropClick && !isCloseButtonClick) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+        this.requestModalClose(overlay);
+      }, true);
+    },
+
+    captureModalState(overlay) {
+      overlay.dataset.modalTouched = 'false';
+      overlay.dataset.initialState = this.serializeModalState(overlay);
+    },
+
+    serializeModalState(overlay) {
+      const fields = overlay.querySelectorAll('input, select, textarea');
+      return JSON.stringify(Array.from(fields).map((field, index) => ({
+        index,
+        type: field.type || field.tagName.toLowerCase(),
+        id: field.id || '',
+        value: field.type === 'checkbox' || field.type === 'radio'
+          ? field.checked
+          : field.value
+      })));
+    },
+
+    hasUnsavedModalChanges(overlay) {
+      const initialState = overlay.dataset.initialState ?? this.serializeModalState(overlay);
+      return initialState !== this.serializeModalState(overlay);
+    },
+
+    requestModalClose(overlay) {
+      if (!this.hasUnsavedModalChanges(overlay)) {
+        overlay.classList.remove('active');
+        return;
+      }
+
+      const wantsSave = window.confirm('Bạn có muốn lưu thay đổi trước khi đóng không?');
+      if (wantsSave) {
+        this.submitModalChanges(overlay);
+        return;
+      }
+
+      overlay.classList.remove('active');
+    },
+
+    submitModalChanges(overlay) {
+      const form = overlay.querySelector('form');
+      if (form) {
+        if (typeof form.requestSubmit === 'function') form.requestSubmit();
+        else form.submit();
+        return;
+      }
+
+      const primaryButton = overlay.querySelector('.modal-footer .btn.btn-primary');
+      if (primaryButton) {
+        primaryButton.click();
+        return;
+      }
+
+      overlay.classList.remove('active');
     },
   };
 

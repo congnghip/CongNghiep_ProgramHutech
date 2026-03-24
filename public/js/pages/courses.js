@@ -40,8 +40,12 @@ window.CoursesPage = {
                 <input type="number" id="c-credits" value="3" min="1" max="20">
               </div>
               <div class="input-group">
-                <label>Đơn vị quản lý</label>
-                <select id="c-dept"></select>
+                <label>Đơn vị quản lý (Khoa/Viện)</label>
+                <select id="c-khoa"></select>
+              </div>
+              <div class="input-group">
+                <label>Bộ môn quản lý trực tiếp</label>
+                <select id="c-nganh"></select>
               </div>
               <div class="input-group">
                 <label>Mô tả</label>
@@ -59,7 +63,21 @@ window.CoursesPage = {
     `;
     document.getElementById('course-form').addEventListener('submit', async (e) => { e.preventDefault(); await this.save(); });
     document.getElementById('course-search').addEventListener('input', () => this.renderTable());
+    document.getElementById('c-khoa').addEventListener('change', (e) => this.populateNganhSelect(e.target.value, null));
     await this.loadData();
+  },
+
+  populateNganhSelect(khoaId, selectedNganhId) {
+    const nganhSel = document.getElementById('c-nganh');
+    if (!khoaId) {
+      nganhSel.innerHTML = '<option value="">— Vui lòng chọn Khoa/Viện trước —</option>';
+      nganhSel.disabled = true;
+      return;
+    }
+    const children = this.departments.filter(d => d.parent_id == khoaId && d.type === 'BO_MON');
+    nganhSel.disabled = false;
+    nganhSel.innerHTML = '<option value="">— Trực thuộc cấp toàn Khoa/Viện —</option>' + 
+      children.map(d => `<option value="${d.id}" ${d.id == selectedNganhId ? 'selected' : ''}>${d.name}</option>`).join('');
   },
 
   async loadData() {
@@ -97,10 +115,29 @@ window.CoursesPage = {
     document.getElementById('c-name').value = c ? c.name : '';
     document.getElementById('c-credits').value = c ? c.credits : 3;
     document.getElementById('c-desc').value = c ? (c.description || '') : '';
-    const sel = document.getElementById('c-dept');
-    sel.innerHTML = '<option value="">— Chọn —</option>' + this.departments.filter(d => d.type !== 'ROOT').map(d =>
-      `<option value="${d.id}" ${c && c.department_id === d.id ? 'selected' : ''}>${d.name}</option>`
-    ).join('');
+    
+    // Resolve selected department into Khoa and Nganh
+    let selectedKhoaId = '';
+    let selectedNganhId = '';
+    if (c && c.department_id) {
+      const deptInfo = this.departments.find(d => d.id === c.department_id);
+      if (deptInfo) {
+        if (deptInfo.type === 'BO_MON' && deptInfo.parent_id) {
+          selectedKhoaId = deptInfo.parent_id;
+          selectedNganhId = c.department_id;
+        } else {
+          selectedKhoaId = c.department_id;
+        }
+      }
+    }
+
+    const khoas = this.departments.filter(d => ['KHOA', 'VIEN', 'TRUNG_TAM'].includes(d.type));
+    const khoaSel = document.getElementById('c-khoa');
+    khoaSel.innerHTML = '<option value="">— Chọn Đơn vị quản lý (Khoa/Viện) —</option>' + 
+      khoas.map(d => `<option value="${d.id}" ${d.id == selectedKhoaId ? 'selected' : ''}>${d.name}</option>`).join('');
+
+    this.populateNganhSelect(selectedKhoaId, selectedNganhId);
+
     document.getElementById('c-save-btn').textContent = c ? 'Cập nhật' : 'Thêm';
     document.getElementById('c-error').classList.remove('show');
     document.getElementById('course-modal').classList.add('active');
@@ -108,11 +145,14 @@ window.CoursesPage = {
 
   async save() {
     const id = document.getElementById('c-edit-id').value;
+    const nganhVal = document.getElementById('c-nganh').value;
+    const khoaVal = document.getElementById('c-khoa').value;
+    
     const payload = {
       code: document.getElementById('c-code').value.trim(),
       name: document.getElementById('c-name').value.trim(),
-      credits: parseInt(document.getElementById('c-credits').value),
-      department_id: document.getElementById('c-dept').value || null,
+      credits: parseInt(document.getElementById('c-credits').value) || 3,
+      department_id: nganhVal || khoaVal || null,
       description: document.getElementById('c-desc').value.trim(),
     };
     try {
@@ -134,10 +174,16 @@ window.CoursesPage = {
   async del(id) {
     if (!confirm('Xóa học phần này?')) return;
     try {
-      await fetch(`/api/courses/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/courses/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const d = await res.json();
+        throw new Error(d.error || 'Lỗi khi xóa');
+      }
       window.toast.success('Đã xóa HP');
       await this.loadData();
-    } catch (e) { window.toast.error(e.message); }
+    } catch (e) { 
+      window.toast.error(e.message); 
+    }
   },
 
   destroy() {}

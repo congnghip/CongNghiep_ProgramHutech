@@ -13,8 +13,8 @@ window.UsersPage = {
         </div>
         <div class="table-responsive" style="padding:0 20px 20px;">
           <table class="data-table">
-            <thead><tr><th>Tên đăng nhập</th><th>Tên hiển thị</th><th>Vai trò</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
-            <tbody id="users-tbody"><tr><td colspan="5" class="text-center"><div class="spinner"></div></td></tr></tbody>
+            <thead><tr><th>Tên đăng nhập</th><th>Tên hiển thị</th><th>Đơn vị</th><th>Vai trò</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
+            <tbody id="users-tbody"><tr><td colspan="6" class="text-center"><div class="spinner"></div></td></tr></tbody>
           </table>
         </div>
       </div>
@@ -41,6 +41,10 @@ window.UsersPage = {
               <div class="input-group">
                 <label>Email</label>
                 <input type="email" id="u-email" placeholder="VD: a@hutech.edu.vn">
+              </div>
+              <div class="input-group">
+                <label>Đơn vị công tác <span style="color:var(--danger);">*</span></label>
+                <select id="u-dept" required></select>
               </div>
               <div class="modal-error" id="u-error"></div>
               <div class="modal-footer">
@@ -82,20 +86,19 @@ window.UsersPage = {
     await this.loadData();
   },
 
-  async loadData() {
-    try {
-      const [users, roles, depts] = await Promise.all([
-        fetch('/api/users').then(r => r.json()),
-        fetch('/api/roles').then(r => r.json()),
-        fetch('/api/departments').then(r => r.json()),
-      ]);
+  loadData() {
+    return Promise.all([
+      fetch('/api/users').then(r => r.json()),
+      fetch('/api/roles').then(r => r.json()),
+      fetch('/api/departments').then(r => r.json()),
+    ]).then(([users, roles, depts]) => {
       this.users = users;
       this.roles = roles;
       this.departments = depts;
       this.renderTable();
-    } catch (e) {
-      document.getElementById('users-tbody').innerHTML = `<tr><td colspan="5" style="color:var(--danger);">Lỗi: ${e.message}</td></tr>`;
-    }
+    }).catch(e => {
+      document.getElementById('users-tbody').innerHTML = `<tr><td colspan="6" style="color:var(--danger);">Lỗi: ${e.message}</td></tr>`;
+    });
   },
 
   renderTable() {
@@ -108,6 +111,7 @@ window.UsersPage = {
         <tr>
           <td style="font-weight:500;">${u.username}</td>
           <td>${u.display_name}</td>
+          <td style="font-size:12px;">${u.dept_name || '—'}</td>
           <td style="font-size:11px;">${rolesBadges}</td>
           <td><span class="badge ${u.is_active ? 'badge-success' : 'badge-danger'}">${u.is_active ? 'Hoạt động' : 'Khóa'}</span></td>
           <td style="white-space:nowrap;">
@@ -124,6 +128,11 @@ window.UsersPage = {
     document.getElementById('u-edit-id').value = '';
     document.getElementById('u-username').disabled = false;
     document.getElementById('u-password').required = true;
+    
+    const deptSel = document.getElementById('u-dept');
+    deptSel.innerHTML = '<option value="">-- Chọn đơn vị --</option>' + 
+      this.departments.map(d => `<option value="${d.id}">${d.name} (${d.code})</option>`).join('');
+
     document.getElementById('u-error').classList.remove('show');
     document.getElementById('u-save-btn').textContent = 'Tạo mới';
     document.getElementById('user-modal').classList.add('active');
@@ -140,6 +149,11 @@ window.UsersPage = {
     document.getElementById('u-password').required = false;
     document.getElementById('u-display').value = u.display_name;
     document.getElementById('u-email').value = u.email || '';
+    
+    const deptSel = document.getElementById('u-dept');
+    deptSel.innerHTML = '<option value="">-- Chọn đơn vị --</option>' + 
+      this.departments.map(d => `<option value="${d.id}" ${u.department_id == d.id ? 'selected' : ''}>${d.name} (${d.code})</option>`).join('');
+
     document.getElementById('u-error').classList.remove('show');
     document.getElementById('u-save-btn').textContent = 'Cập nhật';
     document.getElementById('user-modal').classList.add('active');
@@ -153,9 +167,10 @@ window.UsersPage = {
     const password = document.getElementById('u-password').value;
     const display_name = document.getElementById('u-display').value.trim();
     const email = document.getElementById('u-email').value.trim();
+    const department_id = document.getElementById('u-dept').value;
     const errorEl = document.getElementById('u-error');
     try {
-      const payload = { display_name, email };
+      const payload = { display_name, email, department_id };
       if (password) payload.password = password;
       if (!id) payload.username = username;
       const url = id ? `/api/users/${id}` : '/api/users';

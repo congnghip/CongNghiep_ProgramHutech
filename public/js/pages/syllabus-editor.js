@@ -41,7 +41,7 @@ window.SyllabusEditorPage = {
       <div class="tab-bar" id="syl-tabs">
         <div class="tab-item active" data-tab="0">Thông tin chung</div>
         <div class="tab-item" data-tab="1">CLO</div>
-        <div class="tab-item" data-tab="2">CLO ↔ PLO</div>
+        <div class="tab-item" data-tab="2">CLO-PLO</div>
         <div class="tab-item" data-tab="3">Lịch giảng dạy</div>
         <div class="tab-item" data-tab="4">Đánh giá</div>
         <div class="tab-item" data-tab="5">Tài liệu</div>
@@ -98,7 +98,8 @@ window.SyllabusEditorPage = {
       methods: document.getElementById('syl-methods').value,
     };
     try {
-      await fetch(`/api/syllabi/${this.syllabusId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content }) });
+      const res = await fetch(`/api/syllabi/${this.syllabusId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content }) });
+      if (!res.ok) throw new Error((await res.json()).error || 'Không thể lưu đề cương');
       this.syllabus.content = content;
       window.toast.success('Đã lưu');
     } catch (e) { window.toast.error(e.message); }
@@ -251,7 +252,8 @@ window.SyllabusEditorPage = {
     inputs.forEach(inp => { const w = inp.dataset.week; if (!weeks[w]) weeks[w] = { week: parseInt(w) }; weeks[w][inp.dataset.field] = inp.value; });
     const content = { ...this.syllabus.content, schedule: Object.values(weeks) };
     try {
-      await fetch(`/api/syllabi/${this.syllabusId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content }) });
+      const res = await fetch(`/api/syllabi/${this.syllabusId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content }) });
+      if (!res.ok) throw new Error((await res.json()).error || 'Không thể lưu lịch giảng dạy');
       this.syllabus.content = content;
       window.toast.success('Đã lưu');
     } catch (e) { window.toast.error(e.message); }
@@ -306,7 +308,8 @@ window.SyllabusEditorPage = {
     }));
     const content = { ...this.syllabus.content, grading };
     try {
-      await fetch(`/api/syllabi/${this.syllabusId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content }) });
+      const res = await fetch(`/api/syllabi/${this.syllabusId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content }) });
+      if (!res.ok) throw new Error((await res.json()).error || 'Không thể lưu hình thức đánh giá');
       this.syllabus.content = content;
       window.toast.success('Đã lưu');
     } catch (e) { window.toast.error(e.message); }
@@ -331,7 +334,8 @@ window.SyllabusEditorPage = {
       tools: document.getElementById('syl-tools').value,
     };
     try {
-      await fetch(`/api/syllabi/${this.syllabusId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content }) });
+      const res = await fetch(`/api/syllabi/${this.syllabusId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content }) });
+      if (!res.ok) throw new Error((await res.json()).error || 'Không thể lưu tài liệu tham khảo');
       this.syllabus.content = content;
       window.toast.success('Đã lưu');
     } catch (e) { window.toast.error(e.message); }

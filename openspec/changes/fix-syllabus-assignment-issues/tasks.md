@@ -1,0 +1,3 @@
+- [x] Cập nhật artifact của change để phản ánh phạm vi phân công theo ngành hiện tại của đề cương.
+- [x] Cập nhật RBAC và backend API phân công/danh sách giảng viên theo đúng scope vai trò.
+- [x] Cập nhật frontend modal phân công để dùng API mới, tránh crash, và hiển thị nút theo quyền `syllabus.assign`.

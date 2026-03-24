@@ -8,7 +8,16 @@ window.ApprovalPage = {
         submitted: 'Đã nộp', 
         approved_tbm: 'TBM ✓', 
         approved_khoa: 'Khoa ✓', 
-        approved_pdt: 'PĐT ✓'
+        approved_pdt: 'PĐT ✓',
+        published: 'Đã công bố',
+        rejected: 'Đã từ chối',
+        draft: 'Bản nháp'
+      };
+
+      const renderTrackingText = (item, type) => {
+        if (item.is_rejected) return 'Đã từ chối';
+        if (item.status === 'published') return 'Đã công bố';
+        return 'Đã nộp';
       };
 
       // Helper to determine required permission for approval based on current status
@@ -33,24 +42,25 @@ window.ApprovalPage = {
         <h1 style="font-size:24px;font-weight:700;letter-spacing:-0.3px;margin-bottom:24px;">Phê duyệt</h1>
 
         <div style="margin-bottom:32px;">
-          <h3 style="font-size:15px;font-weight:600;margin-bottom:12px;">Chương trình ĐT chờ duyệt</h3>
+          <h3 style="font-size:15px;font-weight:600;margin-bottom:12px;">Chương trình ĐT theo dõi phê duyệt</h3>
           ${(data.programs || []).length === 0 ? '<p style="color:var(--text-muted);font-size:13px;">Không có CTĐT nào chờ duyệt.</p>' : `
             <table class="data-table">
               <thead><tr><th>Chương trình</th><th>Năm học</th><th>Khoa</th><th>Trạng thái</th><th></th></tr></thead>
               <tbody>
                 ${data.programs.map(p => {
                   const perm = getRequiredPerm(p.status, 'program_version');
-                  const canApprove = window.App.hasPerm(perm);
+                  const canApprove = typeof p.can_approve === 'boolean' ? p.can_approve : window.App.hasPerm(perm);
+                  const displayStatus = p.display_status || p.status;
                   return `<tr>
                     <td style="font-weight:500;">${p.program_name}</td>
                     <td>${p.academic_year}</td>
                     <td style="color:var(--text-muted);">${p.dept_name || ''}</td>
-                    <td><span class="badge ${p.is_rejected ? 'badge-danger' : (p.status === 'published' ? 'badge-success' : 'badge-info')}">${p.is_rejected ? 'Bị từ chối' : (statusLabels[p.status] || p.status)}</span></td>
+                    <td><span class="badge ${p.is_rejected ? 'badge-danger' : (displayStatus === 'published' ? 'badge-success' : 'badge-info')}">${statusLabels[displayStatus] || displayStatus}</span></td>
                     <td style="white-space:nowrap;">
                       ${canApprove ? `
                         <button class="btn btn-primary btn-sm" onclick="window.ApprovalPage.approve(${p.id},'program_version')">Duyệt</button>
                         <button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="window.ApprovalPage.showRejectModal(${p.id},'program_version')">Từ chối</button>
-                      ` : '<span style="color:var(--text-muted);font-size:12px;">Chờ phê duyệt</span>'}
+                      ` : `<span style="color:var(--text-muted);font-size:12px;">${renderTrackingText(p, 'program_version')}</span>`}
                     </td>
                   </tr>`;
                 }).join('')}
@@ -60,24 +70,25 @@ window.ApprovalPage = {
         </div>
 
         <div style="margin-bottom:32px;">
-          <h3 style="font-size:15px;font-weight:600;margin-bottom:12px;">Đề cương chờ duyệt</h3>
+          <h3 style="font-size:15px;font-weight:600;margin-bottom:12px;">Đề cương theo dõi phê duyệt</h3>
           ${(data.syllabi || []).length === 0 ? '<p style="color:var(--text-muted);font-size:13px;">Không có đề cương nào chờ duyệt.</p>' : `
             <table class="data-table">
               <thead><tr><th>Mã</th><th>Tên HP</th><th>Tác giả</th><th>Trạng thái</th><th></th></tr></thead>
               <tbody>
                 ${data.syllabi.map(s => {
                   const perm = getRequiredPerm(s.status, 'syllabus');
-                  const canApprove = window.App.hasPerm(perm);
+                  const canApprove = typeof s.can_approve === 'boolean' ? s.can_approve : window.App.hasPerm(perm);
+                  const displayStatus = s.display_status || s.status;
                   return `<tr>
                     <td><strong>${s.course_code || ''}</strong></td>
                     <td>${s.course_name || ''}</td>
                     <td style="color:var(--text-muted);">${s.author_name || '?'}</td>
-                    <td><span class="badge ${s.is_rejected ? 'badge-danger' : 'badge-info'}">${s.is_rejected ? 'Bị từ chối' : (statusLabels[s.status] || s.status)}</span></td>
+                    <td><span class="badge ${s.is_rejected ? 'badge-danger' : (displayStatus === 'published' ? 'badge-success' : 'badge-info')}">${statusLabels[displayStatus] || displayStatus}</span></td>
                     <td style="white-space:nowrap;">
                       ${canApprove ? `
                         <button class="btn btn-primary btn-sm" onclick="window.ApprovalPage.approve(${s.id},'syllabus')">Duyệt</button>
                         <button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="window.ApprovalPage.showRejectModal(${s.id},'syllabus')">Từ chối</button>
-                      ` : '<span style="color:var(--text-muted);font-size:12px;">Chờ phê duyệt</span>'}
+                      ` : `<span style="color:var(--text-muted);font-size:12px;">${renderTrackingText(s, 'syllabus')}</span>`}
                     </td>
                   </tr>`;
                 }).join('')}

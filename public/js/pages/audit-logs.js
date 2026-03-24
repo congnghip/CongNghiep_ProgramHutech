@@ -8,6 +8,43 @@ window.AuditLogsPage = {
     await this.loadLogs(container);
   },
 
+  translateAction(method, target) {
+    if (!target) return 'Không xác định';
+    let t = target.split('?')[0].replace(/\/$/, ''); // Remove query string & trailing slash
+    
+    // Auth & Generic
+    if (t.includes('auth/login')) return 'Đăng nhập hệ thống';
+    
+    // Approval & Workflow
+    if (t.includes('approval/submit')) return 'Nộp yêu cầu Phê duyệt';
+    if (t.includes('approval/review')) return 'Phê duyệt / Đánh giá yêu cầu';
+    
+    // Roles & Users
+    if (t.match(/^roles\/\d+\/permissions/)) return 'Cập nhật phân quyền cho Vai trò';
+    if (t.match(/^users\/\d+\/roles/)) return method === 'DELETE' ? 'Gỡ vai trò Người dùng' : 'Gán vai trò Người dùng';
+    if (t.startsWith('roles')) return 'Quản lý Hệ thống Vai trò';
+    if (t.startsWith('users')) return 'Quản lý Danh sách Người dùng';
+    
+    // Syllabus & Assignments
+    if (t.startsWith('assignments')) return 'Phân công biên soạn Đề cương';
+    if (t.startsWith('syllabus')) return 'Quản lý Đề cương Chi tiết';
+    
+    // Programs & Versions
+    if (t.match(/^versions\/\d+\/clone/)) return 'Nhân bản phiên bản CTĐT';
+    if (t.match(/^versions\/\d+\/courses/)) return 'Cập nhật danh sách Môn học (Ma trận)';
+    if (t.match(/^versions\/\d+\/objectives/)) return 'Cập nhật Mục tiêu Đào tạo (PO)';
+    if (t.match(/^programs\/\d+\/versions/)) return 'Quản lý Phiên bản CTĐT';
+    if (t.startsWith('versions')) return 'Thông tin Phiên bản CTĐT';
+    if (t.startsWith('programs')) return 'Danh sách Chương trình Đào tạo';
+    
+    // Core categories
+    if (t.startsWith('departments')) return 'Danh mục Phòng ban / Đơn vị';
+    if (t.startsWith('courses')) return 'Danh mục Học phần / Môn học';
+    
+    // Default fallback
+    return `[Hệ thống] Tác động vào ${t}`;
+  },
+
   async loadLogs(container) {
     try {
       const data = await fetch(`/api/audit-logs?limit=${this.pageSize}&offset=${this.currentOffset}`).then(r => r.json());
@@ -26,11 +63,12 @@ window.AuditLogsPage = {
             ${data.logs.length === 0 ? '<tr><td colspan="5" style="color:var(--text-muted);text-align:center;">Chưa có nhật ký</td></tr>' : data.logs.map(l => {
               const method = l.action?.split(' ')[0] || '';
               const target = l.action?.split(' ').slice(1).join(' ').replace('/api/', '') || '';
+              const translated = window.AuditLogsPage.translateAction(method, target);
               return `<tr style="font-size:13px;">
                 <td style="color:var(--text-muted);">${new Date(l.created_at).toLocaleString('vi-VN')}</td>
                 <td style="font-weight:500;">${l.user_name || '?'}</td>
                 <td><span class="badge badge-${method === 'POST' ? 'success' : method === 'DELETE' ? 'danger' : 'warning'}">${methodLabels[method] || method}</span></td>
-                <td style="font-family:monospace;font-size:12px;color:var(--text-muted);">${target}</td>
+                <td style="font-weight:500;font-size:13px;color:var(--text-main);" title="${target}">${translated}</td>
                 <td style="color:var(--text-light);font-size:12px;">${l.ip || ''}</td>
               </tr>`;
             }).join('')}

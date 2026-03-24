@@ -179,6 +179,256 @@ async function requireViewVersion(req, res, next) {
   } catch (e) { res.status(500).json({ error: e.message }); }
 }
 
+async function requireViewSyllabus(req, res, next) {
+  try {
+    const admin = await isAdmin(req.user.id);
+    if (admin) return next();
+
+    const syllabusId = req.params.sId || req.params.id;
+    if (!syllabusId) return res.status(400).json({ error: 'Thiếu mã đề cương' });
+
+    const syllabusRes = await pool.query(`
+      SELECT vs.id, pv.status, p.department_id
+      FROM version_syllabi vs
+      JOIN program_versions pv ON vs.version_id = pv.id
+      JOIN programs p ON pv.program_id = p.id
+      WHERE vs.id = $1
+    `, [syllabusId]);
+
+    if (!syllabusRes.rows.length) {
+      return res.status(404).json({ error: 'Không tìm thấy đề cương.' });
+    }
+
+    const syllabus = syllabusRes.rows[0];
+    const viewPerm = syllabus.status === 'published' ? 'programs.view_published' : 'programs.view_draft';
+    const hasVersionView = await hasPermission(req.user.id, viewPerm, syllabus.department_id);
+    if (hasVersionView) return next();
+
+    const isAssigned = await pool.query(
+      'SELECT 1 FROM syllabus_assignments WHERE syllabus_id = $1 AND user_id = $2 LIMIT 1',
+      [syllabus.id, req.user.id]
+    );
+    if (isAssigned.rows.length > 0) return next();
+
+    return res.status(403).json({ error: 'Không có quyền xem đề cương này' });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+}
+
+async function isUserAssignedToSyllabus(userId, syllabusId) {
+  const assigned = await pool.query(
+    'SELECT 1 FROM syllabus_assignments WHERE syllabus_id = $1 AND user_id = $2 LIMIT 1',
+    [syllabusId, userId]
+  );
+  return assigned.rows.length > 0;
+}
+
+async function getSyllabusAssignmentScope(userId, syllabusId) {
+  const admin = await isAdmin(userId);
+  const syllabusRes = await pool.query(`
+    SELECT vs.id, p.department_id, d.parent_id
+    FROM version_syllabi vs
+    JOIN program_versions pv ON vs.version_id = pv.id
+    JOIN programs p ON pv.program_id = p.id
+    JOIN departments d ON p.department_id = d.id
+    WHERE vs.id = $1
+  `, [syllabusId]);
+
+  if (!syllabusRes.rows.length) {
+    throw new Error('Không tìm thấy đề cương');
+  }
+
+  const scope = syllabusRes.rows[0];
+  if (admin) {
+    return {
+      mode: 'all',
+      departmentId: scope.department_id,
+      parentDepartmentId: scope.parent_id,
+    };
+  }
+
+  const canAssign = await hasPermission(userId, 'syllabus.assign', scope.department_id);
+  if (!canAssign) {
+    return null;
+  }
+
+  const roles = await getUserRoles(userId);
+  const schoolWideRoles = new Set(['PHONG_DAO_TAO', 'BAN_GIAM_HIEU']);
+  const departmentScopedRoles = new Set(['TRUONG_NGANH']);
+  const facultyScopedRoles = new Set(['LANH_DAO_KHOA']);
+
+  const matchingRoles = roles.filter((role) => {
+    if (schoolWideRoles.has(role.role_code)) return true;
+    if (!departmentScopedRoles.has(role.role_code) && !facultyScopedRoles.has(role.role_code)) return false;
+    return role.department_id === scope.department_id || role.department_id === scope.parent_id;
+  });
+
+  if (matchingRoles.some(role => schoolWideRoles.has(role.role_code))) {
+    return {
+      mode: 'all',
+      departmentId: scope.department_id,
+      parentDepartmentId: scope.parent_id,
+    };
+  }
+
+  if (matchingRoles.some(role => facultyScopedRoles.has(role.role_code) && role.department_id === scope.parent_id)) {
+    return {
+      mode: 'faculty',
+      departmentId: scope.department_id,
+      parentDepartmentId: scope.parent_id,
+    };
+  }
+
+  if (matchingRoles.some(role => departmentScopedRoles.has(role.role_code) && role.department_id === scope.department_id)) {
+    return {
+      mode: 'department',
+      departmentId: scope.department_id,
+      parentDepartmentId: scope.parent_id,
+    };
+  }
+
+  return null;
+}
+
+async function listAssignableUsers(scope) {
+  const params = [];
+  let deptFilter = '';
+
+  if (scope.mode === 'department') {
+    params.push(scope.departmentId);
+    deptFilter = ` AND ur.department_id = $${params.length}`;
+  } else if (scope.mode === 'faculty') {
+    params.push(scope.parentDepartmentId);
+    deptFilter = ` AND (
+      ur.department_id = $${params.length}
+      OR ur.department_id IN (SELECT id FROM departments WHERE parent_id = $${params.length})
+    )`;
+  }
+
+  const result = await pool.query(`
+    SELECT DISTINCT u.id, u.display_name, u.username, d.name as dept_name
+    FROM users u
+    JOIN user_roles ur ON u.id = ur.user_id
+    JOIN roles r ON ur.role_id = r.id
+    LEFT JOIN departments d ON ur.department_id = d.id
+    WHERE u.is_active = true
+      AND r.code = 'GIANG_VIEN'
+      ${deptFilter}
+    ORDER BY u.display_name, u.username
+  `, params);
+
+  return result.rows;
+}
+
+async function getSyllabusOwnerDepartmentId(syllabusId) {
+  const assignedDept = await pool.query(`
+    SELECT ur.department_id
+    FROM syllabus_assignments sa
+    JOIN user_roles ur ON ur.user_id = sa.user_id
+    JOIN roles r ON r.id = ur.role_id
+    WHERE sa.syllabus_id = $1
+      AND r.code = 'GIANG_VIEN'
+      AND ur.department_id IS NOT NULL
+    ORDER BY sa.id ASC
+    LIMIT 1
+  `, [syllabusId]);
+  if (assignedDept.rows.length) return assignedDept.rows[0].department_id;
+
+  const authorDept = await pool.query(`
+    SELECT ur.department_id
+    FROM version_syllabi vs
+    JOIN user_roles ur ON ur.user_id = vs.author_id
+    JOIN roles r ON r.id = ur.role_id
+    WHERE vs.id = $1
+      AND r.code = 'GIANG_VIEN'
+      AND ur.department_id IS NOT NULL
+    LIMIT 1
+  `, [syllabusId]);
+  if (authorDept.rows.length) return authorDept.rows[0].department_id;
+
+  const courseDept = await pool.query(`
+    SELECT c.department_id
+    FROM version_syllabi vs
+    JOIN courses c ON c.id = vs.course_id
+    WHERE vs.id = $1
+    LIMIT 1
+  `, [syllabusId]);
+  return courseDept.rows[0]?.department_id || null;
+}
+
+async function canReviewSyllabusAtCurrentStep(userId, syllabusId, status, requiredPerm) {
+  const admin = await isAdmin(userId);
+  if (admin) return true;
+
+  if (status === 'submitted' && requiredPerm === 'syllabus.approve_tbm') {
+    const ownerDeptId = await getSyllabusOwnerDepartmentId(syllabusId);
+    if (!ownerDeptId) return false;
+    const result = await pool.query(`
+      SELECT 1
+      FROM user_roles ur
+      JOIN role_permissions rp ON rp.role_id = ur.role_id
+      JOIN permissions p ON p.id = rp.permission_id
+      JOIN roles r ON r.id = ur.role_id
+      WHERE ur.user_id = $1
+        AND p.code = $2
+        AND r.code = 'TRUONG_NGANH'
+        AND ur.department_id = $3
+      LIMIT 1
+    `, [userId, requiredPerm, ownerDeptId]);
+    return result.rows.length > 0;
+  }
+
+  const deptRes = await pool.query(
+    'SELECT c.department_id FROM version_syllabi vs JOIN courses c ON vs.course_id = c.id WHERE vs.id = $1',
+    [syllabusId]
+  );
+  const deptId = deptRes.rows[0]?.department_id;
+  return deptId ? hasPermission(userId, requiredPerm, deptId) : false;
+}
+
+async function canTrackProgramForUser(userId, roles, item) {
+  const admin = await isAdmin(userId);
+  if (admin) return true;
+
+  const trackingPerms = [
+    'programs.approve_khoa',
+    'programs.approve_pdt',
+    'programs.approve_bgh'
+  ];
+  for (const perm of trackingPerms) {
+    if (await hasPermission(userId, perm, item.department_id)) return true;
+  }
+  return false;
+}
+
+async function canTrackSyllabusForUser(userId, roles, item) {
+  const admin = await isAdmin(userId);
+  if (admin) return true;
+
+  const ownerDeptId = await getSyllabusOwnerDepartmentId(item.id);
+  const courseDeptId = item.department_id;
+  const ownerDeptRes = ownerDeptId
+    ? await pool.query('SELECT parent_id FROM departments WHERE id = $1', [ownerDeptId])
+    : { rows: [] };
+  const ownerParentId = ownerDeptRes.rows[0]?.parent_id || null;
+
+  if (roles.some(role => role.role_code === 'TRUONG_NGANH' && role.department_id === ownerDeptId)) {
+    return true;
+  }
+  if (roles.some(role => role.role_code === 'LANH_DAO_KHOA' && role.department_id === ownerParentId)) {
+    return true;
+  }
+
+  const trackingPerms = [
+    'syllabus.approve_khoa',
+    'syllabus.approve_pdt',
+    'syllabus.approve_bgh'
+  ];
+  for (const perm of trackingPerms) {
+    if (courseDeptId && await hasPermission(userId, perm, courseDeptId)) return true;
+  }
+  return false;
+}
+
 // ============ AUTH ROUTES ============
 app.post('/api/auth/login', async (req, res) => {
   const { username, password } = req.body;
@@ -261,42 +511,61 @@ app.delete('/api/departments/:id', authMiddleware, requirePerm('rbac.manage_depa
 app.get('/api/users', authMiddleware, requirePerm('rbac.manage_users'), async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT u.id, u.username, u.display_name, u.email, u.is_active, u.created_at,
+      SELECT u.id, u.username, u.display_name, u.email, u.is_active, u.created_at, u.department_id,
+        dept.name as dept_name,
         COALESCE(json_agg(json_build_object('role_code', r.code, 'role_name', r.name, 'dept_code', d.code, 'dept_name', d.name, 'department_id', ur.department_id, 'parent_dept_name', pd.name))
         FILTER (WHERE r.id IS NOT NULL), '[]') as roles
       FROM users u
+      LEFT JOIN departments dept ON u.department_id = dept.id
       LEFT JOIN user_roles ur ON u.id = ur.user_id
       LEFT JOIN roles r ON ur.role_id = r.id
       LEFT JOIN departments d ON ur.department_id = d.id
       LEFT JOIN departments pd ON d.parent_id = pd.id
-      GROUP BY u.id ORDER BY u.created_at
+      GROUP BY u.id, dept.name ORDER BY u.created_at
     `);
     res.json(result.rows);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+app.get('/api/users/assignable', authMiddleware, async (req, res) => {
+  try {
+    const syllabusId = parseInt(req.query.syllabus_id, 10);
+    if (!syllabusId) {
+      return res.status(400).json({ error: 'Thiếu syllabus_id' });
+    }
+
+    const scope = await getSyllabusAssignmentScope(req.user.id, syllabusId);
+    if (!scope) {
+      return res.status(403).json({ error: 'Không có quyền phân công đề cương này' });
+    }
+
+    const users = await listAssignableUsers(scope);
+    res.json(users);
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
 app.post('/api/users', authMiddleware, requirePerm('rbac.manage_users'), async (req, res) => {
-  const { username, password, display_name, email } = req.body;
+  const { username, password, display_name, email, department_id } = req.body;
   try {
     const hash = await bcrypt.hash(password, 10);
     const result = await pool.query(
-      'INSERT INTO users (username, password_hash, display_name, email) VALUES ($1,$2,$3,$4) RETURNING id, username, display_name',
-      [username, hash, display_name, email]
+      'INSERT INTO users (username, password_hash, display_name, email, department_id) VALUES ($1,$2,$3,$4,$5) RETURNING id, username, display_name',
+      [username, hash, display_name, email, department_id]
     );
     res.json(result.rows[0]);
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
 app.put('/api/users/:id', authMiddleware, requirePerm('rbac.manage_users'), async (req, res) => {
-  const { display_name, email, password, is_active } = req.body;
+  const { display_name, email, password, is_active, department_id } = req.body;
   try {
     if (password) {
       const hash = await bcrypt.hash(password, 10);
       await pool.query('UPDATE users SET password_hash=$1 WHERE id=$2', [hash, req.params.id]);
     }
     const result = await pool.query(
-      'UPDATE users SET display_name=COALESCE($1,display_name), email=COALESCE($2,email), is_active=COALESCE($3,is_active) WHERE id=$4 RETURNING id, username, display_name',
-      [display_name, email, is_active, req.params.id]
+      'UPDATE users SET display_name=COALESCE($1,display_name), email=COALESCE($2,email), is_active=COALESCE($3,is_active), department_id=COALESCE($4,department_id) WHERE id=$5 RETURNING id, username, display_name',
+      [display_name, email, is_active, department_id, req.params.id]
     );
     res.json(result.rows[0]);
   } catch (e) { res.status(400).json({ error: e.message }); }
@@ -563,7 +832,10 @@ app.get('/api/programs/:programId/versions', authMiddleware, async (req, res) =>
 });
 
 app.post('/api/programs/:programId/versions', authMiddleware, requirePerm('programs.create_version'), async (req, res) => {
-  const { academic_year, copy_from_version_id } = req.body;
+  const { academic_year, copy_from_version_id, version_name, total_credits, training_duration,
+          change_type, effective_date, change_summary, grading_scale, graduation_requirements,
+          job_positions, further_education, reference_programs, training_process,
+          admission_targets, admission_criteria } = req.body;
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -578,8 +850,16 @@ app.post('/api/programs/:programId/versions', authMiddleware, requirePerm('progr
     }
     // Create new version
     const ver = await client.query(
-      'INSERT INTO program_versions (program_id, academic_year, copied_from_id) VALUES ($1,$2,$3) RETURNING *',
-      [req.params.programId, academic_year, copy_from_version_id || null]
+      `INSERT INTO program_versions (
+        program_id, academic_year, copied_from_id, version_name, total_credits,
+        training_duration, change_type, effective_date, change_summary, grading_scale,
+        graduation_requirements, job_positions, further_education, reference_programs,
+        training_process, admission_targets, admission_criteria
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING *`,
+      [req.params.programId, academic_year, copy_from_version_id || null, version_name,
+       total_credits, training_duration, change_type, effective_date || null, change_summary,
+       grading_scale, graduation_requirements, job_positions, further_education,
+       reference_programs, training_process, admission_targets, admission_criteria]
     );
     const newVersionId = ver.rows[0].id;
 
@@ -934,7 +1214,12 @@ app.delete('/api/courses/:id', authMiddleware, requirePerm('courses.edit'), asyn
   try {
     await pool.query('DELETE FROM courses WHERE id=$1', [req.params.id]);
     res.json({ success: true });
-  } catch (e) { res.status(400).json({ error: e.message }); }
+  } catch (e) { 
+    if (e.code === '23503') {
+      return res.status(400).json({ error: 'Học phần này hiện đang nằm trong mục tiêu hoặc ma trận CTĐT. Không thể xóa!' });
+    }
+    res.status(400).json({ error: e.message }); 
+  }
 });
 
 // ============ VERSION COURSES ============
@@ -1113,14 +1398,91 @@ app.get('/api/versions/:vId/syllabi', authMiddleware, requireViewVersion, async 
   try {
     const result = await pool.query(`
       SELECT vs.*, c.code as course_code, c.name as course_name, c.credits,
-             u.display_name as author_name
+             (SELECT json_agg(json_build_object('id', u.id, 'display_name', u.display_name))
+              FROM syllabus_assignments sa
+              JOIN users u ON sa.user_id = u.id
+              WHERE sa.syllabus_id = vs.id) as authors
       FROM version_syllabi vs
       JOIN courses c ON vs.course_id = c.id
-      LEFT JOIN users u ON vs.author_id = u.id
       WHERE vs.version_id = $1 ORDER BY c.code
     `, [req.params.vId]);
     res.json(result.rows);
   } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ============ SYLLABUS ASSIGNMENTS ============
+app.get('/api/my-syllabi', authMiddleware, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT vs.*, c.code as course_code, c.name as course_name, c.credits,
+             pv.id as version_id, pv.academic_year, p.id as program_id,
+             p.name as program_name, d.name as dept_name
+      FROM syllabus_assignments sa
+      JOIN version_syllabi vs ON sa.syllabus_id = vs.id
+      JOIN courses c ON vs.course_id = c.id
+      JOIN program_versions pv ON vs.version_id = pv.id
+      JOIN programs p ON pv.program_id = p.id
+      LEFT JOIN departments d ON p.department_id = d.id
+      WHERE sa.user_id = $1
+      ORDER BY pv.academic_year DESC, c.code
+    `, [req.user.id]);
+    res.json(result.rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/assignments/:sId', authMiddleware, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT sa.*, u.display_name, u.username, d.name as dept_name
+      FROM syllabus_assignments sa
+      JOIN users u ON sa.user_id = u.id
+      LEFT JOIN departments d ON u.department_id = d.id
+      WHERE sa.syllabus_id = $1
+    `, [req.params.sId]);
+    res.json(result.rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/assignments', authMiddleware, async (req, res) => {
+  const { syllabus_id, user_ids } = req.body; // Expect array of user_ids
+  try {
+    const syllabusId = parseInt(syllabus_id, 10);
+    const normalizedUserIds = Array.isArray(user_ids)
+      ? [...new Set(user_ids.map(id => parseInt(id, 10)).filter(Number.isInteger))]
+      : [];
+
+    if (!syllabusId) {
+      return res.status(400).json({ error: 'Thiếu syllabus_id hợp lệ' });
+    }
+
+    const scope = await getSyllabusAssignmentScope(req.user.id, syllabusId);
+    if (!scope) {
+      return res.status(403).json({ error: 'Không có quyền phân công đề cương này' });
+    }
+
+    const assignableUsers = await listAssignableUsers(scope);
+    const assignableUserIds = new Set(assignableUsers.map(user => user.id));
+    const invalidUserIds = normalizedUserIds.filter(id => !assignableUserIds.has(id));
+    if (invalidUserIds.length > 0) {
+      return res.status(403).json({ error: 'Danh sách giảng viên phân công vượt quá phạm vi cho phép' });
+    }
+
+    await pool.query('BEGIN');
+    await pool.query('DELETE FROM syllabus_assignments WHERE syllabus_id = $1', [syllabusId]);
+    if (normalizedUserIds.length > 0) {
+      for (const uid of normalizedUserIds) {
+        await pool.query(
+          'INSERT INTO syllabus_assignments (syllabus_id, user_id) VALUES ($1, $2)',
+          [syllabusId, uid]
+        );
+      }
+    }
+    await pool.query('COMMIT');
+    res.json({ success: true });
+  } catch (e) {
+    await pool.query('ROLLBACK');
+    res.status(400).json({ error: e.message });
+  }
 });
 
 app.post('/api/versions/:vId/syllabi', authMiddleware, requireDraft('vId', 'syllabus.edit'), async (req, res) => {
@@ -1134,7 +1496,7 @@ app.post('/api/versions/:vId/syllabi', authMiddleware, requireDraft('vId', 'syll
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
-app.get('/api/syllabi/:id', authMiddleware, requireViewVersion, async (req, res) => {
+app.get('/api/syllabi/:id', authMiddleware, requireViewSyllabus, async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT vs.*, c.code as course_code, c.name as course_name, c.credits,
@@ -1153,9 +1515,32 @@ app.get('/api/syllabi/:id', authMiddleware, requireViewVersion, async (req, res)
 app.put('/api/syllabi/:id', authMiddleware, async (req, res) => {
   const { content, status } = req.body;
   try {
-    const sylRes = await pool.query('SELECT version_id FROM version_syllabi WHERE id=$1', [req.params.id]);
+    const sylRes = await pool.query('SELECT version_id, id, status FROM version_syllabi WHERE id=$1', [req.params.id]);
     if (!sylRes.rows.length) throw new Error('Không tìm thấy đề cương');
-    await checkVersionEditAccess(req.user.id, sylRes.rows[0].version_id, 'syllabus.edit');
+    const versionId = sylRes.rows[0].version_id;
+    const syllabusId = sylRes.rows[0].id;
+    const syllabusStatus = sylRes.rows[0].status;
+
+    // RBAC Check
+    const roles = await getUserRoles(req.user.id);
+    const highestRole = roles[0];
+    const admin = await isAdmin(req.user.id);
+    const isAssignedLecturer = !admin && highestRole && highestRole.level === 1 && await isUserAssignedToSyllabus(req.user.id, syllabusId);
+
+    // If level 1 (GIANG_VIEN), check if assigned
+    if (!admin && highestRole && highestRole.level === 1) {
+      if (!isAssignedLecturer) {
+        return res.status(403).json({ error: 'Bạn không được phân công soạn đề cương này' });
+      }
+    }
+
+    if (isAssignedLecturer) {
+      if (syllabusStatus !== 'draft') {
+        return res.status(403).json({ error: 'Chỉ có thể chỉnh sửa đề cương ở trạng thái nháp' });
+      }
+    } else {
+      await checkVersionEditAccess(req.user.id, versionId, 'syllabus.edit');
+    }
 
     const updates = [];
     const values = [];
@@ -1179,7 +1564,7 @@ app.delete('/api/syllabi/:id', authMiddleware, async (req, res) => {
 });
 
 // ============ CLOs per Syllabus ============
-app.get('/api/syllabi/:sId/clos', authMiddleware, requireViewVersion, async (req, res) => {
+app.get('/api/syllabi/:sId/clos', authMiddleware, requireViewSyllabus, async (req, res) => {
   try {
     // Get version_course_id from syllabus
     const syl = await pool.query('SELECT version_id, course_id FROM version_syllabi WHERE id=$1', [req.params.sId]);
@@ -1230,7 +1615,7 @@ app.delete('/api/clos/:id', authMiddleware, async (req, res) => {
 });
 
 // ============ CLO-PLO MAP ============
-app.get('/api/syllabi/:sId/clo-plo-map', authMiddleware, requireViewVersion, async (req, res) => {
+app.get('/api/syllabi/:sId/clo-plo-map', authMiddleware, requireViewSyllabus, async (req, res) => {
   try {
     const syl = await pool.query('SELECT version_id, course_id FROM version_syllabi WHERE id=$1', [req.params.sId]);
     if (!syl.rows.length) return res.json([]);
@@ -1279,6 +1664,28 @@ app.post('/api/approval/submit', authMiddleware, async (req, res) => {
     const current = await pool.query(`SELECT ${statusField} as status, id FROM ${table} WHERE id=$1`, [entity_id]);
     if (!current.rows.length) return res.status(404).json({ error: 'Not found' });
     if (current.rows[0].status !== 'draft') return res.status(400).json({ error: 'Chỉ có thể nộp bản nháp' });
+
+    if (entity_type === 'syllabus') {
+      const admin = await isAdmin(req.user.id);
+      if (!admin) {
+        const assigned = await isUserAssignedToSyllabus(req.user.id, entity_id);
+        const roles = await getUserRoles(req.user.id);
+        const highestRole = roles[0];
+        const isAssignedLecturer = highestRole && highestRole.level === 1 && assigned;
+        if (!isAssignedLecturer) {
+          const deptRes = await pool.query(`
+            SELECT p.department_id
+            FROM version_syllabi vs
+            JOIN program_versions pv ON vs.version_id = pv.id
+            JOIN programs p ON pv.program_id = p.id
+            WHERE vs.id = $1
+          `, [entity_id]);
+          const deptId = deptRes.rows[0]?.department_id;
+          const canSubmit = deptId ? await hasPermission(req.user.id, 'syllabus.submit', deptId) : false;
+          if (!canSubmit) return res.status(403).json({ error: 'Không có quyền nộp đề cương này' });
+        }
+      }
+    }
 
     await pool.query(`UPDATE ${table} SET ${statusField}='submitted', is_rejected=false, updated_at=NOW() WHERE id=$1`, [entity_id]);
     await pool.query(
@@ -1336,19 +1743,27 @@ app.post('/api/approval/review', authMiddleware, async (req, res) => {
 
     const admin = await isAdmin(req.user.id);
     if (!admin) {
-      const has = await hasPermission(req.user.id, requiredPerm, deptId);
+      const has = entity_type === 'syllabus'
+        ? await canReviewSyllabusAtCurrentStep(req.user.id, entity_id, status, requiredPerm)
+        : await hasPermission(req.user.id, requiredPerm, deptId);
       if (!has) return res.status(403).json({ error: `Không có quyền thực hiện bước này (${requiredPerm})` });
     }
 
     if (action === 'reject') {
-      // Allow backtracking to draft or previous step
+      // Reject returns the item to the previous workflow step by default.
       let nextState = target_status;
       if (!nextState) {
         if (entity_type === 'program_version') {
           const revFlow = { 'submitted': 'draft', 'approved_khoa': 'submitted', 'approved_pdt': 'approved_khoa' };
           nextState = revFlow[status] || 'draft';
         } else {
-          nextState = 'draft';
+          const revFlow = {
+            submitted: 'draft',
+            approved_tbm: 'submitted',
+            approved_khoa: 'approved_tbm',
+            approved_pdt: 'approved_khoa'
+          };
+          nextState = revFlow[status] || 'draft';
         }
       }
 
@@ -1414,27 +1829,95 @@ app.get('/api/approval/history/:entityType/:entityId', authMiddleware, requireVi
 app.get('/api/approval/pending', authMiddleware, async (req, res) => {
   try {
     const admin = await isAdmin(req.user.id);
+    const userRoles = admin ? [] : await getUserRoles(req.user.id);
     // Get programs needing approval
     const programs = await pool.query(`
-      SELECT pv.id, pv.academic_year, pv.status, pv.is_rejected, pv.rejection_reason, p.name as program_name, d.name as dept_name,
+      SELECT pv.id, pv.academic_year, pv.status, pv.is_rejected, pv.rejection_reason,
+             p.name as program_name, d.name as dept_name, p.department_id,
              'program_version' as entity_type
       FROM program_versions pv
       JOIN programs p ON pv.program_id = p.id
       JOIN departments d ON p.department_id = d.id
-      WHERE pv.status IN ('submitted','approved_khoa','approved_pdt')
+      WHERE pv.status IN ('submitted','approved_khoa','approved_pdt','published')
+         OR COALESCE(pv.is_rejected, false) = true
       ORDER BY pv.updated_at DESC
     `);
     // Get syllabi needing approval
     const syllabi = await pool.query(`
       SELECT vs.id, vs.status, vs.is_rejected, vs.rejection_reason, c.code as course_code, c.name as course_name,
-             u.display_name as author_name, 'syllabus' as entity_type
+             c.department_id,
+             (SELECT string_agg(u.display_name, ', ') 
+              FROM syllabus_assignments sa 
+              JOIN users u ON sa.user_id = u.id 
+             WHERE sa.syllabus_id = vs.id) as author_name, 
+             'syllabus' as entity_type
       FROM version_syllabi vs
       JOIN courses c ON vs.course_id = c.id
-      LEFT JOIN users u ON vs.author_id = u.id
-      WHERE vs.status IN ('submitted','approved_tbm','approved_khoa','approved_pdt')
+      WHERE vs.status IN ('submitted','approved_tbm','approved_khoa','approved_pdt','published')
+         OR COALESCE(vs.is_rejected, false) = true
       ORDER BY vs.updated_at DESC
     `);
-    res.json({ programs: programs.rows, syllabi: syllabi.rows });
+
+    if (admin) {
+      const adminProgramPerms = new Set(['submitted', 'approved_khoa', 'approved_pdt']);
+      const adminSyllabusPerms = new Set(['submitted', 'approved_tbm', 'approved_khoa', 'approved_pdt']);
+      return res.json({
+        programs: programs.rows.map(item => ({
+          ...item,
+          can_approve: !item.is_rejected && adminProgramPerms.has(item.status),
+          display_status: item.is_rejected ? 'rejected' : item.status
+        })),
+        syllabi: syllabi.rows.map(item => ({
+          ...item,
+          can_approve: !item.is_rejected && adminSyllabusPerms.has(item.status),
+          display_status: item.is_rejected ? 'rejected' : item.status
+        }))
+      });
+    }
+
+    const programPerms = {
+      submitted: 'programs.approve_khoa',
+      approved_khoa: 'programs.approve_pdt',
+      approved_pdt: 'programs.approve_bgh'
+    };
+    const syllabusPerms = {
+      submitted: 'syllabus.approve_tbm',
+      approved_tbm: 'syllabus.approve_khoa',
+      approved_khoa: 'syllabus.approve_pdt',
+      approved_pdt: 'syllabus.approve_bgh'
+    };
+
+    const visiblePrograms = [];
+    for (const item of programs.rows) {
+      const requiredPerm = programPerms[item.status];
+      const canApprove = requiredPerm && await hasPermission(req.user.id, requiredPerm, item.department_id);
+      const canTrack = await canTrackProgramForUser(req.user.id, userRoles, item);
+      if (canTrack) {
+        visiblePrograms.push({
+          ...item,
+          can_approve: !!canApprove,
+          display_status: item.is_rejected ? 'rejected' : item.status
+        });
+      }
+    }
+
+    const visibleSyllabi = [];
+    for (const item of syllabi.rows) {
+      const requiredPerm = syllabusPerms[item.status];
+      const canApprove = requiredPerm
+        ? await canReviewSyllabusAtCurrentStep(req.user.id, item.id, item.status, requiredPerm)
+        : false;
+      const canTrack = await canTrackSyllabusForUser(req.user.id, userRoles, item);
+      if (canTrack) {
+        visibleSyllabi.push({
+          ...item,
+          can_approve: !!canApprove,
+          display_status: item.is_rejected ? 'rejected' : item.status
+        });
+      }
+    }
+
+    res.json({ programs: visiblePrograms, syllabi: visibleSyllabi });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

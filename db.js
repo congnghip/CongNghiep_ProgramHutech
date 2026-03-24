@@ -32,9 +32,11 @@ async function initDB() {
         password_hash VARCHAR(255) NOT NULL,
         display_name VARCHAR(200) NOT NULL,
         email VARCHAR(200),
+        department_id INT REFERENCES departments(id),
         is_active BOOLEAN DEFAULT true,
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS department_id INT REFERENCES departments(id);
 
       -- Roles (6 roles)
       CREATE TABLE IF NOT EXISTS roles (
@@ -235,6 +237,15 @@ async function initDB() {
         updated_at TIMESTAMPTZ DEFAULT NOW()
       );
 
+      -- Syllabus Assignments (nhiều giảng viên soạn chung)
+      CREATE TABLE IF NOT EXISTS syllabus_assignments (
+        id SERIAL PRIMARY KEY,
+        syllabus_id INT REFERENCES version_syllabi(id) ON DELETE CASCADE,
+        user_id INT REFERENCES users(id) ON DELETE CASCADE,
+        assigned_at TIMESTAMPTZ DEFAULT NOW(),
+        UNIQUE(syllabus_id, user_id)
+      );
+
       -- Assessment Plans
       CREATE TABLE IF NOT EXISTS assessment_plans (
         id SERIAL PRIMARY KEY,
@@ -407,10 +418,10 @@ async function seedData(client) {
   const ctDtGranular = ['programs.po.edit', 'programs.plo.edit', 'programs.courses.edit', 'programs.matrix.edit', 'programs.assessment.edit'];
   const rolePerms = {
     GIANG_VIEN: ['programs.view_published', 'syllabus.view', 'syllabus.create', 'syllabus.edit', 'syllabus.submit', 'courses.view', 'portfolio.own'],
-    TRUONG_NGANH: ['programs.view_published', 'programs.view_draft', 'syllabus.view', 'syllabus.approve_tbm', 'courses.view', 'portfolio.own'],
+    TRUONG_NGANH: ['programs.view_published', 'programs.view_draft', 'syllabus.view', 'syllabus.approve_tbm', 'syllabus.assign', 'courses.view', 'portfolio.own'],
     LANH_DAO_KHOA: ['programs.view_published', 'programs.view_draft', 'programs.create', 'programs.edit', 'programs.delete_draft', 'programs.submit', 'programs.approve_khoa', 'programs.export', 'programs.import_word', ...ctDtGranular, 'syllabus.view', 'syllabus.create', 'syllabus.edit', 'syllabus.submit', 'syllabus.approve_khoa', 'syllabus.assign', 'courses.view', 'portfolio.own', 'portfolio.view_dept'],
     PHONG_DAO_TAO: ['programs.view_published', 'programs.view_draft', 'programs.create', 'programs.edit', 'programs.delete_draft', 'programs.approve_pdt', 'programs.export', 'programs.import_word', 'programs.manage_all', 'programs.create_version', ...ctDtGranular, 'syllabus.view', 'syllabus.create', 'syllabus.edit', 'syllabus.approve_pdt', 'syllabus.assign', 'courses.view', 'courses.create', 'courses.edit', 'portfolio.view_dept', 'rbac.view_audit_logs'],
-    BAN_GIAM_HIEU: ['programs.view_published', 'programs.view_draft', 'programs.approve_bgh', 'programs.export', 'syllabus.view', 'syllabus.approve_bgh', 'courses.view'],
+    BAN_GIAM_HIEU: ['programs.view_published', 'programs.view_draft', 'programs.approve_bgh', 'programs.export', 'syllabus.view', 'syllabus.approve_bgh', 'syllabus.assign', 'courses.view'],
     ADMIN: ['programs.view_published', 'programs.view_draft', 'programs.delete_draft', 'programs.manage_all', 'programs.create_version', ...ctDtGranular, 'syllabus.view', 'courses.view', 'portfolio.view_dept', 'rbac.manage_users', 'rbac.manage_roles', 'rbac.manage_departments', 'rbac.view_audit_logs', 'rbac.system_config'],
   };
 
@@ -429,15 +440,15 @@ async function seedData(client) {
   }
 
   // Seed admin user
-  const existing = await client.query('SELECT id FROM users WHERE username=$1', ['admin']);
-  if (!existing.rows.length) {
+  const adminCheck = await client.query('SELECT id FROM users WHERE username=$1', ['admin']);
+  const rootDept = await client.query("SELECT id FROM departments WHERE code='HUTECH'");
+  if (!adminCheck.rows.length) {
     const hash = await bcrypt.hash('admin123', 10);
     const res = await client.query(
-      `INSERT INTO users (username, password_hash, display_name) VALUES ('admin', $1, 'Quản trị viên') RETURNING id`,
-      [hash]
+      `INSERT INTO users (username, password_hash, display_name, department_id) VALUES ('admin', $1, 'Quản trị viên', $2) RETURNING id`,
+      [hash, rootDept.rows[0]?.id]
     );
     // Assign ADMIN role at root department
-    const rootDept = await client.query("SELECT id FROM departments WHERE code='HUTECH'");
     const adminRole = await client.query("SELECT id FROM roles WHERE code='ADMIN'");
     if (rootDept.rows.length && adminRole.rows.length) {
       await client.query(
@@ -447,7 +458,42 @@ async function seedData(client) {
     }
     console.log('  ✅ Admin user created (admin/admin123)');
   } else {
+    // Update existing admin department
+    if (rootDept.rows.length) {
+      await client.query('UPDATE users SET department_id=$1 WHERE username=$2', [rootDept.rows[0].id, 'admin']);
+    }
     console.log('  ✅ Admin user exists');
+  }
+
+  // Seed test users for assignment flow
+  const itDept = await client.query("SELECT id FROM departments WHERE code='K.CNTT'");
+  if (itDept.rows.length) {
+    const roles = await client.query("SELECT id, code FROM roles WHERE code IN ('TRUONG_NGANH', 'GIANG_VIEN')");
+    const tnRole = roles.rows.find(r => r.code === 'TRUONG_NGANH');
+    const gvRole = roles.rows.find(r => r.code === 'GIANG_VIEN');
+
+    const testUsers = [
+      { user: 'tn_cntt', name: 'Trưởng ngành CNTT', role: tnRole, dept: itDept.rows[0].id },
+      { user: 'gv_cntt', name: 'Giảng viên CNTT', role: gvRole, dept: itDept.rows[0].id }
+    ];
+
+    for (const u of testUsers) {
+      const uExist = await client.query('SELECT id FROM users WHERE username=$1', [u.user]);
+      if (!uExist.rows.length) {
+        const hash = await bcrypt.hash('123', 10);
+        const res = await client.query(
+          `INSERT INTO users (username, password_hash, display_name, department_id) VALUES ($1, $2, $3, $4) RETURNING id`,
+          [u.user, hash, u.name, u.dept]
+        );
+        if (u.role) {
+          await client.query(
+            `INSERT INTO user_roles (user_id, role_id, department_id) VALUES ($1, $2, $3)`,
+            [res.rows[0].id, u.role.id, u.dept]
+          );
+        }
+        console.log(`  ✅ Test user created: ${u.user}/123`);
+      }
+    }
   }
 }
 

@@ -98,23 +98,65 @@ window.ProgramsPage = {
 
       <!-- Version Modal -->
       <div id="ver-modal" class="modal-overlay">
-        <div class="modal">
-          <div class="modal-header"><h2 id="ver-modal-title">Tạo phiên bản mới</h2></div>
-          <div class="modal-body">
-            <input type="hidden" id="ver-program-id">
-            <div class="input-group">
-              <label>Năm học <span style="color:var(--danger);">*</span></label>
-              <input type="text" id="ver-year" required placeholder="VD: 2025-2026">
-            </div>
-            <div class="input-group">
-              <label>Copy từ phiên bản</label>
-              <select id="ver-copy-from"><option value="">— Tạo mới trắng —</option></select>
-            </div>
-            <div class="modal-error" id="ver-error"></div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" onclick="document.getElementById('ver-modal').classList.remove('active')">Hủy</button>
-              <button type="button" class="btn btn-primary" onclick="window.ProgramsPage.createVersion()">Tạo phiên bản</button>
-            </div>
+        <div class="modal" style="max-width:720px;max-height:90vh;display:flex;flex-direction:column;">
+          <div class="modal-header" style="flex-shrink:0;"><h2 id="ver-modal-title">Tạo phiên bản mới</h2></div>
+          <div class="modal-body" style="overflow-y:auto;flex:1;">
+            <form id="ver-form">
+              <input type="hidden" id="ver-program-id">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <div class="input-group">
+                  <label>Số Phiên Bản <span style="color:var(--danger);">*</span></label>
+                  <input type="text" id="ver-year" required placeholder="VD: 2025-2026">
+                  <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">Định dạng bắt buộc: YYYY-YYYY (Năm sau = Năm trước + 1)</div>
+                  <div id="ver-year-error" style="color:var(--danger); font-size: 12px; margin-top: 4px; display: none;"></div>
+                </div>
+                <div class="input-group">
+                  <label>Copy từ phiên bản</label>
+                  <select id="ver-copy-from"><option value="">— Tạo mới trắng —</option></select>
+                </div>
+                <div class="input-group">
+                  <label>Tên Phiên Bản</label>
+                  <input type="text" id="ver-name" placeholder="VD: phiên bản năm học 2025-2026">
+                </div>
+                <div class="input-group">
+                  <label>Tổng Số Tín Chỉ</label>
+                  <input type="text" id="ver-credits" placeholder="VD: 125" oninput="this.value=this.value.replace(/[^0-9]/g, '')">
+                </div>
+                <div class="input-group">
+                  <label>Thời Gian Đào Tạo</label>
+                  <input type="text" id="ver-duration" placeholder="VD: 3.5" oninput="this.value=this.value.replace(/[^0-9.]/g, '')">
+                </div>
+                <div class="input-group">
+                  <label>Ngày Hiệu Lực</label>
+                  <input type="date" id="ver-effective-date">
+                </div>
+              </div>
+              <div class="input-group" style="margin-top:12px;">
+                <label>Tóm Tắt Thay Đổi</label>
+                <textarea id="ver-change-summary" rows="2" placeholder="Tóm tắt những thay đổi chính..." style="width:100%;resize:vertical;"></textarea>
+              </div>
+              <hr style="border:none;border-top:2px dashed var(--border);margin:16px 0;">
+              <style>
+                details.ver-acc { margin-bottom:8px; border:1px solid var(--border); border-radius:6px; background:#f8fafc; }
+                details.ver-acc > summary { padding:10px 12px; font-weight:600; font-size:13px; cursor:pointer; list-style:none; display:flex; justify-content:space-between; align-items:center; }
+                details.ver-acc > summary::-webkit-details-marker { display:none; }
+                details.ver-acc > summary .acc-icon::before { content: '+'; font-size:16px; font-weight:normal; }
+                details.ver-acc[open] > summary .acc-icon::before { content: '\\2212'; font-size:16px; font-weight:normal; }
+              </style>
+              <details class="ver-acc"><summary>Thang Điểm Đánh Giá và Cách Thức Đánh Giá <span class="acc-icon"></span></summary><div style="padding:0 12px 12px 12px;"><textarea id="ver-grading" rows="3" style="width:100%;resize:vertical;"></textarea></div></details>
+              <details class="ver-acc"><summary>Điều Kiện Tốt Nghiệp <span class="acc-icon"></span></summary><div style="padding:0 12px 12px 12px;"><textarea id="ver-graduation" rows="3" style="width:100%;resize:vertical;"></textarea></div></details>
+              <details class="ver-acc"><summary>Vị Trí Việc Làm Sau Tốt Nghiệp <span class="acc-icon"></span></summary><div style="padding:0 12px 12px 12px;"><textarea id="ver-jobs" rows="3" style="width:100%;resize:vertical;"></textarea></div></details>
+              <details class="ver-acc"><summary>Con Đường Học Tập Nâng Cao Trình Độ <span class="acc-icon"></span></summary><div style="padding:0 12px 12px 12px;"><textarea id="ver-further-edu" rows="3" style="width:100%;resize:vertical;"></textarea></div></details>
+              <details class="ver-acc"><summary>Chương Trình Tham Khảo Khi Xây Dựng <span class="acc-icon"></span></summary><div style="padding:0 12px 12px 12px;"><textarea id="ver-reference" rows="3" style="width:100%;resize:vertical;"></textarea></div></details>
+              <details class="ver-acc"><summary>Quy Trình Đào Tạo <span class="acc-icon"></span></summary><div style="padding:0 12px 12px 12px;"><textarea id="ver-training-process" rows="3" style="width:100%;resize:vertical;"></textarea></div></details>
+              <details class="ver-acc"><summary>Đối Tượng Tuyển Sinh <span class="acc-icon"></span></summary><div style="padding:0 12px 12px 12px;"><textarea id="ver-admission-targets" rows="3" style="width:100%;resize:vertical;"></textarea></div></details>
+              <details class="ver-acc"><summary>Tiêu Chí Tuyển Sinh <span class="acc-icon"></span></summary><div style="padding:0 12px 12px 12px;"><textarea id="ver-admission-criteria" rows="3" style="width:100%;resize:vertical;"></textarea></div></details>
+              <div class="modal-error" id="ver-error"></div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="document.getElementById('ver-modal').classList.remove('active')">Hủy</button>
+                <button type="submit" class="btn btn-primary" id="ver-save-btn">Tạo Phiên Bản</button>
+              </div>
+            </form>
           </div>
         </div>
       </div>
@@ -132,6 +174,8 @@ window.ProgramsPage = {
                 <div class="input-group">
                   <label>Số Phiên Bản <span style="color:var(--danger);">*</span></label>
                   <input type="text" id="ver-edit-year" required placeholder="VD: 2025-2026">
+                  <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">Định dạng bắt buộc: YYYY-YYYY (Năm sau = Năm trước + 1)</div>
+                  <div id="ver-edit-year-error" style="color:var(--danger); font-size: 12px; margin-top: 4px; display: none;"></div>
                 </div>
                 <div class="input-group">
                   <label>Tên Phiên Bản</label>
@@ -139,20 +183,11 @@ window.ProgramsPage = {
                 </div>
                 <div class="input-group">
                   <label>Tổng Số Tín Chỉ</label>
-                  <input type="number" id="ver-edit-credits" placeholder="VD: 125" min="1">
+                  <input type="text" id="ver-edit-credits" placeholder="VD: 125" oninput="this.value=this.value.replace(/[^0-9]/g, '')">
                 </div>
                 <div class="input-group">
                   <label>Thời Gian Đào Tạo</label>
-                  <input type="text" id="ver-edit-duration" placeholder="VD: 3.5 năm">
-                </div>
-                <div class="input-group">
-                  <label>Loại Thay Đổi</label>
-                  <select id="ver-edit-change-type">
-                    <option value="">— Chọn —</option>
-                    <option value="Thay đổi nhỏ">Thay đổi nhỏ</option>
-                    <option value="Thay đổi lớn">Thay đổi lớn</option>
-                    <option value="Xây dựng mới">Xây dựng mới</option>
-                  </select>
+                  <input type="text" id="ver-edit-duration" placeholder="VD: 3.5" oninput="this.value=this.value.replace(/[^0-9.]/g, '')">
                 </div>
                 <div class="input-group">
                   <label>Trạng Thái</label>
@@ -174,38 +209,14 @@ window.ProgramsPage = {
                 <textarea id="ver-edit-change-summary" rows="2" placeholder="Tóm tắt những thay đổi chính..." style="width:100%;resize:vertical;"></textarea>
               </div>
               <hr style="border:none;border-top:2px dashed var(--border);margin:16px 0;">
-              <div class="input-group">
-                <label>Thang Điểm Đánh Giá và Cách Thức Đánh Giá</label>
-                <textarea id="ver-edit-grading" rows="3" style="width:100%;resize:vertical;"></textarea>
-              </div>
-              <div class="input-group">
-                <label>Điều Kiện Tốt Nghiệp</label>
-                <textarea id="ver-edit-graduation" rows="3" style="width:100%;resize:vertical;"></textarea>
-              </div>
-              <div class="input-group">
-                <label>Vị Trí Việc Làm Sau Tốt Nghiệp</label>
-                <textarea id="ver-edit-jobs" rows="3" style="width:100%;resize:vertical;"></textarea>
-              </div>
-              <div class="input-group">
-                <label>Con Đường Học Tập Nâng Cao Trình Độ</label>
-                <textarea id="ver-edit-further-edu" rows="3" style="width:100%;resize:vertical;"></textarea>
-              </div>
-              <div class="input-group">
-                <label>Chương Trình Tham Khảo Khi Xây Dựng</label>
-                <textarea id="ver-edit-reference" rows="3" style="width:100%;resize:vertical;"></textarea>
-              </div>
-              <div class="input-group">
-                <label>Quy Trình Đào Tạo</label>
-                <textarea id="ver-edit-training-process" rows="3" style="width:100%;resize:vertical;"></textarea>
-              </div>
-              <div class="input-group">
-                <label>Đối Tượng Tuyển Sinh</label>
-                <textarea id="ver-edit-admission-targets" rows="3" style="width:100%;resize:vertical;"></textarea>
-              </div>
-              <div class="input-group">
-                <label>Tiêu Chí Tuyển Sinh</label>
-                <textarea id="ver-edit-admission-criteria" rows="3" style="width:100%;resize:vertical;"></textarea>
-              </div>
+              <details class="ver-acc"><summary>Thang Điểm Đánh Giá và Cách Thức Đánh Giá <span class="acc-icon"></span></summary><div style="padding:0 12px 12px 12px;"><textarea id="ver-edit-grading" rows="3" style="width:100%;resize:vertical;"></textarea></div></details>
+              <details class="ver-acc"><summary>Điều Kiện Tốt Nghiệp <span class="acc-icon"></span></summary><div style="padding:0 12px 12px 12px;"><textarea id="ver-edit-graduation" rows="3" style="width:100%;resize:vertical;"></textarea></div></details>
+              <details class="ver-acc"><summary>Vị Trí Việc Làm Sau Tốt Nghiệp <span class="acc-icon"></span></summary><div style="padding:0 12px 12px 12px;"><textarea id="ver-edit-jobs" rows="3" style="width:100%;resize:vertical;"></textarea></div></details>
+              <details class="ver-acc"><summary>Con Đường Học Tập Nâng Cao Trình Độ <span class="acc-icon"></span></summary><div style="padding:0 12px 12px 12px;"><textarea id="ver-edit-further-edu" rows="3" style="width:100%;resize:vertical;"></textarea></div></details>
+              <details class="ver-acc"><summary>Chương Trình Tham Khảo Khi Xây Dựng <span class="acc-icon"></span></summary><div style="padding:0 12px 12px 12px;"><textarea id="ver-edit-reference" rows="3" style="width:100%;resize:vertical;"></textarea></div></details>
+              <details class="ver-acc"><summary>Quy Trình Đào Tạo <span class="acc-icon"></span></summary><div style="padding:0 12px 12px 12px;"><textarea id="ver-edit-training-process" rows="3" style="width:100%;resize:vertical;"></textarea></div></details>
+              <details class="ver-acc"><summary>Đối Tượng Tuyển Sinh <span class="acc-icon"></span></summary><div style="padding:0 12px 12px 12px;"><textarea id="ver-edit-admission-targets" rows="3" style="width:100%;resize:vertical;"></textarea></div></details>
+              <details class="ver-acc"><summary>Tiêu Chí Tuyển Sinh <span class="acc-icon"></span></summary><div style="padding:0 12px 12px 12px;"><textarea id="ver-edit-admission-criteria" rows="3" style="width:100%;resize:vertical;"></textarea></div></details>
               <div class="modal-error" id="ver-edit-error"></div>
               <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="document.getElementById('ver-edit-modal').classList.remove('active')">Hủy</button>
@@ -215,10 +226,75 @@ window.ProgramsPage = {
           </div>
         </div>
       </div>
+
+      <!-- Clone Modal -->
+      <div id="clone-modal" class="modal-overlay">
+        <div class="modal" style="max-width: 650px; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.1);">
+          <div class="modal-header" style="background: #fff; border-bottom: 1px solid #f0f0f0; padding: 16px 24px;">
+            <h2 id="clone-modal-title" style="font-size: 18px; font-weight: 600; color: #111; margin: 0;">Nhân Bản Phiên Bản</h2>
+          </div>
+          <div class="modal-body" style="padding: 24px; background: #fafafa; font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;">
+            
+            <div style="background: #fff; border-radius: 8px; padding: 16px; margin-bottom: 24px; border: 1px solid #eef0f2;">
+              <h3 style="font-size: 14px; font-weight: 600; color: #333; margin: 0 0 12px 0;">Phiên Bản Nguồn</h3>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                <div>
+                  <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;">Số Phiên Bản</div>
+                  <div style="font-size: 14px; font-weight: 500;" id="clone-src-year"></div>
+                </div>
+                <div>
+                  <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;">Tên Phiên Bản Cũ</div>
+                  <div style="font-size: 14px; font-weight: 500;" id="clone-src-name"></div>
+                </div>
+                <div>
+                  <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;">Trạng Thái</div>
+                  <div id="clone-src-status"></div>
+                </div>
+                <div>
+                  <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;">Tổng Tín Chỉ</div>
+                  <div style="font-size: 14px; font-weight: 500;" id="clone-src-credits"></div>
+                </div>
+                <div>
+                  <div style="font-size: 12px; color: #6b7280; margin-bottom: 4px;">Môn Học / PLO / PO</div>
+                  <div style="font-size: 14px; font-weight: 500;" id="clone-src-stats"></div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h3 style="font-size: 14px; font-weight: 600; color: #333; margin: 0 0 12px 0;">Thông Tin Phiên Bản Mới</h3>
+              <input type="hidden" id="clone-version-id">
+              <input type="hidden" id="clone-program-id">
+              <div style="display: block; margin-bottom: 12px;">
+                <div class="input-group" style="margin: 0;">
+                  <label style="font-size: 12px; color: #6b7280; display:block; margin-bottom:4px;">Số Phiên Bản Mới *</label>
+                  <input type="text" id="clone-year" required placeholder="VD: 2031-2032" style="border-radius: 6px; border: 1px solid #d1d5db; padding: 8px 12px; width: 100%; box-sizing: border-box; font-size: 14px;">
+                  <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">Định dạng bắt buộc: YYYY-YYYY (Năm sau = Năm trước + 1)</div>
+                  <div id="clone-year-error" style="color:var(--danger); font-size: 12px; margin-top: 4px; display: none;"></div>
+                </div>
+              </div>
+              <div class="input-group" style="margin: 0 0 12px 0;">
+                <label style="font-size: 12px; color: #6b7280; display:block; margin-bottom:4px;">Tên Phiên Bản Mới</label>
+                <input type="text" id="clone-new-name" placeholder="Ví dụ: Chương trình chuẩn 2031" style="border-radius: 6px; border: 1px solid #d1d5db; padding: 8px 12px; width: 100%; box-sizing: border-box; font-size: 14px;">
+              </div>
+            </div>
+
+            <div class="modal-error" id="clone-error" style="margin-top: 12px;"></div>
+          </div>
+          <div class="modal-footer" style="background: #fff; border-top: 1px solid #f0f0f0; padding: 16px 24px; display: flex; justify-content: flex-end; gap: 12px;">
+            <button type="button" class="btn btn-secondary" onclick="document.getElementById('clone-modal').classList.remove('active')">Hủy</button>
+            <button type="button" id="clone-submit-btn" class="btn btn-primary" onclick="window.ProgramsPage.submitClone()">Nhân bản</button>
+          </div>
+        </div>
+      </div>
     `;
     document.getElementById('prog-form').addEventListener('submit', async (e) => {
       e.preventDefault();
       await this.saveProgram();
+    });
+    document.getElementById('ver-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await this.createVersion();
     });
     document.getElementById('ver-edit-form').addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -432,13 +508,23 @@ window.ProgramsPage = {
     if (counter) counter.textContent = `Tối đa 1000 ký tự — ${val.length}/1000`;
   },
 
+  validateAcademicYear(yearStr) {
+    if (!yearStr) return false;
+    const match = yearStr.trim().match(/^(\d{4})-(\d{4})$/);
+    if (!match) return false;
+    const start = parseInt(match[1]);
+    const end = parseInt(match[2]);
+    return end === start + 1;
+  },
+
   // Version Modal
   async openVersionModal(programId) {
     document.getElementById('ver-modal-title').textContent = 'Tạo phiên bản mới';
+    document.getElementById('ver-form').reset();
     document.getElementById('ver-program-id').value = programId;
     const now = new Date();
     const year = now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1;
-    document.getElementById('ver-year').value = `${year}-${year + 1}`;
+    document.getElementById('ver-year').value = '';
 
     // Load existing versions for copy
     try {
@@ -450,6 +536,7 @@ window.ProgramsPage = {
       });
     } catch (e) {}
 
+    document.getElementById('ver-year-error').style.display = 'none';
     document.getElementById('ver-error').classList.remove('show');
     document.getElementById('ver-modal').classList.add('active');
   },
@@ -460,20 +547,65 @@ window.ProgramsPage = {
     const copy_from_version_id = document.getElementById('ver-copy-from').value || null;
     const errorEl = document.getElementById('ver-error');
 
-    if (!academic_year) { errorEl.textContent = 'Vui lòng nhập năm học'; errorEl.classList.add('show'); return; }
+    document.getElementById('ver-year-error').style.display = 'none';
+    if (!academic_year) { 
+      document.getElementById('ver-year-error').textContent = 'Vui lòng nhập năm học'; 
+      document.getElementById('ver-year-error').style.display = 'block'; 
+      return; 
+    }
+    if (!this.validateAcademicYear(academic_year)) {
+      document.getElementById('ver-year-error').textContent = 'Năm học sai định dạng. Cần phải là YYYY-YYYY và Năm sau = Năm trước + 1 (VD: 2025-2026)';
+      document.getElementById('ver-year-error').style.display = 'block';
+      return;
+    }
+
+    const body = {
+      academic_year,
+      copy_from_version_id: copy_from_version_id ? parseInt(copy_from_version_id) : null,
+      version_name: document.getElementById('ver-name').value.trim() || null,
+      total_credits: parseInt(document.getElementById('ver-credits').value) || null,
+      training_duration: document.getElementById('ver-duration').value.trim() || null,
+      effective_date: document.getElementById('ver-effective-date').value || null,
+      change_summary: document.getElementById('ver-change-summary').value.trim() || null,
+      grading_scale: document.getElementById('ver-grading').value.trim() || null,
+      graduation_requirements: document.getElementById('ver-graduation').value.trim() || null,
+      job_positions: document.getElementById('ver-jobs').value.trim() || null,
+      further_education: document.getElementById('ver-further-edu').value.trim() || null,
+      reference_programs: document.getElementById('ver-reference').value.trim() || null,
+      training_process: document.getElementById('ver-training-process').value.trim() || null,
+      admission_targets: document.getElementById('ver-admission-targets').value.trim() || null,
+      admission_criteria: document.getElementById('ver-admission-criteria').value.trim() || null,
+    };
+
     try {
+      const btn = document.getElementById('ver-save-btn');
+      btn.textContent = 'Đang lưu...'; btn.disabled = true;
+
       const res = await fetch(`/api/programs/${programId}/versions`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ academic_year, copy_from_version_id: copy_from_version_id ? parseInt(copy_from_version_id) : null })
+        body: JSON.stringify(body)
       });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
       document.getElementById('ver-modal').classList.remove('active');
       window.toast.success(`Đã tạo phiên bản ${academic_year}` + (copy_from_version_id ? ' (đã copy dữ liệu)' : ''));
-      await this.loadData();
+      
+      let pn = document.querySelector('h3[style*="Phiên bản:"]')?.textContent.replace('Phiên bản: ', '');
+      if (!pn && this.programs) {
+        const p = this.programs.find(x => x.id == programId);
+        if (p) pn = p.name;
+      }
+      if (programId && pn) {
+        await this.viewVersions(programId, pn);
+      } else {
+        await this.loadData();
+      }
     } catch (e) {
       errorEl.textContent = e.message;
       errorEl.classList.add('show');
       window.toast.error(e.message);
+    } finally {
+      const btn = document.getElementById('ver-save-btn');
+      btn.textContent = 'Tạo Phiên Bản'; btn.disabled = false;
     }
   },
 
@@ -549,29 +681,91 @@ window.ProgramsPage = {
 
   // Clone version — open modal pre-filled with copy from selected version
   async cloneVersion(programId, sourceVersionId, sourceYear) {
-    document.getElementById('ver-program-id').value = programId;
-    // Auto-generate next academic year
-    const match = sourceYear.match(/^(\d{4})-(\d{4})$/);
-    if (match) {
-      const nextStart = parseInt(match[2]);
-      document.getElementById('ver-year').value = `${nextStart}-${nextStart + 1}`;
-    } else {
-      document.getElementById('ver-year').value = '';
-    }
-
-    // Load existing versions for copy dropdown and pre-select source
     try {
-      const versions = await fetch(`/api/programs/${programId}/versions`).then(r => r.json());
-      const sel = document.getElementById('ver-copy-from');
-      sel.innerHTML = '<option value="">— Tạo mới trắng —</option>';
-      versions.forEach(v => {
-        sel.innerHTML += `<option value="${v.id}" ${v.id === sourceVersionId ? 'selected' : ''}>${v.academic_year} (${v.status}${v.is_locked ? ' 🔒' : ''})</option>`;
-      });
-    } catch (e) {}
+      const v = await fetch(`/api/versions/${sourceVersionId}`).then(r => r.json());
+      if (v.error) throw new Error(v.error);
+      
+      const pn = document.querySelector('h3[style*="Phiên bản:"]')?.textContent.replace('Phiên bản: ', '') || 'CTĐT';
+      document.getElementById('clone-modal-title').textContent = `Nhân Bản Phiên Bản - ${pn}`;
+      document.getElementById('clone-src-year').textContent = v.academic_year;
+      document.getElementById('clone-src-name').textContent = v.version_name || '—';
+      const statusColors = { draft: 'badge-warning', submitted: 'badge-info', approved_khoa: 'badge-info', approved_pdt: 'badge-info', published: 'badge-success' };
+      const statusLabels = { draft: 'Bản nháp', submitted: 'Đã nộp', approved_khoa: 'Duyệt Khoa', approved_pdt: 'Duyệt PĐT', published: 'Đã phê duyệt' };
+      document.getElementById('clone-src-status').innerHTML = `<span class="badge ${statusColors[v.status] || 'badge-neutral'}">${statusLabels[v.status] || v.status}</span>`;
+      document.getElementById('clone-src-credits').textContent = v.total_credits || '0';
+      document.getElementById('clone-src-stats').textContent = `${v.course_count || 0} Môn / ${v.plo_count || 0} PLO / ${v.po_count || 0} PO`;
+      
+      document.getElementById('clone-version-id').value = sourceVersionId;
+      document.getElementById('clone-program-id').value = programId;
+      
+      const match = sourceYear.match(/^(\d{4})-(\d{4})$/);
+      if (match) {
+        const nextStart = parseInt(match[2]);
+        document.getElementById('clone-year').value = `${nextStart}-${nextStart + 1}`;
+      } else {
+        document.getElementById('clone-year').value = '';
+      }
+      document.getElementById('clone-new-name').value = v.version_name || '';
+      document.getElementById('clone-year-error').style.display = 'none';
+      document.getElementById('clone-error').classList.remove('show');
+      
+      document.getElementById('clone-modal').classList.add('active');
+    } catch (e) {
+      window.toast.error(e.message);
+    }
+  },
 
-    document.getElementById('ver-modal-title').textContent = `Nhân bản từ ${sourceYear}`;
-    document.getElementById('ver-error').classList.remove('show');
-    document.getElementById('ver-modal').classList.add('active');
+  async submitClone() {
+    const versionId = document.getElementById('clone-version-id').value;
+    const programId = document.getElementById('clone-program-id').value;
+    const academic_year = document.getElementById('clone-year').value.trim();
+    const version_name = document.getElementById('clone-new-name').value.trim();
+    const errorEl = document.getElementById('clone-error');
+    
+    document.getElementById('clone-year-error').style.display = 'none';
+    if (!academic_year) {
+      document.getElementById('clone-year-error').textContent = 'Vui lòng nhập Số Phiên Bản Mới (Năm học)';
+      document.getElementById('clone-year-error').style.display = 'block';
+      return;
+    }
+    if (!this.validateAcademicYear(academic_year)) {
+      document.getElementById('clone-year-error').textContent = 'Năm học sai định dạng. Cần phải là YYYY-YYYY và Năm sau = Năm trước + 1 (VD: 2025-2026)';
+      document.getElementById('clone-year-error').style.display = 'block';
+      return;
+    }
+    
+    document.getElementById('clone-submit-btn').textContent = "Đang nhân bản...";
+    document.getElementById('clone-submit-btn').disabled = true;
+    
+    try {
+      const res = await fetch(`/api/versions/${versionId}/clone`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ academic_year, version_name })
+      });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      const data = await res.json();
+      
+      document.getElementById('clone-modal').classList.remove('active');
+      window.toast.success('Nhân bản thành công!');
+      
+      let pn = document.querySelector('h3[style*="Phiên bản:"]')?.textContent.replace('Phiên bản: ', '');
+      if (!pn && this.programs) {
+        const p = this.programs.find(x => x.id == programId);
+        if (p) pn = p.name;
+      }
+      if (programId && pn) {
+        await this.viewVersions(programId, pn);
+      } else {
+        await this.loadData();
+      }
+    } catch (e) {
+      errorEl.textContent = e.message;
+      errorEl.classList.add('show');
+    } finally {
+      document.getElementById('clone-submit-btn').textContent = "Nhân bản";
+      document.getElementById('clone-submit-btn').disabled = false;
+    }
   },
 
   async deleteVersion(id, year, programId, programName) {
@@ -598,18 +792,28 @@ window.ProgramsPage = {
       document.getElementById('ver-edit-name').value = v.version_name || '';
       document.getElementById('ver-edit-credits').value = v.total_credits || '';
       document.getElementById('ver-edit-duration').value = v.training_duration || '';
-      document.getElementById('ver-edit-change-type').value = v.change_type || '';
       document.getElementById('ver-edit-status').value = v.status || 'draft';
       document.getElementById('ver-edit-effective-date').value = v.effective_date ? v.effective_date.split('T')[0] : '';
       document.getElementById('ver-edit-change-summary').value = v.change_summary || '';
-      document.getElementById('ver-edit-grading').value = v.grading_scale || '';
-      document.getElementById('ver-edit-graduation').value = v.graduation_requirements || '';
-      document.getElementById('ver-edit-jobs').value = v.job_positions || '';
-      document.getElementById('ver-edit-further-edu').value = v.further_education || '';
-      document.getElementById('ver-edit-reference').value = v.reference_programs || '';
-      document.getElementById('ver-edit-training-process').value = v.training_process || '';
-      document.getElementById('ver-edit-admission-targets').value = v.admission_targets || '';
-      document.getElementById('ver-edit-admission-criteria').value = v.admission_criteria || '';
+      
+      const setFieldValue = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) {
+           el.value = val || '';
+           const details = el.closest('details');
+           if (details) details.open = !!val;
+        }
+      };
+      setFieldValue('ver-edit-grading', v.grading_scale);
+      setFieldValue('ver-edit-graduation', v.graduation_requirements);
+      setFieldValue('ver-edit-jobs', v.job_positions);
+      setFieldValue('ver-edit-further-edu', v.further_education);
+      setFieldValue('ver-edit-reference', v.reference_programs);
+      setFieldValue('ver-edit-training-process', v.training_process);
+      setFieldValue('ver-edit-admission-targets', v.admission_targets);
+      setFieldValue('ver-edit-admission-criteria', v.admission_criteria);
+      
+      document.getElementById('ver-edit-year-error').style.display = 'none';
       document.getElementById('ver-edit-error').classList.remove('show');
       document.getElementById('ver-edit-modal').classList.add('active');
     } catch (e) {
@@ -624,14 +828,23 @@ window.ProgramsPage = {
     const academic_year = document.getElementById('ver-edit-year').value.trim();
     const errorEl = document.getElementById('ver-edit-error');
 
-    if (!academic_year) { errorEl.textContent = 'Vui lòng nhập số phiên bản'; errorEl.classList.add('show'); return; }
+    document.getElementById('ver-edit-year-error').style.display = 'none';
+    if (!academic_year) { 
+      document.getElementById('ver-edit-year-error').textContent = 'Vui lòng nhập số phiên bản'; 
+      document.getElementById('ver-edit-year-error').style.display = 'block'; 
+      return; 
+    }
+    if (!this.validateAcademicYear(academic_year)) {
+      document.getElementById('ver-edit-year-error').textContent = 'Năm học sai định dạng. Cần phải là YYYY-YYYY và Năm sau = Năm trước + 1 (VD: 2025-2026)';
+      document.getElementById('ver-edit-year-error').style.display = 'block';
+      return;
+    }
 
     const body = {
       academic_year,
       version_name: document.getElementById('ver-edit-name').value.trim() || null,
       total_credits: parseInt(document.getElementById('ver-edit-credits').value) || null,
       training_duration: document.getElementById('ver-edit-duration').value.trim() || null,
-      change_type: document.getElementById('ver-edit-change-type').value || null,
       effective_date: document.getElementById('ver-edit-effective-date').value || null,
       change_summary: document.getElementById('ver-edit-change-summary').value.trim() || null,
       grading_scale: document.getElementById('ver-edit-grading').value.trim() || null,
