@@ -167,14 +167,16 @@ window.VersionEditorPage = {
     
     const tabEditable = !locked && canEditStatus && (!tab.editPerm || window.App.hasPerm(tab.editPerm));
 
+    window.TrainingTabs.init(this.versionId, tabEditable, null, () => this.renderTab());
+
     try {
       switch (tabKey) {
         case 'info': await this.renderInfoTab(body, false); break;
-        case 'po': await this.renderPOTab(body, tabEditable); break;
-        case 'plo': await this.renderPLOTab(body, tabEditable); break;
+        case 'po': await window.TrainingTabs.renderPOTab(body); break;
+        case 'plo': await window.TrainingTabs.renderPLOTab(body); break;
         case 'pi': await this.renderPITab(body, tabEditable); break;
-        case 'po_plo': await this.renderPOPLOMatrix(body, tabEditable); break;
-        case 'courses': await this.renderCoursesTab(body, tabEditable); break;
+        case 'po_plo': await window.TrainingTabs.renderPOPLOMatrix(body); break;
+        case 'courses': await window.TrainingTabs.renderCoursesTab(body); break;
         case 'plan': await this.renderPlanTab(body, tabEditable); break;
         case 'course_plo': await this.renderCoursePLOMatrix(body, tabEditable); break;
         case 'assessment': await this.renderAssessmentTab(body, tabEditable); break;

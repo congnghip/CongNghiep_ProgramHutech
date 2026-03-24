@@ -9,7 +9,12 @@ window.ProgramsPage = {
       <div class="card">
         <div class="card-header">
           <div class="card-title">Chương trình Đào tạo</div>
-          ${window.App.hasPerm('programs.create') ? `<button class="btn btn-primary" onclick="window.ProgramsPage.openAddModal()">+ Tạo CTĐT</button>` : ''}
+          ${window.App.hasPerm('programs.create') ? `
+            <div style="display:flex;gap:8px;">
+              <button class="btn btn-secondary" onclick="window.App.navigate('syllabus-import')">📂 Nhập từ DOCX</button>
+              <button class="btn btn-primary" onclick="window.ProgramsPage.openAddModal()">+ Tạo CTĐT</button>
+            </div>
+          ` : ''}
         </div>
         <div id="programs-content" class="card-body"><div class="spinner"></div></div>
       </div>

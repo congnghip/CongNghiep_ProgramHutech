@@ -291,6 +291,16 @@ async function initDB() {
         ip VARCHAR(50),
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
+
+      -- DOCX Import Sessions
+      CREATE TABLE IF NOT EXISTS docx_import_sessions (
+        id SERIAL PRIMARY KEY,
+        user_id INT REFERENCES users(id),
+        status VARCHAR(50) DEFAULT 'processing',
+        raw_data JSONB,
+        validation_errors JSONB,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
     `);
 
     console.log('  ✅ Database schema initialized');

@@ -3,7 +3,12 @@ const express = require('express');
 const cookieParser = require('cookie-parser');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const multer = require('multer');
+const docxParser = require('./services/docx-parser');
+
 const { pool, initDB, getUserPermissions, getUserRoles, hasPermission, isAdmin } = require('./db');
+
+const upload = multer({ storage: multer.memoryStorage() });
 
 const app = express();
 const PORT = process.env.PORT || 3600;
@@ -39,6 +44,29 @@ function authMiddleware(req, res, next) {
     req.user = jwt.verify(token, JWT_SECRET);
     next();
   } catch (e) { return res.status(401).json({ error: 'Token hết hạn' }); }
+}
+
+function normalizeImportData(rawData) {
+  return docxParser.normalizeImportData(rawData);
+}
+
+async function getImportSessionOrThrow(sessionId) {
+  const result = await pool.query('SELECT * FROM docx_import_sessions WHERE id = $1', [sessionId]);
+  if (!result.rows.length) {
+    const error = new Error('Không tìm thấy phiên làm việc');
+    error.statusCode = 404;
+    throw error;
+  }
+  return result.rows[0];
+}
+
+async function assertImportSessionAccess(session, user) {
+  const admin = await isAdmin(user.id);
+  if (session.user_id !== user.id && !admin) {
+    const error = new Error('Bạn không có quyền truy cập phiên làm việc này');
+    error.statusCode = 403;
+    throw error;
+  }
 }
 
 // Permission middleware factory
@@ -1972,6 +2000,312 @@ app.get('/api/audit-logs', authMiddleware, async (req, res) => {
     const countRes = await pool.query('SELECT COUNT(*) as c FROM audit_logs');
     res.json({ logs: result.rows, total: parseInt(countRes.rows[0].c) });
   } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ============ DOCX IMPORT SESSION API ============
+app.post('/api/import/docx/session', authMiddleware, requirePerm('programs.create'), upload.single('file'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Hãy chọn file .docx' });
+  try {
+    const rawData = normalizeImportData(await docxParser.parseDocx(req.file.buffer));
+    const result = await pool.query(
+      'INSERT INTO docx_import_sessions (user_id, status, raw_data) VALUES ($1, $2, $3) RETURNING id',
+      [req.user.id, 'processing', rawData]
+    );
+    res.json({ id: result.rows[0].id, rawData });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/import/docx/session/:id', authMiddleware, async (req, res) => {
+  try {
+    const session = await getImportSessionOrThrow(req.params.id);
+    await assertImportSessionAccess(session, req.user);
+    res.json({
+      ...session,
+      raw_data: normalizeImportData(session.raw_data)
+    });
+  } catch (e) {
+    res.status(e.statusCode || 500).json({ error: e.message });
+  }
+});
+
+app.put('/api/import/docx/session/:id', authMiddleware, async (req, res) => {
+  const { raw_data } = req.body;
+  try {
+    const session = await getImportSessionOrThrow(req.params.id);
+    await assertImportSessionAccess(session, req.user);
+    const normalized = normalizeImportData(raw_data);
+    const result = await pool.query(
+      'UPDATE docx_import_sessions SET raw_data = $1 WHERE id = $2 RETURNING *',
+      [normalized, req.params.id]
+    );
+    res.json({
+      ...result.rows[0],
+      raw_data: normalized
+    });
+  } catch (e) {
+    res.status(e.statusCode || 500).json({ error: e.message });
+  }
+});
+
+app.post('/api/import/docx/session/:id/validate', authMiddleware, async (req, res) => {
+  try {
+    const session = await getImportSessionOrThrow(req.params.id);
+    await assertImportSessionAccess(session, req.user);
+
+    const data = normalizeImportData(session.raw_data);
+    const errors = [];
+    const academicYearMatch = /^(\d{4})-(\d{4})$/.exec(data.academic_year || '');
+    const totalCreditsMissing = data.total_credits === '' || data.total_credits === null || data.total_credits === undefined;
+
+    if (!data.program_name) errors.push({ type: 'error', msg: 'Thiếu tên chương trình đào tạo.' });
+    if (!data.program_code) errors.push({ type: 'error', msg: 'Thiếu mã chương trình đào tạo.' });
+    if (!data.academic_year) errors.push({ type: 'error', msg: 'Thiếu năm học của phiên bản.' });
+    if (!data.version_name) errors.push({ type: 'error', msg: 'Thiếu tên phiên bản.' });
+    if (data.academic_year && !academicYearMatch) {
+      errors.push({ type: 'error', msg: 'Năm học phải đúng định dạng YYYY-YYYY, ví dụ 2025-2026.' });
+    }
+    if (academicYearMatch && parseInt(academicYearMatch[2], 10) !== parseInt(academicYearMatch[1], 10) + 1) {
+      errors.push({ type: 'error', msg: 'Năm học phải là 2 năm liên tiếp, ví dụ 2025-2026.' });
+    }
+    if (!data.degree) errors.push({ type: 'error', msg: 'Thiếu bậc đào tạo.' });
+    if (totalCreditsMissing) {
+      errors.push({ type: 'error', msg: 'Thiếu tổng tín chỉ.' });
+    }
+    if (!totalCreditsMissing && Number.isNaN(Number(data.total_credits))) {
+      errors.push({ type: 'error', msg: 'Tổng tín chỉ phải là số hợp lệ.' });
+    }
+
+    if (data.program_code) {
+      const existingProgramRes = await pool.query(
+        'SELECT id, name, code FROM programs WHERE LOWER(TRIM(code)) = LOWER(TRIM($1)) LIMIT 1',
+        [data.program_code]
+      );
+
+      if (existingProgramRes.rows.length > 0) {
+        const existingProgram = existingProgramRes.rows[0];
+        errors.push({
+          type: 'error',
+          msg: `Mã CTĐT "${data.program_code}" đã tồn tại trong hệ thống${existingProgram.name ? ` (${existingProgram.name})` : ''}.`
+        });
+
+        if (data.version_name || data.academic_year) {
+          const versionDupRes = await pool.query(
+            `SELECT version_name, academic_year
+             FROM program_versions
+             WHERE program_id = $1 AND (version_name = $2 OR academic_year = $3)`,
+            [existingProgram.id, data.version_name || null, data.academic_year || null]
+          );
+
+          versionDupRes.rows.forEach(version => {
+            if (data.version_name && version.version_name === data.version_name) {
+              errors.push({
+                type: 'error',
+                msg: `Tên phiên bản "${data.version_name}" đã tồn tại cho CTĐT có mã "${data.program_code}".`
+              });
+            }
+            if (data.academic_year && version.academic_year === data.academic_year) {
+              errors.push({
+                type: 'error',
+                msg: `Năm học "${data.academic_year}" đã tồn tại cho CTĐT có mã "${data.program_code}".`
+              });
+            }
+          });
+        }
+      }
+    }
+    if (!data.pos || data.pos.length === 0) errors.push({ type: 'warning', msg: 'Không tìm thấy Mục tiêu đào tạo (PO).' });
+    if (!data.plos || data.plos.length === 0) errors.push({ type: 'warning', msg: 'Không tìm thấy Chuẩn đầu ra (PLO).' });
+
+    const poIds = new Set((data.pos || []).map(po => po.id));
+    const ploIds = new Set((data.plos || []).map(plo => plo.id));
+    const courseIds = new Set((data.courses || []).map(course => course.id));
+    const piIds = new Set((data.pis || []).map(pi => pi.id));
+
+    (data.courses || []).forEach(c => {
+      if (!c.course_code) errors.push({ type: 'error', msg: `Học phần "${c.course_name || 'Chưa rõ tên'}" thiếu mã học phần.` });
+      if (!c.course_name) errors.push({ type: 'warning', msg: `Học phần "${c.course_code || 'Chưa rõ mã'}" thiếu tên học phần.` });
+      if (!c.credits) errors.push({ type: 'warning', msg: `Học phần "${c.course_code || 'Chưa rõ mã'}" có số tín chỉ bằng 0.` });
+    });
+
+    (data.pis || []).forEach(pi => {
+      if (!pi.plo_id || !ploIds.has(pi.plo_id)) {
+        errors.push({ type: 'error', msg: `PI "${pi.pi_code || 'Chưa có mã'}" chưa gắn với PLO hợp lệ.` });
+      }
+    });
+
+    (data.po_plo_map || []).forEach(mapping => {
+      if (!poIds.has(mapping.po_id) || !ploIds.has(mapping.plo_id)) {
+        errors.push({ type: 'error', msg: 'Ma trận PO ↔ PLO chứa liên kết không hợp lệ.' });
+      }
+    });
+
+    (data.course_plo_map || []).forEach(mapping => {
+      if (!courseIds.has(mapping.course_id) || !ploIds.has(mapping.plo_id)) {
+        errors.push({ type: 'error', msg: 'Ma trận HP ↔ PLO chứa liên kết không hợp lệ.' });
+      }
+    });
+
+    (data.course_pi_map || []).forEach(mapping => {
+      if (!courseIds.has(mapping.course_id) || !piIds.has(mapping.pi_id)) {
+        errors.push({ type: 'error', msg: 'Ma trận HP ↔ PI chứa liên kết không hợp lệ.' });
+      }
+    });
+
+    await pool.query(
+      'UPDATE docx_import_sessions SET raw_data = $1, validation_errors = $2, status = $3 WHERE id = $4',
+      [data, JSON.stringify(errors), 'validated', req.params.id]
+    );
+
+    res.json({ success: true, errors, rawData: data });
+  } catch (e) {
+    res.status(e.statusCode || 500).json({ error: e.message });
+  }
+});
+
+app.post('/api/import/docx/session/:id/commit', authMiddleware, async (req, res) => {
+  const client = await pool.connect();
+  let startedTransaction = false;
+  try {
+    const session = await getImportSessionOrThrow(req.params.id);
+    await assertImportSessionAccess(session, req.user);
+    const data = normalizeImportData(session.raw_data);
+    const academicYearMatch = /^(\d{4})-(\d{4})$/.exec(data.academic_year || '');
+    const totalCreditsMissing = data.total_credits === '' || data.total_credits === null || data.total_credits === undefined;
+    const poIdMap = new Map();
+    const ploIdMap = new Map();
+    const courseIdMap = new Map();
+
+    if (!data.program_name || !data.program_code || !data.academic_year || !data.degree || !data.version_name || totalCreditsMissing) {
+      throw new Error('Phiên import còn thiếu thông tin bắt buộc ở tab Thông tin.');
+    }
+    if (!academicYearMatch || parseInt(academicYearMatch[2], 10) !== parseInt(academicYearMatch[1], 10) + 1) {
+      throw new Error('Năm học phải đúng định dạng 2 năm liên tiếp, ví dụ 2025-2026.');
+    }
+    if (Number.isNaN(Number(data.total_credits))) {
+      throw new Error('Tổng tín chỉ phải là số hợp lệ.');
+    }
+
+    const existingProgramRes = await client.query(
+      'SELECT id, name, code FROM programs WHERE LOWER(TRIM(code)) = LOWER(TRIM($1)) LIMIT 1',
+      [data.program_code]
+    );
+    if (existingProgramRes.rows.length > 0) {
+      const existingProgram = existingProgramRes.rows[0];
+      throw new Error(`Mã CTĐT "${data.program_code}" đã tồn tại trong hệ thống${existingProgram.name ? ` (${existingProgram.name})` : ''}.`);
+    }
+
+    await client.query('BEGIN');
+    startedTransaction = true;
+
+    const progRes = await client.query(
+      `INSERT INTO programs (name, code, department_id, degree, total_credits)
+       VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+      [data.program_name || 'Ngành học mới (Import)', data.program_code || 'IMPORT', 1, data.degree || 'Đại học', data.total_credits || 0]
+    );
+    const programId = progRes.rows[0].id;
+
+    const verRes = await client.query(
+      `INSERT INTO program_versions (program_id, academic_year, status, version_name, total_credits)
+       VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+      [programId, data.academic_year || '2025-2026', 'draft', data.version_name || 'Phiên bản Import', data.total_credits || 0]
+    );
+    const versionId = verRes.rows[0].id;
+
+    if (data.pos && Array.isArray(data.pos)) {
+      for (const po of data.pos) {
+        const inserted = await client.query(
+          'INSERT INTO version_objectives (version_id, code, description) VALUES ($1, $2, $3) RETURNING id',
+          [versionId, po.code, po.description]);
+        poIdMap.set(po.id, inserted.rows[0].id);
+      }
+    }
+
+    if (data.plos && Array.isArray(data.plos)) {
+      for (const plo of data.plos) {
+        const inserted = await client.query(
+          'INSERT INTO version_plos (version_id, code, bloom_level, description) VALUES ($1, $2, $3, $4) RETURNING id',
+          [versionId, plo.code, plo.bloom_level || 3, plo.description]
+        );
+        ploIdMap.set(plo.id, inserted.rows[0].id);
+      }
+    }
+
+    if (data.courses && Array.isArray(data.courses)) {
+      for (const c of data.courses) {
+        let courseId;
+        const code = c.course_code;
+        const name = c.course_name;
+        if (!code) throw new Error(`Học phần "${name || 'Chưa rõ tên'}" thiếu mã học phần, không thể commit.`);
+
+        const existing = await client.query('SELECT id FROM courses WHERE code = $1', [code]);
+        if (existing.rows.length) {
+          courseId = existing.rows[0].id;
+        } else {
+          const newCourse = await client.query(
+            'INSERT INTO courses (code, name, credits) VALUES ($1, $2, $3) RETURNING id',
+            [code, name || code, c.credits || 0]
+          );
+          courseId = newCourse.rows[0].id;
+        }
+        const inserted = await client.query(
+          'INSERT INTO version_courses (version_id, course_id, semester, course_type) VALUES ($1, $2, $3, $4) RETURNING id',
+          [versionId, courseId, c.semester || 1, c.course_type || 'required']);
+        courseIdMap.set(c.id, inserted.rows[0].id);
+      }
+    }
+
+    for (const pi of data.pis || []) {
+      const realPloId = ploIdMap.get(pi.plo_id);
+      if (!realPloId) continue;
+
+      const insertedPi = await client.query(
+        'INSERT INTO plo_pis (plo_id, pi_code, description) VALUES ($1, $2, $3) RETURNING id',
+        [realPloId, pi.pi_code, pi.description]
+      );
+      const realPiId = insertedPi.rows[0].id;
+
+      for (const tempCourseId of pi.course_ids || []) {
+        const realCourseId = courseIdMap.get(tempCourseId);
+        if (!realCourseId) continue;
+        await client.query(
+          'INSERT INTO version_pi_courses (version_id, pi_id, course_id, contribution_level) VALUES ($1, $2, $3, $4)',
+          [versionId, realPiId, realCourseId, 1]
+        );
+      }
+    }
+
+    for (const mapping of data.po_plo_map || []) {
+      const realPoId = poIdMap.get(mapping.po_id);
+      const realPloId = ploIdMap.get(mapping.plo_id);
+      if (!realPoId || !realPloId) continue;
+      await client.query(
+        'INSERT INTO po_plo_map (version_id, po_id, plo_id) VALUES ($1, $2, $3)',
+        [versionId, realPoId, realPloId]
+      );
+    }
+
+    for (const mapping of data.course_plo_map || []) {
+      const realCourseId = courseIdMap.get(mapping.course_id);
+      const realPloId = ploIdMap.get(mapping.plo_id);
+      if (!realCourseId || !realPloId) continue;
+      await client.query(
+        'INSERT INTO course_plo_map (version_id, course_id, plo_id, contribution_level) VALUES ($1, $2, $3, $4)',
+        [versionId, realCourseId, realPloId, mapping.contribution_level || 0]
+      );
+    }
+
+    await client.query('UPDATE docx_import_sessions SET raw_data = $1, status = $2 WHERE id = $3', [data, 'completed', req.params.id]);
+    await client.query('COMMIT');
+
+    res.json({ success: true, versionId });
+  } catch (e) {
+    if (startedTransaction) await client.query('ROLLBACK');
+    res.status(e.statusCode || 500).json({ error: e.message });
+  } finally {
+    client.release();
+  }
 });
 
 // ============ EXPORT ============

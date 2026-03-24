@@ -1,0 +1,1 @@
+"""DOCX import module for curriculum data ingestion"""

@@ -213,6 +213,7 @@
       if (activeNav) activeNav.classList.add('active');
 
       const container = document.getElementById('page-content');
+      container.classList.remove('main-content-wide', 'main-content-import');
       container.innerHTML = '<div class="spinner"></div>';
 
       if (this.currentPage && this.currentPage.destroy) this.currentPage.destroy();
@@ -220,6 +221,13 @@
       if (page === 'version-editor' && params?.versionId) {
         this.currentPage = window.VersionEditorPage;
         await window.VersionEditorPage.render(container, params.versionId, params);
+        this.checkPermissions(container);
+        return;
+      }
+
+      if (page === 'syllabus-import') {
+        this.currentPage = window.SyllabusImportPage;
+        await window.SyllabusImportPage.render(container, params);
         this.checkPermissions(container);
         return;
       }

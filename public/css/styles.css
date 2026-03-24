@@ -153,6 +153,18 @@ a:hover { text-decoration: underline; }
   min-height: 100vh;
 }
 
+.main-content.main-content-wide {
+  max-width: none;
+  width: calc(100vw - var(--sidebar-w) - 24px);
+  padding-right: 24px;
+}
+
+.main-content.main-content-import {
+  width: calc(100vw - var(--sidebar-w) - 56px);
+  padding-left: 32px;
+  padding-right: 24px;
+}
+
 /* ===== CARDS (no border, no shadow, no background) ===== */
 .card {
   margin-bottom: 24px;
