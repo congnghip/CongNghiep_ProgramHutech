@@ -143,12 +143,26 @@ async function requireViewVersion(req, res, next) {
     if (req.params.entityType === 'program_version') vId = req.params.entityId;
     if (req.params.entityType === 'syllabus') sId = req.params.entityId;
 
+    // Bypass: GV được phân công trong version này → cho phép xem
+    let resolvedVId = vId;
+    if (!resolvedVId && sId) {
+      const sylVer = await pool.query('SELECT version_id FROM version_syllabi WHERE id=$1', [sId]);
+      if (sylVer.rows.length) resolvedVId = sylVer.rows[0].version_id;
+    }
+    if (resolvedVId) {
+      const assigned = await pool.query(
+        'SELECT 1 FROM syllabus_assignments WHERE version_id=$1 AND assigned_to=$2 LIMIT 1',
+        [resolvedVId, req.user.id]
+      );
+      if (assigned.rows.length) return next();
+    }
+
     let query = '';
     let params = [];
 
     if (vId) {
       query = `
-        SELECT pv.status, p.department_id 
+        SELECT pv.status, p.department_id
         FROM program_versions pv
         JOIN programs p ON pv.program_id = p.id
         WHERE pv.id = $1
@@ -156,7 +170,7 @@ async function requireViewVersion(req, res, next) {
       params = [vId];
     } else if (sId) {
       query = `
-        SELECT pv.status, p.department_id 
+        SELECT pv.status, p.department_id
         FROM version_syllabi vs
         JOIN program_versions pv ON vs.version_id = pv.id
         JOIN programs p ON pv.program_id = p.id
@@ -897,7 +911,7 @@ app.delete('/api/pis/:id', authMiddleware, async (req, res) => {
 });
 
 // ============ COURSES MASTER LIST ============
-app.get('/api/courses', authMiddleware, async (req, res) => {
+app.get('/api/courses', authMiddleware, requirePerm('courses.view'), async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT c.*, d.name as dept_name, d.code as dept_code
@@ -932,6 +946,13 @@ app.put('/api/courses/:id', authMiddleware, requirePerm('courses.edit'), async (
 
 app.delete('/api/courses/:id', authMiddleware, requirePerm('courses.edit'), async (req, res) => {
   try {
+    // Check if course is referenced by any version
+    const refs = await pool.query(
+      'SELECT COUNT(*) as c FROM version_courses WHERE course_id=$1', [req.params.id]
+    );
+    if (parseInt(refs.rows[0].c) > 0) {
+      return res.status(400).json({ error: 'Không thể xóa: học phần đang được sử dụng trong CTĐT.' });
+    }
     await pool.query('DELETE FROM courses WHERE id=$1', [req.params.id]);
     res.json({ success: true });
   } catch (e) { res.status(400).json({ error: e.message }); }
@@ -1123,9 +1144,18 @@ app.get('/api/versions/:vId/syllabi', authMiddleware, requireViewVersion, async 
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/versions/:vId/syllabi', authMiddleware, requireDraft('vId', 'syllabus.edit'), async (req, res) => {
+app.post('/api/versions/:vId/syllabi', authMiddleware, async (req, res) => {
   const { course_id, content } = req.body;
   try {
+    // Bypass permission if user is assigned to this course in this version
+    const assignRes = await pool.query(
+      'SELECT 1 FROM syllabus_assignments WHERE version_id=$1 AND course_id=$2 AND assigned_to=$3',
+      [req.params.vId, course_id, req.user.id]
+    );
+    if (!assignRes.rows.length) {
+      await checkVersionEditAccess(req.user.id, req.params.vId, 'syllabus.edit');
+    }
+
     const result = await pool.query(
       'INSERT INTO version_syllabi (version_id, course_id, author_id, content) VALUES ($1,$2,$3,$4) RETURNING *',
       [req.params.vId, course_id, req.user.id, JSON.stringify(content || {})]
@@ -1153,9 +1183,17 @@ app.get('/api/syllabi/:id', authMiddleware, requireViewVersion, async (req, res)
 app.put('/api/syllabi/:id', authMiddleware, async (req, res) => {
   const { content, status } = req.body;
   try {
-    const sylRes = await pool.query('SELECT version_id FROM version_syllabi WHERE id=$1', [req.params.id]);
+    const sylRes = await pool.query('SELECT version_id, course_id FROM version_syllabi WHERE id=$1', [req.params.id]);
     if (!sylRes.rows.length) throw new Error('Không tìm thấy đề cương');
-    await checkVersionEditAccess(req.user.id, sylRes.rows[0].version_id, 'syllabus.edit');
+
+    // Check if user is the assigned GV — allow edit without syllabus.edit permission
+    const assignRes = await pool.query(
+      'SELECT id FROM syllabus_assignments WHERE version_id=$1 AND course_id=$2 AND assigned_to=$3',
+      [sylRes.rows[0].version_id, sylRes.rows[0].course_id, req.user.id]
+    );
+    if (!assignRes.rows.length) {
+      await checkVersionEditAccess(req.user.id, sylRes.rows[0].version_id, 'syllabus.edit');
+    }
 
     const updates = [];
     const values = [];
@@ -1175,6 +1213,223 @@ app.delete('/api/syllabi/:id', authMiddleware, async (req, res) => {
   try {
     await pool.query('DELETE FROM version_syllabi WHERE id=$1', [req.params.id]);
     res.json({ success: true });
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+// ============ SYLLABUS ASSIGNMENTS ============
+
+// Helper: get eligible GV list scoped by assigner's role
+async function getEligibleGV(userId, versionId) {
+  const verRes = await pool.query(`
+    SELECT p.department_id, d.parent_id as khoa_id
+    FROM program_versions pv
+    JOIN programs p ON pv.program_id = p.id
+    JOIN departments d ON p.department_id = d.id
+    WHERE pv.id = $1
+  `, [versionId]);
+  if (!verRes.rows.length) throw new Error('Phiên bản không tồn tại');
+  const { department_id, khoa_id } = verRes.rows[0];
+
+  const roles = await getUserRoles(userId);
+  const maxLevel = Math.max(...roles.map(r => r.level), 0);
+
+  let scopeWhere, scopeParams;
+  if (maxLevel >= 4) {
+    scopeWhere = '';
+    scopeParams = [];
+  } else if (maxLevel >= 3 && khoa_id) {
+    scopeWhere = 'AND (ur.department_id = $1 OR ur.department_id IN (SELECT id FROM departments WHERE parent_id = $1))';
+    scopeParams = [khoa_id];
+  } else {
+    scopeWhere = 'AND ur.department_id = $1';
+    scopeParams = [department_id];
+  }
+
+  const result = await pool.query(`
+    SELECT DISTINCT u.id, u.display_name, u.email, d.name as dept_name
+    FROM users u
+    JOIN user_roles ur ON u.id = ur.user_id
+    JOIN roles r ON ur.role_id = r.id
+    JOIN departments d ON ur.department_id = d.id
+    WHERE r.code = 'GIANG_VIEN' AND u.is_active = true ${scopeWhere}
+    ORDER BY u.display_name
+  `, scopeParams);
+
+  return { gvList: result.rows, maxLevel };
+}
+
+// GET eligible GV for assignment
+app.get('/api/assignments/eligible-gv', authMiddleware, async (req, res) => {
+  try {
+    const versionId = req.query.version_id;
+    if (!versionId) return res.status(400).json({ error: 'Thiếu version_id' });
+    const hasPerm = await hasPermission(req.user.id, 'syllabus.assign');
+    const admin = await isAdmin(req.user.id);
+    if (!hasPerm && !admin) return res.status(403).json({ error: 'Không có quyền' });
+    const { gvList } = await getEligibleGV(req.user.id, versionId);
+    res.json(gvList);
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+// GET assignments for a version
+app.get('/api/versions/:vId/assignments', authMiddleware, requireViewVersion, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT sa.*,
+             u1.display_name as assignee_name,
+             u2.display_name as assigner_name,
+             c.code as course_code, c.name as course_name, c.credits,
+             vs.id as syllabus_id, vs.status as syllabus_status
+      FROM syllabus_assignments sa
+      JOIN users u1 ON sa.assigned_to = u1.id
+      JOIN users u2 ON sa.assigned_by = u2.id
+      JOIN courses c ON sa.course_id = c.id
+      LEFT JOIN version_syllabi vs ON vs.version_id = sa.version_id AND vs.course_id = sa.course_id
+      WHERE sa.version_id = $1
+      ORDER BY c.code
+    `, [req.params.vId]);
+    res.json(result.rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST create/update assignment
+app.post('/api/versions/:vId/assignments', authMiddleware, requirePerm('syllabus.assign'), async (req, res) => {
+  const { course_id, assigned_to, deadline, notes } = req.body;
+  const vId = req.params.vId;
+  try {
+    // Validate version not locked
+    const verRes = await pool.query(`
+      SELECT pv.status, pv.is_locked FROM program_versions pv WHERE pv.id = $1
+    `, [vId]);
+    if (!verRes.rows.length) return res.status(404).json({ error: 'Phiên bản không tồn tại' });
+    if (verRes.rows[0].is_locked) return res.status(400).json({ error: 'Phiên bản đã bị khóa' });
+
+    // Validate course belongs to version
+    const vcRes = await pool.query(
+      'SELECT id FROM version_courses WHERE version_id=$1 AND course_id=$2', [vId, course_id]
+    );
+    if (!vcRes.rows.length) return res.status(400).json({ error: 'Học phần không thuộc CTĐT này' });
+
+    // Validate assigned_to is active GV in scope
+    const { gvList, maxLevel } = await getEligibleGV(req.user.id, vId);
+    if (!gvList.find(g => g.id === assigned_to)) {
+      return res.status(400).json({ error: 'Giảng viên không hợp lệ hoặc ngoài phạm vi' });
+    }
+
+    // Check existing assignment — override logic
+    const existingRes = await pool.query(
+      'SELECT id, assigner_role_level FROM syllabus_assignments WHERE version_id=$1 AND course_id=$2', [vId, course_id]
+    );
+    if (existingRes.rows.length) {
+      const existing = existingRes.rows[0];
+      if (maxLevel < existing.assigner_role_level) {
+        return res.status(403).json({ error: 'Không thể thay đổi phân công của vai trò cao hơn' });
+      }
+      // Check syllabus status — only allow reassign when draft or no syllabus
+      const sylRes = await pool.query(
+        'SELECT status FROM version_syllabi WHERE version_id=$1 AND course_id=$2', [vId, course_id]
+      );
+      if (sylRes.rows.length && sylRes.rows[0].status !== 'draft') {
+        return res.status(400).json({ error: 'Phải trả đề cương về nháp trước khi đổi GV' });
+      }
+    }
+
+    // Upsert assignment
+    const result = await pool.query(`
+      INSERT INTO syllabus_assignments (version_id, course_id, assigned_to, assigned_by, assigner_role_level, deadline, notes)
+      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      ON CONFLICT (version_id, course_id) DO UPDATE SET
+        assigned_to = EXCLUDED.assigned_to,
+        assigned_by = EXCLUDED.assigned_by,
+        assigner_role_level = EXCLUDED.assigner_role_level,
+        deadline = EXCLUDED.deadline,
+        notes = EXCLUDED.notes,
+        updated_at = NOW()
+      RETURNING *
+    `, [vId, course_id, assigned_to, req.user.id, maxLevel, deadline || null, notes || null]);
+
+    // If syllabus exists, update author_id to new assignee
+    await pool.query(
+      'UPDATE version_syllabi SET author_id=$1, updated_at=NOW() WHERE version_id=$2 AND course_id=$3',
+      [assigned_to, vId, course_id]
+    );
+
+    res.json(result.rows[0]);
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+// DELETE assignment
+app.delete('/api/versions/:vId/assignments/:courseId', authMiddleware, requirePerm('syllabus.assign'), async (req, res) => {
+  const { vId, courseId } = req.params;
+  try {
+    // Check syllabus status
+    const sylRes = await pool.query(
+      'SELECT status FROM version_syllabi WHERE version_id=$1 AND course_id=$2', [vId, courseId]
+    );
+    if (sylRes.rows.length && sylRes.rows[0].status !== 'draft') {
+      return res.status(400).json({ error: 'Phải trả đề cương về nháp trước khi xóa phân công' });
+    }
+    await pool.query('DELETE FROM syllabus_assignments WHERE version_id=$1 AND course_id=$2', [vId, courseId]);
+    res.json({ success: true });
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+// GET my assignments (for GV — cross-program)
+app.get('/api/my-assignments', authMiddleware, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT sa.id as assignment_id, sa.version_id, sa.course_id, sa.deadline, sa.notes, sa.created_at as assigned_at,
+             c.code as course_code, c.name as course_name, c.credits,
+             p.name as program_name, p.code as program_code,
+             pv.academic_year, pv.status as version_status,
+             d.name as dept_name,
+             u.display_name as assigned_by_name,
+             vs.id as syllabus_id, vs.status as syllabus_status
+      FROM syllabus_assignments sa
+      JOIN courses c ON sa.course_id = c.id
+      JOIN program_versions pv ON sa.version_id = pv.id
+      JOIN programs p ON pv.program_id = p.id
+      JOIN departments d ON p.department_id = d.id
+      JOIN users u ON sa.assigned_by = u.id
+      LEFT JOIN version_syllabi vs ON vs.version_id = sa.version_id AND vs.course_id = sa.course_id
+      WHERE sa.assigned_to = $1
+      ORDER BY sa.deadline ASC NULLS LAST, sa.created_at DESC
+    `, [req.user.id]);
+    res.json(result.rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST create syllabus from assignment
+app.post('/api/my-assignments/:assignmentId/create-syllabus', authMiddleware, async (req, res) => {
+  try {
+    const aRes = await pool.query('SELECT * FROM syllabus_assignments WHERE id=$1', [req.params.assignmentId]);
+    if (!aRes.rows.length) return res.status(404).json({ error: 'Không tìm thấy phân công' });
+    const assignment = aRes.rows[0];
+
+    if (assignment.assigned_to !== req.user.id) {
+      return res.status(403).json({ error: 'Bạn không được phân công cho đề cương này' });
+    }
+
+    // Check no syllabus exists yet
+    const existRes = await pool.query(
+      'SELECT id FROM version_syllabi WHERE version_id=$1 AND course_id=$2',
+      [assignment.version_id, assignment.course_id]
+    );
+    if (existRes.rows.length) {
+      return res.status(400).json({ error: 'Đề cương đã tồn tại', syllabus_id: existRes.rows[0].id });
+    }
+
+    // Check version not locked
+    const verRes = await pool.query('SELECT is_locked FROM program_versions WHERE id=$1', [assignment.version_id]);
+    if (verRes.rows.length && verRes.rows[0].is_locked) {
+      return res.status(400).json({ error: 'Phiên bản đã bị khóa' });
+    }
+
+    const result = await pool.query(
+      'INSERT INTO version_syllabi (version_id, course_id, author_id, content) VALUES ($1,$2,$3,$4) RETURNING *',
+      [assignment.version_id, assignment.course_id, req.user.id, '{}']
+    );
+    res.json(result.rows[0]);
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
@@ -1276,9 +1531,48 @@ app.post('/api/approval/submit', authMiddleware, async (req, res) => {
     else if (entity_type === 'syllabus') { table = 'version_syllabi'; statusField = 'status'; }
     else return res.status(400).json({ error: 'Invalid entity_type' });
 
-    const current = await pool.query(`SELECT ${statusField} as status, id FROM ${table} WHERE id=$1`, [entity_id]);
+    const current = await pool.query(`SELECT ${statusField} as status, id${entity_type === 'syllabus' ? ', version_id, course_id' : ''} FROM ${table} WHERE id=$1`, [entity_id]);
     if (!current.rows.length) return res.status(404).json({ error: 'Not found' });
     if (current.rows[0].status !== 'draft') return res.status(400).json({ error: 'Chỉ có thể nộp bản nháp' });
+
+    // Check submit permission
+    const admin = await isAdmin(req.user.id);
+    if (!admin) {
+      if (entity_type === 'program_version') {
+        const progRes = await pool.query('SELECT p.department_id FROM program_versions pv JOIN programs p ON pv.program_id = p.id WHERE pv.id = $1', [entity_id]);
+        const deptId = progRes.rows.length ? progRes.rows[0].department_id : null;
+        const hasPerm = await hasPermission(req.user.id, 'programs.submit', deptId);
+        if (!hasPerm) return res.status(403).json({ error: 'Không có quyền nộp CTĐT (yêu cầu programs.submit)' });
+      } else if (entity_type === 'syllabus') {
+        // Bypass if user is the assigned GV for this syllabus
+        const assignBypass = await pool.query(
+          'SELECT 1 FROM syllabus_assignments WHERE version_id=$1 AND course_id=$2 AND assigned_to=$3',
+          [current.rows[0].version_id, current.rows[0].course_id, req.user.id]
+        );
+        if (!assignBypass.rows.length) {
+          const sylRes = await pool.query('SELECT p.department_id FROM version_syllabi vs JOIN program_versions pv ON vs.version_id = pv.id JOIN programs p ON pv.program_id = p.id WHERE vs.id = $1', [entity_id]);
+          const deptId = sylRes.rows.length ? sylRes.rows[0].department_id : null;
+          const hasPerm = await hasPermission(req.user.id, 'syllabus.submit', deptId);
+          if (!hasPerm) return res.status(403).json({ error: 'Không có quyền nộp đề cương (yêu cầu syllabus.submit)' });
+        }
+      }
+    }
+
+    // For syllabus: verify submitter is the assigned GV or has higher role
+    if (entity_type === 'syllabus') {
+      const assignCheck = await pool.query(
+        'SELECT assigned_to FROM syllabus_assignments WHERE version_id=$1 AND course_id=$2',
+        [current.rows[0].version_id, current.rows[0].course_id]
+      );
+      if (assignCheck.rows.length && assignCheck.rows[0].assigned_to !== req.user.id) {
+        const adminCheck = await isAdmin(req.user.id);
+        const roles = await getUserRoles(req.user.id);
+        const maxLvl = Math.max(...roles.map(r => r.level), 0);
+        if (!adminCheck && maxLvl < 2) {
+          return res.status(403).json({ error: 'Chỉ giảng viên được phân công mới có thể nộp đề cương' });
+        }
+      }
+    }
 
     await pool.query(`UPDATE ${table} SET ${statusField}='submitted', is_rejected=false, updated_at=NOW() WHERE id=$1`, [entity_id]);
     await pool.query(
@@ -1304,7 +1598,11 @@ app.post('/api/approval/review', authMiddleware, async (req, res) => {
       const resProg = await pool.query('SELECT p.department_id FROM program_versions pv JOIN programs p ON pv.program_id = p.id WHERE pv.id = $1', [entity_id]);
       if (resProg.rows.length) deptId = resProg.rows[0].department_id;
     } else {
-      const resSyl = await pool.query('SELECT c.department_id FROM version_syllabi vs JOIN courses c ON vs.course_id = c.id WHERE vs.id = $1', [entity_id]);
+      const resSyl = await pool.query(
+        `SELECT p.department_id FROM version_syllabi vs
+         JOIN program_versions pv ON vs.version_id = pv.id
+         JOIN programs p ON pv.program_id = p.id
+         WHERE vs.id = $1`, [entity_id]);
       if (resSyl.rows.length) deptId = resSyl.rows[0].department_id;
     }
 
@@ -1414,9 +1712,28 @@ app.get('/api/approval/history/:entityType/:entityId', authMiddleware, requireVi
 app.get('/api/approval/pending', authMiddleware, async (req, res) => {
   try {
     const admin = await isAdmin(req.user.id);
-    // Get programs needing approval
+
+    // Get user's role-department scopes for filtering
+    const userRoles = admin ? [] : await getUserRoles(req.user.id);
+    const maxLevel = Math.max(...userRoles.map(r => r.level), 0);
+
+    // Map: status → required permission code
+    const programPermMap = {
+      submitted: 'programs.approve_khoa',
+      approved_khoa: 'programs.approve_pdt',
+      approved_pdt: 'programs.approve_bgh'
+    };
+    const syllabusPermMap = {
+      submitted: 'syllabus.approve_tbm',
+      approved_tbm: 'syllabus.approve_khoa',
+      approved_khoa: 'syllabus.approve_pdt',
+      approved_pdt: 'syllabus.approve_bgh'
+    };
+
+    // Get all pending programs
     const programs = await pool.query(`
-      SELECT pv.id, pv.academic_year, pv.status, pv.is_rejected, pv.rejection_reason, p.name as program_name, d.name as dept_name,
+      SELECT pv.id, pv.academic_year, pv.status, pv.is_rejected, pv.rejection_reason,
+             p.name as program_name, p.department_id, d.name as dept_name, d.parent_id as dept_parent_id,
              'program_version' as entity_type
       FROM program_versions pv
       JOIN programs p ON pv.program_id = p.id
@@ -1424,17 +1741,52 @@ app.get('/api/approval/pending', authMiddleware, async (req, res) => {
       WHERE pv.status IN ('submitted','approved_khoa','approved_pdt')
       ORDER BY pv.updated_at DESC
     `);
-    // Get syllabi needing approval
+
+    // Get all pending syllabi
     const syllabi = await pool.query(`
-      SELECT vs.id, vs.status, vs.is_rejected, vs.rejection_reason, c.code as course_code, c.name as course_name,
-             u.display_name as author_name, 'syllabus' as entity_type
+      SELECT vs.id, vs.status, vs.is_rejected, vs.rejection_reason,
+             c.code as course_code, c.name as course_name,
+             u.display_name as author_name, p.department_id, d.name as dept_name, d.parent_id as dept_parent_id,
+             p.name as program_name, pv.academic_year,
+             'syllabus' as entity_type
       FROM version_syllabi vs
       JOIN courses c ON vs.course_id = c.id
       LEFT JOIN users u ON vs.author_id = u.id
+      JOIN program_versions pv ON vs.version_id = pv.id
+      JOIN programs p ON pv.program_id = p.id
+      JOIN departments d ON p.department_id = d.id
       WHERE vs.status IN ('submitted','approved_tbm','approved_khoa','approved_pdt')
       ORDER BY vs.updated_at DESC
     `);
-    res.json({ programs: programs.rows, syllabi: syllabi.rows });
+
+    if (admin) {
+      return res.json({ programs: programs.rows, syllabi: syllabi.rows });
+    }
+
+    // Filter: only show items the user has the required approval permission for (dept-scoped)
+    const userPerms = await getUserPermissions(req.user.id);
+
+    const hasApprovalPerm = (permCode, itemDeptId, itemDeptParentId) => {
+      return userPerms.some(p =>
+        p.code === permCode && (
+          maxLevel >= 4 ||
+          p.department_id === itemDeptId ||
+          p.department_id === itemDeptParentId
+        )
+      );
+    };
+
+    const filteredPrograms = programs.rows.filter(p => {
+      const requiredPerm = programPermMap[p.status];
+      return requiredPerm && hasApprovalPerm(requiredPerm, p.department_id, p.dept_parent_id);
+    });
+
+    const filteredSyllabi = syllabi.rows.filter(s => {
+      const requiredPerm = syllabusPermMap[s.status];
+      return requiredPerm && hasApprovalPerm(requiredPerm, s.department_id, s.dept_parent_id);
+    });
+
+    res.json({ programs: filteredPrograms, syllabi: filteredSyllabi });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -1477,7 +1829,7 @@ app.get('/api/dashboard/stats', authMiddleware, async (req, res) => {
 });
 
 // ============ AUDIT LOGS ============
-app.get('/api/audit-logs', authMiddleware, async (req, res) => {
+app.get('/api/audit-logs', authMiddleware, requirePerm('rbac.view_audit_logs'), async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 50;
     const offset = parseInt(req.query.offset) || 0;
@@ -1492,7 +1844,7 @@ app.get('/api/audit-logs', authMiddleware, async (req, res) => {
 });
 
 // ============ EXPORT ============
-app.get('/api/export/version/:vId', authMiddleware, requireViewVersion, async (req, res) => {
+app.get('/api/export/version/:vId', authMiddleware, requirePerm('programs.export'), requireViewVersion, async (req, res) => {
   try {
     const vId = req.params.vId;
     const [version, pos, plos, vCourses, poploMap, cploMap, assessments, syllabi] = await Promise.all([

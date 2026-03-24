@@ -111,6 +111,10 @@
               <div class="nav-item" data-page="courses">
                 <span class="icon">📚</span> Học phần
               </div>` : ''}
+              ${this.userRoles.some(r => r.role_code === 'GIANG_VIEN') ? `
+              <div class="nav-item" data-page="my-assignments">
+                <span class="icon">📝</span> Đề cương của tôi
+              </div>` : ''}
               <div class="nav-item" data-page="approval">
                 <span class="icon">📬</span> Phê duyệt
               </div>
@@ -194,6 +198,7 @@
         programs: window.ProgramsPage,
         courses: window.CoursesPage,
         approval: window.ApprovalPage,
+        'my-assignments': window.MyAssignmentsPage,
         'audit-logs': window.AuditLogsPage,
         'rbac-admin': window.RBACAdminPage,
       };

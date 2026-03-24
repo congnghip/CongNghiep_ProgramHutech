@@ -235,6 +235,23 @@ async function initDB() {
         updated_at TIMESTAMPTZ DEFAULT NOW()
       );
 
+      -- Syllabus Assignments (phân công GV soạn đề cương)
+      CREATE TABLE IF NOT EXISTS syllabus_assignments (
+        id SERIAL PRIMARY KEY,
+        version_id INT REFERENCES program_versions(id) ON DELETE CASCADE,
+        course_id INT REFERENCES courses(id) ON DELETE CASCADE,
+        assigned_to INT REFERENCES users(id),
+        assigned_by INT REFERENCES users(id),
+        assigner_role_level INT DEFAULT 1,
+        deadline DATE,
+        notes TEXT,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        UNIQUE(version_id, course_id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_sa_assigned_to ON syllabus_assignments(assigned_to);
+      CREATE INDEX IF NOT EXISTS idx_sa_version ON syllabus_assignments(version_id);
+
       -- Assessment Plans
       CREATE TABLE IF NOT EXISTS assessment_plans (
         id SERIAL PRIMARY KEY,
@@ -384,9 +401,6 @@ async function seedData(client) {
     ['courses.view', 'courses', 'Xem danh mục học phần'],
     ['courses.create', 'courses', 'Tạo học phần mới'],
     ['courses.edit', 'courses', 'Chỉnh sửa học phần'],
-    // Portfolio (2)
-    ['portfolio.own', 'portfolio', 'Quản lý hồ sơ GD của mình'],
-    ['portfolio.view_dept', 'portfolio', 'Xem hồ sơ GD của Khoa'],
     // RBAC (5)
     ['rbac.manage_users', 'rbac', 'Quản lý tài khoản'],
     ['rbac.manage_roles', 'rbac', 'Quản lý vai trò & phân quyền'],
@@ -406,12 +420,12 @@ async function seedData(client) {
   // Role-Permission mapping (from RBAC analysis doc)
   const ctDtGranular = ['programs.po.edit', 'programs.plo.edit', 'programs.courses.edit', 'programs.matrix.edit', 'programs.assessment.edit'];
   const rolePerms = {
-    GIANG_VIEN: ['programs.view_published', 'syllabus.view', 'syllabus.create', 'syllabus.edit', 'syllabus.submit', 'courses.view', 'portfolio.own'],
-    TRUONG_NGANH: ['programs.view_published', 'programs.view_draft', 'syllabus.view', 'syllabus.approve_tbm', 'courses.view', 'portfolio.own'],
-    LANH_DAO_KHOA: ['programs.view_published', 'programs.view_draft', 'programs.create', 'programs.edit', 'programs.delete_draft', 'programs.submit', 'programs.approve_khoa', 'programs.export', 'programs.import_word', ...ctDtGranular, 'syllabus.view', 'syllabus.create', 'syllabus.edit', 'syllabus.submit', 'syllabus.approve_khoa', 'syllabus.assign', 'courses.view', 'portfolio.own', 'portfolio.view_dept'],
-    PHONG_DAO_TAO: ['programs.view_published', 'programs.view_draft', 'programs.create', 'programs.edit', 'programs.delete_draft', 'programs.approve_pdt', 'programs.export', 'programs.import_word', 'programs.manage_all', 'programs.create_version', ...ctDtGranular, 'syllabus.view', 'syllabus.create', 'syllabus.edit', 'syllabus.approve_pdt', 'syllabus.assign', 'courses.view', 'courses.create', 'courses.edit', 'portfolio.view_dept', 'rbac.view_audit_logs'],
-    BAN_GIAM_HIEU: ['programs.view_published', 'programs.view_draft', 'programs.approve_bgh', 'programs.export', 'syllabus.view', 'syllabus.approve_bgh', 'courses.view'],
-    ADMIN: ['programs.view_published', 'programs.view_draft', 'programs.delete_draft', 'programs.manage_all', 'programs.create_version', ...ctDtGranular, 'syllabus.view', 'courses.view', 'portfolio.view_dept', 'rbac.manage_users', 'rbac.manage_roles', 'rbac.manage_departments', 'rbac.view_audit_logs', 'rbac.system_config'],
+    GIANG_VIEN: ['programs.view_published', 'syllabus.view', 'syllabus.create', 'syllabus.edit', 'syllabus.submit', 'courses.view'],
+    TRUONG_NGANH: ['programs.view_published', 'programs.view_draft', 'syllabus.view', 'syllabus.approve_tbm', 'syllabus.assign', 'courses.view'],
+    LANH_DAO_KHOA: ['programs.view_published', 'programs.view_draft', 'programs.create', 'programs.edit', 'programs.delete_draft', 'programs.submit', 'programs.approve_khoa', 'programs.export', 'programs.import_word', ...ctDtGranular, 'syllabus.view', 'syllabus.create', 'syllabus.edit', 'syllabus.submit', 'syllabus.approve_khoa', 'syllabus.assign', 'courses.view'],
+    PHONG_DAO_TAO: ['programs.view_published', 'programs.view_draft', 'programs.create', 'programs.edit', 'programs.delete_draft', 'programs.approve_pdt', 'programs.export', 'programs.import_word', 'programs.manage_all', 'programs.create_version', ...ctDtGranular, 'syllabus.view', 'syllabus.create', 'syllabus.edit', 'syllabus.approve_pdt', 'syllabus.assign', 'courses.view', 'courses.create', 'courses.edit', 'rbac.view_audit_logs'],
+    BAN_GIAM_HIEU: ['programs.view_published', 'programs.view_draft', 'programs.approve_bgh', 'programs.export', 'syllabus.view', 'syllabus.approve_bgh', 'syllabus.assign', 'courses.view'],
+    ADMIN: ['programs.view_published', 'programs.view_draft', 'programs.delete_draft', 'programs.manage_all', 'programs.create_version', ...ctDtGranular, 'syllabus.view', 'courses.view', 'rbac.manage_users', 'rbac.manage_roles', 'rbac.manage_departments', 'rbac.view_audit_logs', 'rbac.system_config'],
   };
 
   for (const [roleCode, permCodes] of Object.entries(rolePerms)) {

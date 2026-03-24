@@ -385,7 +385,6 @@ window.RBACAdminPage = {
       syllabus: 'Đề cương học phần',
       courses: 'Danh mục học phần',
       rbac: 'Quản trị hệ thống',
-      portfolio: 'Hồ sơ giáo dục'
     };
 
     body.innerHTML = `

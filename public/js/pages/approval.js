@@ -63,7 +63,7 @@ window.ApprovalPage = {
           <h3 style="font-size:15px;font-weight:600;margin-bottom:12px;">Đề cương chờ duyệt</h3>
           ${(data.syllabi || []).length === 0 ? '<p style="color:var(--text-muted);font-size:13px;">Không có đề cương nào chờ duyệt.</p>' : `
             <table class="data-table">
-              <thead><tr><th>Mã</th><th>Tên HP</th><th>Tác giả</th><th>Trạng thái</th><th></th></tr></thead>
+              <thead><tr><th>Mã</th><th>Tên HP</th><th>CTĐT</th><th>Tác giả</th><th>Trạng thái</th><th></th></tr></thead>
               <tbody>
                 ${data.syllabi.map(s => {
                   const perm = getRequiredPerm(s.status, 'syllabus');
@@ -71,6 +71,7 @@ window.ApprovalPage = {
                   return `<tr>
                     <td><strong>${s.course_code || ''}</strong></td>
                     <td>${s.course_name || ''}</td>
+                    <td style="font-size:12px;color:var(--text-muted);">${s.program_name || ''}${s.academic_year ? ` (${s.academic_year})` : ''}</td>
                     <td style="color:var(--text-muted);">${s.author_name || '?'}</td>
                     <td><span class="badge ${s.is_rejected ? 'badge-danger' : 'badge-info'}">${s.is_rejected ? 'Bị từ chối' : (statusLabels[s.status] || s.status)}</span></td>
                     <td style="white-space:nowrap;">

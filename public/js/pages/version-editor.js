@@ -593,30 +593,68 @@ window.VersionEditorPage = {
     const piMapObj = {};
     piMaps.forEach(m => { piMapObj[`${m.course_id}-${m.pi_id}`] = m; });
 
+    const hasPIs = plos.some(p => p.pis && p.pis.length > 0);
+
     body.innerHTML = `
+      <!-- ===== Ma trận HP ↔ PLO ===== -->
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <h3 style="font-size:15px;font-weight:600;">Ma trận HP ↔ PI</h3>
-        ${editable ? '<button class="btn btn-primary btn-sm" id="save-c-plo-btn">Lưu</button>' : ''}
+        <h3 style="font-size:15px;font-weight:600;">Ma trận HP ↔ PLO</h3>
+        ${editable ? '<button class="btn btn-primary btn-sm" id="save-c-plo-btn">Lưu ma trận PLO</button>' : ''}
       </div>
-      <p style="color:var(--text-muted);font-size:12px;margin-bottom:12px;">— = Không áp dụng · 1 = Thấp · 2 = TB · 3 = Cao</p>
+      <p style="color:var(--text-muted);font-size:12px;margin-bottom:12px;">— = Không áp dụng · 1 = Thấp · 2 = TB · 3 = Cao. Thiết lập mức đóng góp của mỗi HP vào từng PLO.</p>
       <div style="overflow-x:auto;padding-bottom:16px;">
         <table class="data-table" id="c-plo-table" style="border-collapse:collapse;white-space:nowrap;">
+          <thead>
+            <tr>
+              <th style="position:sticky;left:0;z-index:10;min-width:70px;background:#f8f9fa;box-shadow:inset -1px 0 0 var(--border);">Mã HP</th>
+              <th style="min-width:160px;background:#f8f9fa;">Tên HP</th>
+              ${plos.map(p => `<th style="text-align:center;min-width:55px;font-size:12px;">${p.code}</th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>
+            ${vCourses.map(c => `<tr>
+              <td style="position:sticky;left:0;z-index:5;font-size:12px;background:#ffffff;box-shadow:inset -1px 0 0 var(--border);" title="${c.course_name}"><strong>${c.course_code}</strong></td>
+              <td style="font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;">${c.course_name}</td>
+              ${plos.map(p => {
+                const val = ploMapObj[`${c.id}-${p.id}`] || 0;
+                return `<td style="text-align:center;">
+                  <select class="plo-select" data-vc="${c.id}" data-plo="${p.id}"
+                          style="width:38px;padding:1px;font-size:11px;border:1px solid var(--border);border-radius:var(--radius);font-family:inherit;
+                                 ${!editable ? 'background:var(--bg-secondary);opacity:0.5;cursor:not-allowed;' : 'cursor:pointer;'}"
+                          ${!editable ? 'disabled' : ''}>
+                    <option value="0" ${val === 0 ? 'selected' : ''}>—</option>
+                    <option value="1" ${val === 1 ? 'selected' : ''}>1</option>
+                    <option value="2" ${val === 2 ? 'selected' : ''}>2</option>
+                    <option value="3" ${val === 3 ? 'selected' : ''}>3</option>
+                  </select>
+                </td>`;
+              }).join('')}
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+
+      ${hasPIs ? `
+      <!-- ===== Ma trận HP ↔ PI ===== -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin:32px 0 12px;">
+        <h3 style="font-size:15px;font-weight:600;">Ma trận HP ↔ PI</h3>
+        ${editable ? '<button class="btn btn-primary btn-sm" id="save-c-pi-btn">Lưu ma trận PI</button>' : ''}
+      </div>
+      <p style="color:var(--text-muted);font-size:12px;margin-bottom:12px;">Chỉ các ô có HP ↔ PLO đã map (≥1) mới được chỉnh sửa.</p>
+      <div style="overflow-x:auto;padding-bottom:16px;">
+        <table class="data-table" id="c-pi-table" style="border-collapse:collapse;white-space:nowrap;">
           <thead>
             <tr>
               <th rowspan="2" style="position:sticky;left:0;z-index:10;min-width:70px;background:#f8f9fa;box-shadow:inset -1px 0 0 var(--border);">Mã HP</th>
               ${plos.map(p => {
                 if (!p.pis || p.pis.length === 0) return '';
-                return `
-                <th colspan="${p.pis.length}" style="text-align:center;font-size:12px;border-bottom:1px solid var(--border);border-left:2px solid var(--border);background:#f1f3f5;">
-                  ${p.code}
-                </th>
-                `;
+                return `<th colspan="${p.pis.length}" style="text-align:center;font-size:12px;border-bottom:1px solid var(--border);border-left:2px solid var(--border);background:#f1f3f5;">${p.code}</th>`;
               }).join('')}
             </tr>
             <tr>
               ${plos.map(p => {
                 if (!p.pis || p.pis.length === 0) return '';
-                return p.pis.map(pi => `<th style="text-align:center;font-size:11px;min-width:28px;padding:4px;color:var(--primary);background:#f8f9fa;" title="${pi.pi_code}: ${pi.description || ''}">${pi.pi_code.replace('PI.', '').replace('PLO', '')}</th>`).join('');
+                return p.pis.map(pi => `<th style="text-align:center;font-size:11px;min-width:28px;padding:4px;color:var(--primary);background:#f8f9fa;" title="${pi.pi_code}: ${pi.description || ''}">${pi.pi_code}</th>`).join('');
               }).join('')}
             </tr>
           </thead>
@@ -624,17 +662,13 @@ window.VersionEditorPage = {
             ${vCourses.map(c => `<tr>
               <td style="position:sticky;left:0;z-index:5;font-size:12px;background:#ffffff;box-shadow:inset -1px 0 0 var(--border), inset 0 -1px 0 var(--border);" title="${c.course_name}"><strong>${c.course_code}</strong></td>
               ${plos.map(p => {
+                if (!p.pis || p.pis.length === 0) return '';
                 const ploVal = ploMapObj[`${c.id}-${p.id}`] || 0;
                 const isPloMapped = ploVal > 0;
-                
-                if (!p.pis || p.pis.length === 0) return '';
-                
                 return p.pis.map((pi, piIndex) => {
                   const piMapping = piMapObj[`${c.id}-${pi.id}`];
-                  const canEdit = isPloMapped;
                   const val = piMapping ? (piMapping.contribution_level || 0) : 0;
-                  
-                  const isDisabled = !(canEdit && editable);
+                  const isDisabled = !(isPloMapped && editable);
                   return `<td style="text-align:center;${piIndex===0?'border-left:2px solid var(--border);':''}">
                     <select class="pi-select" data-vc="${c.id}" data-pi="${pi.id}" data-plo="${p.id}"
                             style="width:34px;padding:1px;font-size:11px;border:1px solid var(--border);border-radius:var(--radius);font-family:inherit;
@@ -652,9 +686,36 @@ window.VersionEditorPage = {
           </tbody>
         </table>
       </div>
+      ` : ''}
     `;
+
+    // === Save Course-PLO mappings ===
     document.getElementById('save-c-plo-btn')?.addEventListener('click', async () => {
-      const piSelects = document.querySelectorAll('#c-plo-table select.pi-select');
+      const btn = document.getElementById('save-c-plo-btn');
+      btn.textContent = 'Đang lưu...'; btn.disabled = true;
+      const ploSelects = document.querySelectorAll('#c-plo-table select.plo-select');
+      const mappings = [];
+      ploSelects.forEach(s => {
+        const val = parseInt(s.value);
+        if (val > 0) {
+          mappings.push({ course_id: parseInt(s.dataset.vc), plo_id: parseInt(s.dataset.plo), contribution_level: val });
+        }
+      });
+      try {
+        const res = await fetch(`/api/versions/${this.versionId}/course-plo-map`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mappings })
+        });
+        if (!res.ok) throw new Error((await res.json()).error);
+        window.toast.success(`Đã lưu ${mappings.length} liên kết HP ↔ PLO`);
+        this.renderTab(); // Re-render to update PI table enabled/disabled states
+      } catch (e) { window.toast.error(e.message); }
+    });
+
+    // === Save Course-PI mappings ===
+    document.getElementById('save-c-pi-btn')?.addEventListener('click', async () => {
+      const btn = document.getElementById('save-c-pi-btn');
+      btn.textContent = 'Đang lưu...'; btn.disabled = true;
+      const piSelects = document.querySelectorAll('#c-pi-table select.pi-select');
       const pi_mappings = [];
       piSelects.forEach(s => {
         if (!s.disabled) {
@@ -662,13 +723,12 @@ window.VersionEditorPage = {
         }
       });
       try {
-        const piRes = await fetch(`/api/versions/${this.versionId}/course-pi-map`, {
+        const res = await fetch(`/api/versions/${this.versionId}/course-pi-map`, {
           method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pi_mappings })
         });
-        if (!piRes.ok) throw new Error((await piRes.json()).error);
-        
-        window.toast.success(`Đã lưu thay đổi ma trận PI`);
-        this.renderTab(); 
+        if (!res.ok) throw new Error((await res.json()).error);
+        window.toast.success(`Đã lưu ma trận PI`);
+        this.renderTab();
       } catch (e) { window.toast.error(e.message); }
     });
   },
@@ -757,13 +817,27 @@ window.VersionEditorPage = {
   },
 
   // ===== TAB 10: Syllabi =====
+  _eligibleGV: [],
+  _assignmentsMap: {},
+
   async renderSyllabiTab(body, editable) {
-    const [syllabi, vCourses] = await Promise.all([
+    const canAssign = window.App.hasPerm('syllabus.assign');
+    const fetches = [
       fetch(`/api/versions/${this.versionId}/syllabi`).then(r => r.json()),
       fetch(`/api/versions/${this.versionId}/courses`).then(r => r.json()),
-    ]);
+      fetch(`/api/versions/${this.versionId}/assignments`).then(r => r.json()),
+    ];
+    if (canAssign) {
+      fetches.push(fetch(`/api/assignments/eligible-gv?version_id=${this.versionId}`).then(r => r.json()));
+    }
+    const [syllabi, vCourses, assignments, eligibleGV] = await Promise.all(fetches);
+
     const syllabiMap = {};
     syllabi.forEach(s => { syllabiMap[s.course_id] = s; });
+    this._assignmentsMap = {};
+    assignments.forEach(a => { this._assignmentsMap[a.course_id] = a; });
+    this._eligibleGV = eligibleGV || [];
+
     const statusLabels = { draft: 'Nháp', submitted: 'Đã nộp', approved_tbm: 'TBM ✓', approved_khoa: 'Khoa ✓', approved_pdt: 'PĐT ✓', published: 'Công bố' };
 
     body.innerHTML = `
@@ -773,27 +847,126 @@ window.VersionEditorPage = {
       </div>
       ${vCourses.length === 0 ? '<p style="color:var(--text-muted);font-size:13px;">Hãy gán HP vào CTĐT trước.</p>' : `
         <table class="data-table">
-          <thead><tr><th>Mã</th><th>Tên HP</th><th>TC</th><th>Tác giả</th><th>Trạng thái</th><th></th></tr></thead>
+          <thead><tr><th>Mã</th><th>Tên HP</th><th>TC</th><th>GV phân công</th>${canAssign ? '<th>Hạn nộp</th>' : ''}<th>Trạng thái</th><th></th></tr></thead>
           <tbody>
             ${vCourses.map(c => {
       const syl = syllabiMap[c.course_id];
+      const assign = this._assignmentsMap[c.course_id];
+      const sylStatus = syl ? statusLabels[syl.status] : null;
+      const isDraft = !syl || syl.status === 'draft';
+      const deadlineStr = assign && assign.deadline ? new Date(assign.deadline).toLocaleDateString('vi-VN') : '';
+
+      // GV column
+      let gvCell = '';
+      let deadlineCell = '';
+      let actionCell = '';
+
+      if (assign) {
+        // Already assigned
+        gvCell = `<span style="font-size:13px;">${assign.assignee_name}</span>`;
+        deadlineCell = `<span style="font-size:12px;color:var(--text-muted);">${deadlineStr}</span>`;
+
+        if (syl) {
+          actionCell = `<button class="btn btn-secondary btn-sm" onclick="window.App.navigate('syllabus-editor',{syllabusId:${syl.id}})">${(editable && syl.status === 'draft') ? 'Soạn' : 'Xem'}</button>`;
+        }
+        // Allow reassign only when draft and has assign perm
+        if (canAssign && isDraft) {
+          actionCell += ` <button class="btn btn-secondary btn-sm" onclick="window.VersionEditorPage.showReassignModal(${c.course_id})" title="Đổi GV">Đổi GV</button>`;
+        }
+      } else if (canAssign) {
+        // Not assigned — show dropdown
+        gvCell = `<select id="assign-gv-${c.course_id}" style="font-size:12px;padding:4px 6px;min-width:140px;">
+          <option value="">-- Chọn GV --</option>
+          ${this._eligibleGV.map(g => `<option value="${g.id}">${g.display_name} (${g.dept_name})</option>`).join('')}
+        </select>`;
+        deadlineCell = `<input type="date" id="assign-dl-${c.course_id}" style="font-size:12px;padding:4px 6px;width:130px;">`;
+        actionCell = `<button class="btn btn-primary btn-sm" onclick="window.VersionEditorPage.assignSyllabus(${c.course_id})">Phân công</button>`;
+      } else {
+        gvCell = '<span style="color:var(--text-muted);">—</span>';
+      }
+
       return `<tr>
                 <td><strong>${c.course_code}</strong></td>
                 <td>${c.course_name}</td>
                 <td style="text-align:center;">${c.credits}</td>
-                <td style="color:var(--text-muted);">${syl ? syl.author_name || '?' : '—'}</td>
-                <td>${syl ? `<span class="badge badge-info">${statusLabels[syl.status]}</span>` : '<span class="badge badge-neutral">Chưa tạo</span>'}</td>
-                <td style="white-space:nowrap;">
-                  ${syl
-          ? `<button class="btn btn-secondary btn-sm" onclick="window.App.navigate('syllabus-editor',{syllabusId:${syl.id}})">${(editable && syl.status === 'draft') ? 'Soạn' : 'Xem'}</button>`
-          : (editable ? `<button class="btn btn-primary btn-sm" onclick="window.VersionEditorPage.createSyllabus(${c.course_id})">Tạo ĐC</button>` : '')}
-                </td>
+                <td>${gvCell}</td>
+                ${canAssign ? `<td>${deadlineCell}</td>` : ''}
+                <td>${syl ? `<span class="badge badge-info">${sylStatus}</span>` : '<span class="badge badge-neutral">Chưa tạo</span>'}</td>
+                <td style="white-space:nowrap;">${actionCell}</td>
               </tr>`;
     }).join('')}
           </tbody>
         </table>
       `}
+
+      <!-- Reassign Modal -->
+      <div class="modal-overlay" id="reassign-modal">
+        <div class="modal" style="max-width:420px;">
+          <div class="modal-header"><h2>Đổi giảng viên phân công</h2></div>
+          <div class="modal-body">
+            <input type="hidden" id="reassign-course-id">
+            <div class="input-group">
+              <label>Giảng viên mới</label>
+              <select id="reassign-gv" style="width:100%;">
+                <option value="">-- Chọn GV --</option>
+                ${(this._eligibleGV || []).map(g => `<option value="${g.id}">${g.display_name} (${g.dept_name})</option>`).join('')}
+              </select>
+            </div>
+            <div class="input-group">
+              <label>Hạn nộp mới</label>
+              <input type="date" id="reassign-deadline" style="width:100%;">
+            </div>
+            <div class="modal-error" id="reassign-error"></div>
+            <div class="modal-footer">
+              <button class="btn btn-secondary" onclick="document.getElementById('reassign-modal').classList.remove('active')">Hủy</button>
+              <button class="btn btn-primary" onclick="window.VersionEditorPage.confirmReassign()">Đổi GV</button>
+            </div>
+          </div>
+        </div>
+      </div>
     `;
+  },
+
+  async assignSyllabus(courseId) {
+    const gvSelect = document.getElementById(`assign-gv-${courseId}`);
+    const dlInput = document.getElementById(`assign-dl-${courseId}`);
+    const assignedTo = parseInt(gvSelect?.value);
+    if (!assignedTo) { window.toast.error('Vui lòng chọn giảng viên'); return; }
+    try {
+      const res = await fetch(`/api/versions/${this.versionId}/assignments`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ course_id: courseId, assigned_to: assignedTo, deadline: dlInput?.value || null })
+      });
+      if (!res.ok) throw new Error((await res.json()).error);
+      window.toast.success('Đã phân công');
+      this.renderTab();
+    } catch (e) { window.toast.error(e.message); }
+  },
+
+  showReassignModal(courseId) {
+    const assign = this._assignmentsMap[courseId];
+    document.getElementById('reassign-course-id').value = courseId;
+    document.getElementById('reassign-gv').value = '';
+    document.getElementById('reassign-deadline').value = assign?.deadline ? assign.deadline.split('T')[0] : '';
+    document.getElementById('reassign-error').textContent = '';
+    document.getElementById('reassign-modal').classList.add('active');
+  },
+
+  async confirmReassign() {
+    const courseId = parseInt(document.getElementById('reassign-course-id').value);
+    const assignedTo = parseInt(document.getElementById('reassign-gv').value);
+    const deadline = document.getElementById('reassign-deadline').value;
+    if (!assignedTo) { document.getElementById('reassign-error').textContent = 'Vui lòng chọn giảng viên'; return; }
+    try {
+      const res = await fetch(`/api/versions/${this.versionId}/assignments`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ course_id: courseId, assigned_to: assignedTo, deadline: deadline || null })
+      });
+      if (!res.ok) throw new Error((await res.json()).error);
+      document.getElementById('reassign-modal').classList.remove('active');
+      window.toast.success('Đã đổi GV');
+      this.renderTab();
+    } catch (e) { document.getElementById('reassign-error').textContent = e.message; }
   },
 
   async createSyllabus(courseId) {

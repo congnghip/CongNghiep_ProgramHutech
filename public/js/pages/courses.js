@@ -39,9 +39,15 @@ window.CoursesPage = {
                 <label>Số tín chỉ</label>
                 <input type="number" id="c-credits" value="3" min="1" max="20">
               </div>
-              <div class="input-group">
-                <label>Đơn vị quản lý</label>
-                <select id="c-dept"></select>
+              <div style="display:flex;gap:8px;">
+                <div class="input-group" style="flex:1;margin:0;">
+                  <label>Khoa/Viện</label>
+                  <select id="c-khoa"></select>
+                </div>
+                <div class="input-group" style="flex:1;margin:0;">
+                  <label>Ngành</label>
+                  <select id="c-nganh"><option value="">— Toàn khoa —</option></select>
+                </div>
               </div>
               <div class="input-group">
                 <label>Mô tả</label>
@@ -97,10 +103,34 @@ window.CoursesPage = {
     document.getElementById('c-name').value = c ? c.name : '';
     document.getElementById('c-credits').value = c ? c.credits : 3;
     document.getElementById('c-desc').value = c ? (c.description || '') : '';
-    const sel = document.getElementById('c-dept');
-    sel.innerHTML = '<option value="">— Chọn —</option>' + this.departments.filter(d => d.type !== 'ROOT').map(d =>
-      `<option value="${d.id}" ${c && c.department_id === d.id ? 'selected' : ''}>${d.name}</option>`
-    ).join('');
+    // Cascading Khoa → Ngành dropdowns
+    const khoaSel = document.getElementById('c-khoa');
+    const nganhSel = document.getElementById('c-nganh');
+    const khoaList = this.departments.filter(d => ['KHOA', 'VIEN', 'TRUNG_TAM', 'PHONG'].includes(d.type));
+    khoaSel.innerHTML = '<option value="">— Chọn —</option>' +
+      khoaList.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+
+    const populateNganh = (khoaId) => {
+      const children = this.departments.filter(d => d.parent_id == khoaId && d.type === 'BO_MON');
+      nganhSel.innerHTML = '<option value="">— Toàn khoa —</option>' +
+        children.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+    };
+    khoaSel.onchange = () => { populateNganh(khoaSel.value); nganhSel.value = ''; };
+
+    // Pre-select when editing
+    if (c && c.department_id) {
+      const dept = this.departments.find(d => d.id === c.department_id);
+      if (dept && dept.type === 'BO_MON') {
+        khoaSel.value = dept.parent_id;
+        populateNganh(dept.parent_id);
+        nganhSel.value = dept.id;
+      } else if (dept) {
+        khoaSel.value = dept.id;
+        populateNganh(dept.id);
+      }
+    } else {
+      populateNganh(null);
+    }
     document.getElementById('c-save-btn').textContent = c ? 'Cập nhật' : 'Thêm';
     document.getElementById('c-error').classList.remove('show');
     document.getElementById('course-modal').classList.add('active');
@@ -112,7 +142,7 @@ window.CoursesPage = {
       code: document.getElementById('c-code').value.trim(),
       name: document.getElementById('c-name').value.trim(),
       credits: parseInt(document.getElementById('c-credits').value),
-      department_id: document.getElementById('c-dept').value || null,
+      department_id: document.getElementById('c-nganh').value || document.getElementById('c-khoa').value || null,
       description: document.getElementById('c-desc').value.trim(),
     };
     try {
@@ -134,7 +164,8 @@ window.CoursesPage = {
   async del(id) {
     if (!confirm('Xóa học phần này?')) return;
     try {
-      await fetch(`/api/courses/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/courses/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error((await res.json()).error);
       window.toast.success('Đã xóa HP');
       await this.loadData();
     } catch (e) { window.toast.error(e.message); }

@@ -3,6 +3,83 @@ window.AuditLogsPage = {
   currentOffset: 0,
   pageSize: 30,
 
+  // Việt hóa API path thành mô tả dễ đọc
+  translateAction(action) {
+    if (!action) return { method: '?', desc: '' };
+    const parts = action.split(' ');
+    const method = parts[0] || '';
+    const path = parts.slice(1).join(' ').replace('/api/', '');
+
+    const methodLabels = { POST: 'Tạo', PUT: 'Cập nhật', DELETE: 'Xóa', GET: 'Xem' };
+    const methodLabel = methodLabels[method] || method;
+
+    // Pattern matching for Vietnamese descriptions
+    const patterns = [
+      // Auth
+      [/^auth\/login$/, 'Đăng nhập'],
+      [/^auth\/logout$/, 'Đăng xuất'],
+      [/^auth\/change-password$/, 'Đổi mật khẩu'],
+      // Programs
+      [/^programs$/, 'chương trình ĐT'],
+      [/^programs\/\d+$/, 'chương trình ĐT'],
+      [/^programs\/\d+\/versions$/, 'phiên bản CTĐT'],
+      // Versions
+      [/^versions\/(\d+)$/, 'phiên bản CTĐT'],
+      [/^versions\/(\d+)\/objectives$/, 'mục tiêu PO'],
+      [/^versions\/(\d+)\/plos$/, 'chuẩn đầu ra PLO'],
+      [/^versions\/(\d+)\/courses$/, 'học phần trong CTĐT'],
+      [/^versions\/(\d+)\/po-plo-map$/, 'ma trận PO ↔ PLO'],
+      [/^versions\/(\d+)\/course-plo-map$/, 'ma trận HP ↔ PLO'],
+      [/^versions\/(\d+)\/course-pi-map$/, 'ma trận HP ↔ PI'],
+      [/^versions\/(\d+)\/assessments$/, 'đánh giá CĐR'],
+      [/^versions\/(\d+)\/syllabi$/, 'đề cương'],
+      [/^versions\/(\d+)\/assignments$/, 'phân công đề cương'],
+      [/^versions\/(\d+)\/assignments\/\d+$/, 'phân công đề cương'],
+      // PLOs & PIs
+      [/^plos\/(\d+)$/, 'chuẩn đầu ra PLO'],
+      [/^plos\/(\d+)\/pis$/, 'chỉ số PI'],
+      [/^pis\/(\d+)$/, 'chỉ số PI'],
+      // Courses
+      [/^courses$/, 'học phần'],
+      [/^courses\/(\d+)$/, 'học phần'],
+      [/^version-courses\/(\d+)$/, 'học phần trong CTĐT'],
+      // Syllabi
+      [/^syllabi\/(\d+)$/, 'đề cương'],
+      [/^syllabi\/(\d+)\/clos$/, 'CLO đề cương'],
+      [/^syllabi\/(\d+)\/clo-plo-map$/, 'ma trận CLO ↔ PLO'],
+      [/^my-assignments\/(\d+)\/create-syllabus$/, 'đề cương (từ phân công)'],
+      // Approval
+      [/^approval\/submit$/, 'nộp phê duyệt'],
+      [/^approval\/review$/, 'phê duyệt / từ chối'],
+      // Users & RBAC
+      [/^users$/, 'tài khoản'],
+      [/^users\/(\d+)$/, 'tài khoản'],
+      [/^users\/(\d+)\/roles$/, 'vai trò người dùng'],
+      [/^users\/\d+\/roles\/\w+\/\d+$/, 'vai trò người dùng'],
+      [/^users\/(\d+)\/toggle-active$/, 'trạng thái tài khoản'],
+      [/^roles$/, 'vai trò'],
+      [/^roles\/(\d+)$/, 'vai trò'],
+      [/^roles\/(\d+)\/permissions$/, 'phân quyền vai trò'],
+      [/^departments$/, 'đơn vị'],
+      [/^departments\/(\d+)$/, 'đơn vị'],
+      // Export
+      [/^export\/version\/(\d+)$/, 'xuất CTĐT'],
+    ];
+
+    for (const [regex, label] of patterns) {
+      if (regex.test(path)) {
+        // Special cases where method label doesn't apply
+        if (label === 'Đăng nhập' || label === 'Đăng xuất' || label === 'Đổi mật khẩu' ||
+            label === 'nộp phê duyệt' || label === 'phê duyệt / từ chối') {
+          return { method, desc: label.charAt(0).toUpperCase() + label.slice(1) };
+        }
+        return { method, desc: `${methodLabel} ${label}` };
+      }
+    }
+
+    return { method, desc: `${methodLabel} ${path}` };
+  },
+
   async render(container) {
     this.currentOffset = 0;
     await this.loadLogs(container);
@@ -11,7 +88,6 @@ window.AuditLogsPage = {
   async loadLogs(container) {
     try {
       const data = await fetch(`/api/audit-logs?limit=${this.pageSize}&offset=${this.currentOffset}`).then(r => r.json());
-      const methodLabels = { POST: 'Tạo', PUT: 'Sửa', DELETE: 'Xóa' };
       const totalPages = Math.ceil(data.total / this.pageSize);
       const currentPage = Math.floor(this.currentOffset / this.pageSize) + 1;
 
@@ -24,13 +100,14 @@ window.AuditLogsPage = {
           <thead><tr><th style="width:150px;">Thời gian</th><th>Người dùng</th><th style="width:60px;">Loại</th><th>Thao tác</th><th>IP</th></tr></thead>
           <tbody>
             ${data.logs.length === 0 ? '<tr><td colspan="5" style="color:var(--text-muted);text-align:center;">Chưa có nhật ký</td></tr>' : data.logs.map(l => {
-              const method = l.action?.split(' ')[0] || '';
-              const target = l.action?.split(' ').slice(1).join(' ').replace('/api/', '') || '';
+              const { method, desc } = this.translateAction(l.action);
+              const badgeClass = method === 'POST' ? 'success' : method === 'DELETE' ? 'danger' : 'warning';
+              const methodLabel = { POST: 'Tạo', PUT: 'Sửa', DELETE: 'Xóa', GET: 'Xem' }[method] || method;
               return `<tr style="font-size:13px;">
                 <td style="color:var(--text-muted);">${new Date(l.created_at).toLocaleString('vi-VN')}</td>
                 <td style="font-weight:500;">${l.user_name || '?'}</td>
-                <td><span class="badge badge-${method === 'POST' ? 'success' : method === 'DELETE' ? 'danger' : 'warning'}">${methodLabels[method] || method}</span></td>
-                <td style="font-family:monospace;font-size:12px;color:var(--text-muted);">${target}</td>
+                <td><span class="badge badge-${badgeClass}">${methodLabel}</span></td>
+                <td style="font-size:12px;">${desc}</td>
                 <td style="color:var(--text-light);font-size:12px;">${l.ip || ''}</td>
               </tr>`;
             }).join('')}
