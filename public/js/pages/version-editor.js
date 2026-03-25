@@ -137,18 +137,44 @@ window.VersionEditorPage = {
 
   // ===== TAB 1: Info =====
   async renderInfoTab(body, editable) {
+    const v = this.version;
+    const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     body.innerHTML = `
       <div style="max-width:480px;">
         <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;">Thông tin chung</h3>
-        <div class="input-group"><label>Tên ngành</label><input type="text" value="${this.version.program_name}" disabled></div>
-        <div class="input-group"><label>Mã ngành</label><input type="text" value="${this.version.program_code || ''}" disabled></div>
-        <div class="input-group"><label>Bậc đào tạo</label><input type="text" value="${this.version.degree || ''}" disabled></div>
-        <div class="input-group"><label>Tổng tín chỉ</label><input type="text" value="${this.version.total_credits || ''}" disabled></div>
-        <div class="input-group"><label>Khoa/Viện</label><input type="text" value="${this.version.dept_name}" disabled></div>
-        <div class="input-group"><label>Năm học</label><input type="text" value="${this.version.academic_year}" disabled></div>
-        <div class="input-group"><label>Trạng thái</label><input type="text" value="${this.version.status}" disabled></div>
-        <p style="color:var(--text-muted);font-size:12px;margin-top:8px;">Thông tin chung được kế thừa từ CTĐT gốc.</p>
+        <div class="input-group"><label>Tên ngành</label><input type="text" value="${esc(v.program_name)}" disabled></div>
+        <div class="input-group"><label>Mã ngành</label><input type="text" value="${esc(v.program_code)}" disabled></div>
+        <div class="input-group"><label>Bậc đào tạo</label><input type="text" value="${esc(v.degree)}" disabled></div>
+        <div class="input-group"><label>Tên văn bằng</label><input type="text" value="${esc(v.degree_name)}" disabled></div>
+        <div class="input-group"><label>Tổng tín chỉ</label><input type="text" value="${esc(v.total_credits)}" disabled></div>
+        <div class="input-group"><label>Hình thức đào tạo</label><input type="text" value="${esc(v.training_mode)}" disabled></div>
+        <div class="input-group"><label>Thời gian đào tạo</label><input type="text" value="${esc(v.training_duration)}" disabled></div>
+        <div class="input-group"><label>Trường cấp bằng</label><input type="text" value="${esc(v.institution)}" disabled></div>
+        <div class="input-group"><label>Khoa/Viện</label><input type="text" value="${esc(v.dept_name)}" disabled></div>
+        <div class="input-group"><label>Năm học</label><input type="text" value="${esc(v.academic_year)}" disabled></div>
+        <div class="input-group"><label>Trạng thái</label><input type="text" value="${esc(v.status)}" disabled></div>
       </div>
+      ${v.general_objective ? `
+      <div style="max-width:640px;margin-top:24px;">
+        <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;">Mục tiêu chung</h3>
+        <div style="font-size:13px;line-height:1.6;white-space:pre-wrap;padding:12px;background:var(--bg-secondary);border-radius:var(--radius-lg);">${esc(v.general_objective)}</div>
+      </div>` : ''}
+      ${v.job_positions ? `
+      <div style="max-width:640px;margin-top:24px;">
+        <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;">Vị trí việc làm</h3>
+        <div style="font-size:13px;line-height:1.6;white-space:pre-wrap;padding:12px;background:var(--bg-secondary);border-radius:var(--radius-lg);">${esc(v.job_positions)}</div>
+      </div>` : ''}
+      ${v.further_education ? `
+      <div style="max-width:640px;margin-top:24px;">
+        <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;">Học tập nâng cao</h3>
+        <div style="font-size:13px;line-height:1.6;white-space:pre-wrap;padding:12px;background:var(--bg-secondary);border-radius:var(--radius-lg);">${esc(v.further_education)}</div>
+      </div>` : ''}
+      ${v.graduation_requirements ? `
+      <div style="max-width:640px;margin-top:24px;">
+        <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;">Điều kiện tốt nghiệp</h3>
+        <div style="font-size:13px;line-height:1.6;white-space:pre-wrap;padding:12px;background:var(--bg-secondary);border-radius:var(--radius-lg);">${esc(v.graduation_requirements)}</div>
+      </div>` : ''}
+      <p style="color:var(--text-muted);font-size:12px;margin-top:16px;">Thông tin chung được kế thừa từ CTĐT gốc.</p>
     `;
   },
 
@@ -503,22 +529,27 @@ window.VersionEditorPage = {
           <button class="btn btn-primary btn-sm" onclick="window.VersionEditorPage.addCourse()">Thêm</button>
         </div>
       ` : ''}
+      <div style="overflow-x:auto;">
       <table class="data-table">
-        <thead><tr><th>Mã</th><th>Tên HP</th><th>TC</th><th>HK</th><th>Loại</th><th>Đơn vị</th>${editable ? '<th></th>' : ''}</tr></thead>
+        <thead><tr><th>Mã</th><th>Tên HP</th><th style="text-align:center;">TC</th><th style="text-align:center;font-size:11px;" title="Lý thuyết">LT</th><th style="text-align:center;font-size:11px;" title="Thực hành">TH</th><th style="text-align:center;font-size:11px;" title="Đồ án">ĐA</th><th style="text-align:center;font-size:11px;" title="Thực tập">TT</th><th>HK</th><th>Loại</th>${editable ? '<th></th>' : ''}</tr></thead>
         <tbody>
-          ${vCourses.length === 0 ? `<tr><td colspan="${!editable ? 6 : 7}" style="color:var(--text-muted);text-align:center;">Chưa gán HP</td></tr>` : vCourses.map(c => `
+          ${vCourses.length === 0 ? `<tr><td colspan="${!editable ? 9 : 10}" style="color:var(--text-muted);text-align:center;">Chưa gán HP</td></tr>` : vCourses.map(c => `
             <tr>
               <td><strong>${c.course_code}</strong></td>
-              <td>${c.course_name}</td>
+              <td>${c.course_name}${c.elective_group ? ` <span style="color:var(--text-muted);font-size:11px;">(${c.elective_group})</span>` : ''}</td>
               <td style="text-align:center;">${c.credits}</td>
+              <td style="text-align:center;color:var(--text-muted);">${c.credits_theory || '—'}</td>
+              <td style="text-align:center;color:var(--text-muted);">${c.credits_practice || '—'}</td>
+              <td style="text-align:center;color:var(--text-muted);">${c.credits_project || '—'}</td>
+              <td style="text-align:center;color:var(--text-muted);">${c.credits_internship || '—'}</td>
               <td><span class="badge badge-info">HK ${c.semester}</span></td>
               <td><span class="badge ${c.course_type === 'required' ? 'badge-success' : 'badge-warning'}">${c.course_type === 'required' ? 'Bắt buộc' : 'Tự chọn'}</span></td>
-              <td style="color:var(--text-muted);">${c.dept_name || ''}</td>
               ${editable ? `<td><button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="window.VersionEditorPage.removeCourse(${c.id})">Xóa</button></td>` : ''}
             </tr>
           `).join('')}
         </tbody>
       </table>
+      </div>
     `;
   },
 
@@ -545,23 +576,63 @@ window.VersionEditorPage = {
 
   // ===== TAB 7: Teaching Plan =====
   async renderPlanTab(body, editable) {
-    const vCourses = await fetch(`/api/versions/${this.versionId}/courses`).then(r => r.json());
+    const [vCourses, teachingPlan] = await Promise.all([
+      fetch(`/api/versions/${this.versionId}/courses`).then(r => r.json()),
+      fetch(`/api/versions/${this.versionId}/teaching-plan`).then(r => r.json()).catch(() => [])
+    ]);
+    const hasTeachingPlan = teachingPlan.length > 0;
+
     const semesters = {};
-    vCourses.forEach(c => {
-      if (!semesters[c.semester]) semesters[c.semester] = [];
-      semesters[c.semester].push(c);
+    const source = hasTeachingPlan ? teachingPlan : vCourses;
+    source.forEach(c => {
+      const sem = c.semester || 0;
+      if (!semesters[sem]) semesters[sem] = [];
+      semesters[sem].push(c);
     });
     const semKeys = Object.keys(semesters).sort((a, b) => a - b);
 
     body.innerHTML = `
       <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;">Kế hoạch giảng dạy</h3>
-      ${semKeys.length === 0 ? '<p style="color:var(--text-muted);font-size:13px;">Hãy gán HP vào CTĐT trước.</p>' : `
+      ${semKeys.length === 0 ? '<p style="color:var(--text-muted);font-size:13px;">Hãy gán HP vào CTĐT trước.</p>' : hasTeachingPlan ? `
+        ${semKeys.map(sem => {
+          const items = semesters[sem];
+          const totalCredits = items.reduce((s, c) => s + (c.credits || 0), 0);
+          return `
+          <div style="margin-bottom:24px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <strong style="font-size:14px;">Học kỳ ${sem}</strong>
+              <span style="color:var(--text-muted);font-size:12px;">${totalCredits} TC</span>
+            </div>
+            <div style="overflow-x:auto;">
+            <table class="data-table">
+              <thead><tr><th>Mã HP</th><th>Tên HP</th><th style="text-align:center;">TC</th><th style="text-align:center;font-size:11px;">Tiết LT</th><th style="text-align:center;font-size:11px;">Tiết TH</th><th style="text-align:center;font-size:11px;">Tiết ĐA</th><th style="text-align:center;font-size:11px;">Tiết TT</th><th>Phần mềm</th><th>Đơn vị QL</th><th>Đợt</th></tr></thead>
+              <tbody>
+                ${items.map(c => `
+                  <tr>
+                    <td><strong>${c.course_code}</strong></td>
+                    <td>${c.course_name}</td>
+                    <td style="text-align:center;">${c.credits || ''}</td>
+                    <td style="text-align:center;color:var(--text-muted);">${c.hours_theory || '—'}</td>
+                    <td style="text-align:center;color:var(--text-muted);">${c.hours_practice || '—'}</td>
+                    <td style="text-align:center;color:var(--text-muted);">${c.hours_project || '—'}</td>
+                    <td style="text-align:center;color:var(--text-muted);">${c.hours_internship || '—'}</td>
+                    <td style="font-size:12px;color:var(--text-muted);">${c.software || ''}</td>
+                    <td style="font-size:12px;color:var(--text-muted);">${c.managing_dept || ''}</td>
+                    <td style="text-align:center;">${c.batch || ''}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+            </div>
+          </div>`;
+        }).join('')}
+      ` : `
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px;">
           ${semKeys.map(sem => `
             <div>
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
                 <strong style="font-size:14px;">Học kỳ ${sem}</strong>
-                <span style="color:var(--text-muted);font-size:12px;">${semesters[sem].reduce((s, c) => s + c.credits, 0)} TC</span>
+                <span style="color:var(--text-muted);font-size:12px;">${semesters[sem].reduce((s, c) => s + (c.credits || 0), 0)} TC</span>
               </div>
               ${semesters[sem].map(c => `
                 <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid var(--divider);">

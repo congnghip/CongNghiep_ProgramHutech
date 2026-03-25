@@ -670,6 +670,7 @@ app.get('/api/versions/:id', authMiddleware, requireViewVersion, async (req, res
   try {
     const v = await pool.query(`
       SELECT pv.*, p.name as program_name, p.code as program_code, p.degree, p.total_credits,
+             p.degree_name, p.training_mode, p.institution,
              p.department_id, d.name as dept_name
       FROM program_versions pv
       JOIN programs p ON pv.program_id = p.id
@@ -965,8 +966,9 @@ app.delete('/api/courses/:id', authMiddleware, requirePerm('courses.edit'), asyn
 app.get('/api/versions/:vId/courses', authMiddleware, requireViewVersion, async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT vc.*, c.code as course_code, c.name as course_name, c.credits, c.description as course_desc,
-             d.name as dept_name
+      SELECT vc.*, c.code as course_code, c.name as course_name, c.credits,
+             c.credits_theory, c.credits_practice, c.credits_project, c.credits_internship,
+             c.description as course_desc, d.name as dept_name
       FROM version_courses vc
       JOIN courses c ON vc.course_id = c.id
       LEFT JOIN departments d ON c.department_id = d.id
@@ -975,6 +977,35 @@ app.get('/api/versions/:vId/courses', authMiddleware, requireViewVersion, async 
     `, [req.params.vId]);
     res.json(result.rows);
   } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/versions/:vId/knowledge-blocks', authMiddleware, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT * FROM knowledge_blocks WHERE version_id = $1 ORDER BY sort_order, id`,
+      [req.params.vId]
+    );
+    res.json(rows);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/versions/:vId/teaching-plan', authMiddleware, async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT tp.*, vc.semester, c.code as course_code, c.name as course_name, c.credits
+       FROM teaching_plan tp
+       JOIN version_courses vc ON tp.version_course_id = vc.id
+       JOIN courses c ON vc.course_id = c.id
+       WHERE vc.version_id = $1
+       ORDER BY vc.semester, c.code`,
+      [req.params.vId]
+    );
+    res.json(rows);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
 app.post('/api/versions/:vId/courses', authMiddleware, requireDraft('vId', 'programs.courses.edit'), async (req, res) => {
@@ -1855,7 +1886,7 @@ app.get('/api/export/version/:vId', authMiddleware, requirePerm('programs.export
         FROM program_versions pv JOIN programs p ON pv.program_id=p.id JOIN departments d ON p.department_id=d.id WHERE pv.id=$1`, [vId]),
       pool.query('SELECT * FROM version_objectives WHERE version_id=$1 ORDER BY code', [vId]),
       pool.query(`SELECT vp.*, (SELECT json_agg(json_build_object('id',pi.id,'code',pi.pi_code,'description',pi.description)) FROM plo_pis pi WHERE pi.plo_id=vp.id) as pis FROM version_plos vp WHERE vp.version_id=$1 ORDER BY code`, [vId]),
-      pool.query(`SELECT vc.*, c.code as course_code, c.name as course_name, c.credits, c.description as course_desc, d.name as dept_name
+      pool.query(`SELECT vc.*, c.code as course_code, c.name as course_name, c.credits, c.credits_theory, c.credits_practice, c.credits_project, c.credits_internship, c.description as course_desc, d.name as dept_name
         FROM version_courses vc JOIN courses c ON vc.course_id=c.id LEFT JOIN departments d ON c.department_id=d.id WHERE vc.version_id=$1 ORDER BY vc.semester, c.code`, [vId]),
       pool.query('SELECT * FROM po_plo_map WHERE version_id=$1', [vId]),
       pool.query('SELECT * FROM course_plo_map WHERE version_id=$1', [vId]),
