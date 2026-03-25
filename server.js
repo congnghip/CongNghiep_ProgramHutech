@@ -4,12 +4,15 @@ const cookieParser = require('cookie-parser');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const { pool, initDB, getUserPermissions, getUserRoles, hasPermission, isAdmin } = require('./db');
+const multer = require('multer');
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
+const { parseWordFile } = require('./word-parser');
 
 const app = express();
 const PORT = process.env.PORT || 3600;
 const JWT_SECRET = process.env.JWT_SECRET || 'hutech-program-secret';
 
-app.use(express.json());
+app.use(express.json({ limit: '5mb' }));
 app.use(cookieParser());
 app.use(express.static('public'));
 
@@ -1880,6 +1883,320 @@ app.get('/api/export/version/:vId', authMiddleware, requirePerm('programs.export
 
 // ============ HEALTH ============
 app.get('/api/health', (req, res) => res.json({ status: 'healthy', app: 'HUTECH Program', port: PORT }));
+
+// ============ WORD IMPORT ============
+
+// POST /api/import/parse-word — parse a .docx file, return structured data
+app.post('/api/import/parse-word', authMiddleware, requirePerm('programs.import_word'), upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ success: false, error: 'No file uploaded' });
+    const data = await parseWordFile(req.file.buffer);
+    res.json({ success: true, data });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// POST /api/import/save — save a parsed CTDT object to the database in one transaction
+app.post('/api/import/save', authMiddleware, requirePerm('programs.import_word'), async (req, res) => {
+  const {
+    program, version, general_objective,
+    objectives, plos, pis,
+    poploMatrix, knowledgeBlocks,
+    courses, coursePIMatrix,
+    teachingPlan, assessmentPlan,
+    courseDescriptions,
+    department_id,
+  } = req.body;
+
+  if (!program || !program.code) return res.status(400).json({ success: false, error: 'Missing program.code' });
+  if (!department_id) return res.status(400).json({ success: false, error: 'Missing department_id' });
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // ── Step 1: Check duplicate program code ──────────────────────────────
+    const dupCheck = await client.query('SELECT id FROM programs WHERE code=$1', [program.code]);
+    if (dupCheck.rows.length) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ success: false, error: `Program with code "${program.code}" already exists` });
+    }
+
+    // ── Step 2: INSERT programs ───────────────────────────────────────────
+    const progRes = await client.query(
+      `INSERT INTO programs (department_id, name, name_en, code, degree, total_credits, institution, degree_name, training_mode)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`,
+      [
+        department_id,
+        program.name || '',
+        program.name_en || null,
+        program.code,
+        program.degree || 'Đại học',
+        program.total_credits || null,
+        program.institution || null,
+        program.degree_name || null,
+        program.training_mode || null,
+      ]
+    );
+    const program_id = progRes.rows[0].id;
+
+    // ── Step 3: INSERT program_versions ──────────────────────────────────
+    const verRes = await client.query(
+      `INSERT INTO program_versions
+         (program_id, academic_year, version_name, status, total_credits, training_duration,
+          grading_scale, graduation_requirements, job_positions, further_education,
+          reference_programs, training_process, admission_targets, admission_criteria, general_objective)
+       VALUES ($1,$2,$3,'draft',$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id`,
+      [
+        program_id,
+        (version && version.academic_year) ? version.academic_year : new Date().getFullYear().toString(),
+        (version && version.version_name) ? version.version_name : null,
+        program.total_credits || null,
+        (version && version.training_duration) ? version.training_duration : (program.duration || null),
+        (version && version.grading_scale) ? version.grading_scale : null,
+        (version && version.graduation_requirements) ? version.graduation_requirements : null,
+        (version && version.job_positions) ? version.job_positions : null,
+        (version && version.further_education) ? version.further_education : null,
+        (version && version.reference_programs) ? version.reference_programs : null,
+        (version && version.training_process) ? version.training_process : null,
+        (version && version.admission_targets) ? version.admission_targets : null,
+        (version && version.admission_criteria) ? version.admission_criteria : null,
+        general_objective || null,
+      ]
+    );
+    const version_id = verRes.rows[0].id;
+
+    // ── Step 4: INSERT version_objectives (PO) ───────────────────────────
+    const poMap = {}; // code → id
+    for (const obj of (objectives || [])) {
+      const r = await client.query(
+        `INSERT INTO version_objectives (version_id, code, description) VALUES ($1,$2,$3) RETURNING id`,
+        [version_id, obj.code, obj.description || null]
+      );
+      poMap[obj.code] = r.rows[0].id;
+    }
+
+    // ── Step 5: INSERT version_plos → ploMap (code→id) ───────────────────
+    const ploMap = {}; // code → id
+    for (const plo of (plos || [])) {
+      const r = await client.query(
+        `INSERT INTO version_plos (version_id, code, description, bloom_level) VALUES ($1,$2,$3,$4) RETURNING id`,
+        [version_id, plo.code, plo.description || null, plo.bloom_level || 1]
+      );
+      ploMap[plo.code] = r.rows[0].id;
+    }
+
+    // ── Step 6: INSERT plo_pis → piMap (code→id) ─────────────────────────
+    const piMap = {}; // pi_code → id
+    for (const pi of (pis || [])) {
+      const ploId = ploMap[pi.plo_code];
+      if (!ploId) continue;
+      const r = await client.query(
+        `INSERT INTO plo_pis (plo_id, pi_code, description) VALUES ($1,$2,$3) RETURNING id`,
+        [ploId, pi.pi_code, pi.description || null]
+      );
+      piMap[pi.pi_code] = r.rows[0].id;
+    }
+
+    // ── Step 7: UPSERT courses → courseMap (code→id) ─────────────────────
+    const courseMap = {}; // code → courses.id
+    for (const c of (courses || [])) {
+      const r = await client.query(
+        `INSERT INTO courses (code, name, credits, department_id, credits_theory, credits_practice, credits_project, credits_internship)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+         ON CONFLICT (code) DO UPDATE SET
+           name=EXCLUDED.name,
+           credits=EXCLUDED.credits,
+           credits_theory=EXCLUDED.credits_theory,
+           credits_practice=EXCLUDED.credits_practice,
+           credits_project=EXCLUDED.credits_project,
+           credits_internship=EXCLUDED.credits_internship
+         RETURNING id`,
+        [
+          c.code, c.name || c.code, c.credits || 0, department_id,
+          c.credits_theory || 0, c.credits_practice || 0,
+          c.credits_project || 0, c.credits_internship || 0,
+        ]
+      );
+      courseMap[c.code] = r.rows[0].id;
+    }
+
+    // ── Step 8: INSERT version_courses (resolve prereq/coreq) → vcMap (code→version_course_id) ──
+    const vcMap = {}; // course_code → version_courses.id
+    // First pass: insert all without prereq/coreq
+    for (const c of (courses || [])) {
+      const cid = courseMap[c.code];
+      if (!cid) continue;
+      const r = await client.query(
+        `INSERT INTO version_courses (version_id, course_id, semester, course_type, elective_group)
+         VALUES ($1,$2,$3,$4,$5) RETURNING id`,
+        [version_id, cid, c.semester || null, c.course_type || 'required', c.elective_group || null]
+      );
+      vcMap[c.code] = r.rows[0].id;
+    }
+    // Second pass: set prereq/coreq IDs now that all vcMap entries exist
+    for (const c of (courses || [])) {
+      const vcId = vcMap[c.code];
+      if (!vcId) continue;
+      const prereqIds = (c.prerequisite_codes || []).map(code => vcMap[code]).filter(Boolean);
+      const coreqIds = (c.corequisite_codes || []).map(code => vcMap[code]).filter(Boolean);
+      if (prereqIds.length || coreqIds.length) {
+        await client.query(
+          `UPDATE version_courses SET prerequisite_course_ids=$1, corequisite_course_ids=$2 WHERE id=$3`,
+          [
+            prereqIds.length ? prereqIds : null,
+            coreqIds.length ? coreqIds : null,
+            vcId,
+          ]
+        );
+      }
+    }
+
+    // ── Step 9: INSERT knowledge_blocks (with parent_id resolution) ───────
+    const blockNameToId = {};
+    for (const blk of (knowledgeBlocks || [])) {
+      const parentId = blk.parent_name ? (blockNameToId[blk.parent_name] || null) : null;
+      const r = await client.query(
+        `INSERT INTO knowledge_blocks (version_id, name, parent_id, total_credits, required_credits, elective_credits, sort_order)
+         VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id`,
+        [
+          version_id, blk.name, parentId,
+          blk.total_credits || 0, blk.required_credits || 0,
+          blk.elective_credits || 0, blk.sort_order || 0,
+        ]
+      );
+      blockNameToId[blk.name] = r.rows[0].id;
+    }
+
+    // ── Step 10: INSERT po_plo_map ────────────────────────────────────────
+    for (const m of (poploMatrix || [])) {
+      const poId = poMap[m.po_code];
+      const ploId = ploMap[m.plo_code];
+      if (!poId || !ploId) continue;
+      await client.query(
+        `INSERT INTO po_plo_map (version_id, po_id, plo_id) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING`,
+        [version_id, poId, ploId]
+      );
+    }
+
+    // ── Step 11: INSERT course_plo_map (aggregated from Course-PI matrix) ─
+    // Derive PLO from PI code: "PI.1.01" → "PLO1"
+    // Take max contribution_level per (course_code, plo_code) pair
+    const coursePloAgg = {}; // "courseCode|ploCode" → max contribution_level
+    for (const m of (coursePIMatrix || [])) {
+      // PI code format: "PI.X.Y" → PLO is "PLO{X}"
+      const piMatch = m.pi_code.match(/PI[\.\s]*(\d+)/i);
+      if (!piMatch) continue;
+      const ploCode = `PLO${parseInt(piMatch[1], 10)}`;
+      const key = `${m.course_code}|${ploCode}`;
+      const existing = coursePloAgg[key] || 0;
+      if ((m.contribution_level || 0) > existing) {
+        coursePloAgg[key] = m.contribution_level || 0;
+      }
+    }
+    for (const [key, level] of Object.entries(coursePloAgg)) {
+      const [courseCode, ploCode] = key.split('|');
+      const vcId = vcMap[courseCode];
+      const ploId = ploMap[ploCode];
+      if (!vcId || !ploId) continue;
+      await client.query(
+        `INSERT INTO course_plo_map (version_id, course_id, plo_id, contribution_level) VALUES ($1,$2,$3,$4) ON CONFLICT DO NOTHING`,
+        [version_id, vcId, ploId, level]
+      );
+    }
+
+    // ── Step 12: INSERT version_pi_courses (FK → version_courses.id) ─────
+    for (const m of (coursePIMatrix || [])) {
+      const vcId = vcMap[m.course_code];
+      const piId = piMap[m.pi_code];
+      if (!vcId || !piId) continue;
+      await client.query(
+        `INSERT INTO version_pi_courses (version_id, pi_id, course_id, contribution_level) VALUES ($1,$2,$3,$4) ON CONFLICT DO NOTHING`,
+        [version_id, piId, vcId, m.contribution_level || 0]
+      );
+    }
+
+    // ── Step 13: INSERT teaching_plan (resolve course_code→version_course_id) ──
+    for (const tp of (teachingPlan || [])) {
+      const vcId = vcMap[tp.code];
+      if (!vcId) continue;
+      await client.query(
+        `INSERT INTO teaching_plan (version_course_id, total_hours, hours_theory, hours_practice, hours_project, hours_internship, software, managing_dept, batch, notes)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)`,
+        [
+          vcId,
+          tp.total_hours || 0, tp.hours_theory || 0, tp.hours_practice || 0,
+          tp.hours_project || 0, tp.hours_internship || 0,
+          tp.software || null, tp.department || null, tp.batch || null, tp.notes || null,
+        ]
+      );
+    }
+
+    // ── Step 14: INSERT assessment_plans ─────────────────────────────────
+    for (const ap of (assessmentPlan || [])) {
+      const ploId = ploMap[ap.plo_code] || null;
+      const piId = piMap[ap.pi_code] || null;
+      // sample_course_id references courses.id (master), not version_courses
+      const sampleCourseId = ap.sample_course ? (courseMap[ap.sample_course] || null) : null;
+      await client.query(
+        `INSERT INTO assessment_plans
+           (version_id, plo_id, pi_id, sample_course_id, assessment_tool, criteria, threshold,
+            semester, assessor, dept_code, direct_evidence, expected_result, contributing_course_codes)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
+        [
+          version_id, ploId, piId, sampleCourseId,
+          ap.assessment_tool || null,
+          ap.description || null,      // criteria = $6 → ap.description
+          ap.expected_result || null,  // threshold = $7 → ap.expected_result
+          ap.schedule || null,
+          ap.instructor || null,
+          ap.unit || null,
+          ap.direct_evidence || null,
+          ap.standard || null,
+          ap.contributing_courses ? ap.contributing_courses.join(',') : null,
+        ]
+      );
+    }
+
+    // ── Step 15: UPDATE courses.description ──────────────────────────────
+    for (const cd of (courseDescriptions || [])) {
+      const cid = courseMap[cd.code];
+      if (!cid) continue;
+      await client.query(
+        `UPDATE courses SET description=$1 WHERE id=$2`,
+        [cd.description, cid]
+      );
+    }
+
+    await client.query('COMMIT');
+
+    res.json({
+      success: true,
+      program_id,
+      version_id,
+      summary: {
+        objectives: (objectives || []).length,
+        plos: (plos || []).length,
+        pis: (pis || []).length,
+        courses: Object.keys(courseMap).length,
+        version_courses: Object.keys(vcMap).length,
+        knowledge_blocks: Object.keys(blockNameToId).length,
+        po_plo_map: (poploMatrix || []).length,
+        course_plo_map: Object.keys(coursePloAgg).length,
+        course_pi_map: (coursePIMatrix || []).length,
+        teaching_plan: (teachingPlan || []).length,
+        assessment_plans: (assessmentPlan || []).length,
+        course_descriptions: (courseDescriptions || []).length,
+      },
+    });
+  } catch (e) {
+    await client.query('ROLLBACK');
+    res.status(500).json({ success: false, error: e.message });
+  } finally {
+    client.release();
+  }
+});
 
 // SPA fallback
 app.get('*', (req, res) => res.sendFile(__dirname + '/public/index.html'));
