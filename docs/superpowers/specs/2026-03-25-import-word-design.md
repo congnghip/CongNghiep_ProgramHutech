@@ -9,7 +9,7 @@ The Word file format is standardized across all departments at HUTECH.
 ## Decisions
 
 - **Import mode**: Create new CTDT only (not update existing)
-- **Parsing**: Server-side (Node.js) using `docx` npm package for direct XML/table structure access
+- **Parsing**: Server-side (Node.js) using `jszip` + `fast-xml-parser` to read .docx XML structure directly (tables, merged cells)
 - **Parse strategy**: Fixed-position section detection by heading text — reliable because format is standardized
 - **UX flow**: Upload → Preview with edit capability → Confirm & Save
 - **Error handling**: Warnings displayed inline in preview (yellow/red badges); errors disable save button
@@ -89,8 +89,9 @@ New file: `word-parser.js` at project root, alongside `server.js`.
 
 ### Dependencies
 
-- `docx` (npm) — read .docx XML structure, access tables with merged cell support
-- `multer` (npm, already used or trivial to add) — handle multipart file upload
+- `jszip` (npm) — unzip .docx file (which is a ZIP containing XML)
+- `fast-xml-parser` (npm) — parse `word/document.xml` to access `<w:tbl>`, `<w:tr>`, `<w:tc>` elements including merge attributes (`gridSpan`, `vMerge`)
+- `multer` (npm) — handle multipart file upload, using `memoryStorage()` (buffer in memory, no temp files). 10MB limit protects against memory issues.
 
 ### Section detection order
 
@@ -200,7 +201,7 @@ word-parser.js
 
 ### POST /api/import/parse-word
 
-- **Auth**: Required, permission `import_word`
+- **Auth**: Required, permission `programs.import_word`
 - **Input**: `multipart/form-data` with field `file` (.docx)
 - **Processing**: Parse file using `word-parser.js`, validate, return parsed data
 - **Output**: `{ success: true, data: ParsedCTDT }` or `{ success: false, error: String }`
@@ -208,7 +209,7 @@ word-parser.js
 
 ### POST /api/import/save
 
-- **Auth**: Required, permission `import_word`
+- **Auth**: Required, permission `programs.import_word`
 - **Input**: JSON body = ParsedCTDT object (possibly edited by user in preview)
 - **Input extra**: `department_id` (user selects from dropdown, not in Word file)
 - **Processing**: Save all data in single PostgreSQL transaction
@@ -216,22 +217,23 @@ word-parser.js
 
 #### Save order (within transaction):
 
-1. INSERT `programs` -> get program_id
-2. INSERT `program_versions` (status = 'draft') -> get version_id
-3. INSERT `version_objectives` (PO)
-4. INSERT `version_plos` (PLO) -> get plo IDs
-5. INSERT `plo_pis` (PI) -> get pi IDs
-6. UPSERT `courses` (ON CONFLICT ON code) -> get course IDs
-7. INSERT `version_courses` (resolve prerequisite codes to IDs) -> get version_course IDs
-8. INSERT `knowledge_blocks`
-9. INSERT `po_plo_map`
-10. INSERT `course_plo_map` (derived from Course-PI matrix)
-11. INSERT `version_pi_courses`
-12. INSERT `teaching_plan`
-13. INSERT `assessment_plans`
-14. UPDATE `courses.description` from course descriptions
+1. **Check duplicate**: Query `programs` by `code`. If exists → return error with existing program info
+2. INSERT `programs` → get program_id
+3. INSERT `program_versions` (status = 'draft') → get version_id
+4. INSERT `version_objectives` (PO)
+5. INSERT `version_plos` (PLO) → get plo IDs. Build map: `plo_code → plo_id`
+6. INSERT `plo_pis` (PI) → get pi IDs. Build map: `pi_code → pi_id`
+7. UPSERT `courses` (ON CONFLICT ON code → UPDATE SET `name`, `credits`, `credits_theory`, `credits_practice`, `credits_project`, `credits_internship`. Leave `department_id` unchanged for existing courses) → get course IDs. Build map: `course_code → course_id`
+8. INSERT `version_courses` (resolve prerequisite/corequisite codes to course_ids via map from step 7) → get version_course IDs. Build map: `course_code → version_course_id`
+9. INSERT `knowledge_blocks` (summary metadata only — no course-to-block linkage in v1)
+10. INSERT `po_plo_map` (resolve codes via maps from step 5)
+11. INSERT `course_plo_map` (derived from Course-PI matrix, resolve via maps)
+12. INSERT `version_pi_courses` (**Note**: FK `course_id` references `version_courses(id)`, not `courses(id)`. Resolve `course_code → version_course_id` via map from step 8)
+13. INSERT `teaching_plan` (resolve `course_code → version_course_id` via map from step 8)
+14. INSERT `assessment_plans` (map `assessmentPlan.description` → `criteria` column; `expected_result` → `threshold` column)
+15. UPDATE `courses.description` from course descriptions
 
-If any step fails -> ROLLBACK entire transaction.
+If any step fails → ROLLBACK entire transaction.
 
 ## Validation Rules
 
@@ -242,6 +244,7 @@ If any step fails -> ROLLBACK entire transaction.
 | No POs found | Error | At least 1 PO required |
 | No PLOs found | Error | At least 1 PLO required |
 | No courses found | Error | At least 1 course required |
+| Program code already exists in DB | Error | Duplicate guard — must use different code or manage existing program |
 | Prerequisite code not in course list | Warning | Yellow badge on field |
 | Total credits mismatch | Warning | Sum of courses vs general info |
 | Bloom level outside 1-6 | Warning | Default to 1 |
@@ -258,6 +261,8 @@ If any step fails -> ROLLBACK entire transaction.
 ### Page module
 
 New file: `public/js/pages/import-word.js`
+
+Register as `'import-word': window.ImportWordPage` in the pages map in `app.js`. Navigate via `App.navigate('import-word')` when the Import Word button is clicked on the dashboard.
 
 ### Upload step
 
@@ -292,7 +297,7 @@ Tabbed interface showing parsed data. All tabs are editable.
 
 - Button "Tao CTDT" (disabled if errors)
 - Department dropdown (required, not in Word file)
-- Academic year input (required, e.g. "2025-2026")
+- Academic year input (required, e.g. "2025-2026"). Pre-filled from parsed Word file if available; user can edit
 - Confirmation dialog: "Se tao CTDT [name] voi [X] PO, [Y] PLO, [Z] hoc phan. Tiep tuc?"
 - On success: redirect to version detail page
 
@@ -304,6 +309,7 @@ Tabbed interface showing parsed data. All tabs are editable.
 | `server.js` | Add 2 new API endpoints, add multer middleware for file upload |
 | `word-parser.js` | New file — Word parsing logic |
 | `public/js/pages/import-word.js` | New file — import page UI |
-| `public/js/app.js` | Add route for import-word page |
+| `public/js/app.js` | Add route for import-word page in pages map |
 | `public/js/pages/dashboard.js` (or programs page) | Add "Import Word" button next to "Tao moi" |
-| `package.json` | Add `docx` and `multer` dependencies |
+| `public/index.html` | Add `<script>` tag for `import-word.js` |
+| `package.json` | Add `jszip`, `fast-xml-parser`, and `multer` dependencies |
