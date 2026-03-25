@@ -18,6 +18,15 @@ Add the ability to import syllabus (de cuong chi tiet hoc phan) from PDF files i
 | Save behavior | Preview + edit before save | LLM output needs human review |
 | CLO-PLO matching | Auto-match with warnings | Best UX — auto where possible, transparent about gaps |
 
+## Environment Configuration
+
+Requires `GEMINI_API_KEY` in `.env`. The key is read via `process.env.GEMINI_API_KEY` at runtime.
+
+**Pre-requisite:** This repository currently has no `.gitignore` and `.env` is tracked in git. Before implementation:
+1. Create `.gitignore` with `.env` entry
+2. Run `git rm --cached .env` to stop tracking
+3. Commit the `.gitignore` addition
+
 ## 1. End-to-End Flow
 
 ```
@@ -56,13 +65,30 @@ Add the ability to import syllabus (de cuong chi tiet hoc phan) from PDF files i
 [User reviews + edits in editor]
     │
     ▼
-[User clicks Save → PUT /api/syllabi/:id (existing endpoint, updated)]
+[User clicks Save]
+    │
+    ▼
+[Frontend orchestrates save in sequence:]
+    ├─ 1. PUT /api/syllabi/:id           → save content JSONB
+    ├─ 2. DELETE + POST /api/syllabi/:id/clos  → replace CLOs
+    └─ 3. PUT /api/syllabi/:id/clo-plo-map     → save mappings
 ```
 
 Key points:
 - Import only **populates the form**, does not auto-save. User must click Save manually.
-- New API endpoint: `POST /api/syllabi/:id/import-pdf` — handles extract + match, returns preview data.
-- Save uses existing endpoint `PUT /api/syllabi/:id` (updated for new JSONB structure).
+- New API endpoint: `POST /api/syllabi/:id/import-pdf` — handles extract + match, returns preview data only.
+- **Prerequisite:** The syllabus record must already exist in `version_syllabi` before import (always true since user navigates from the editor).
+- Save orchestrated by frontend using existing endpoints (updated for new JSONB structure).
+
+### CLO Save Flow
+
+The import endpoint returns preview data only — no database writes for CLOs or mappings. When user clicks Save:
+
+1. **Save content** — `PUT /api/syllabi/:id` with new JSONB content
+2. **Replace CLOs** — Frontend deletes existing CLOs, then calls `POST /api/syllabi/:sId/clos` for each imported CLO. Each call returns the new `clo_id`.
+3. **Save CLO-PLO mappings** — Using the new `clo_id` values from step 2, frontend calls `PUT /api/syllabi/:sId/clo-plo-map` with `[{ clo_id, plo_id, contribution_level }]`.
+
+This reuses all existing endpoints. The frontend holds imported CLOs and mappings in memory until Save.
 
 ## 2. New JSONB `content` Structure
 
@@ -70,6 +96,7 @@ Key points:
 
 ```json
 {
+  "_schema_version": 2,
   "course_description": "string (section 11 - Mô tả tóm tắt)",
   "course_objectives": "string (section 7 - Mục tiêu HP)",
   "prerequisites": "string (section 6 - HP học trước)",
@@ -123,20 +150,28 @@ Key points:
 | `prerequisites` | `prerequisites` | No change |
 | `methods` | `learning_methods` | Rename |
 | `schedule[].week/topic/activities/clos` | `course_outline[].lesson/title/hours/topics/teaching_methods/clos` | Restructure: week → lesson |
-| `grading[].component/weight/method/clos` | `assessment_methods[].component/weight/assessment_tool/clos` | Rename sub-fields |
-| `textbooks` (string) | `textbooks` (array) | String → Array |
-| `references` (string) | `references` (array) | String → Array |
-| `tools` (string) | `course_requirements` (object) | String → Structured object |
-| *(none)* | `language_instruction` | New field |
-| *(none)* | `course_description` | New field (separate from summary) |
+| `grading[].component/weight/method/clos` | `assessment_methods[].component/weight/assessment_tool/clos` | Rename sub-fields; `clos` string → array (split by comma, trim, prepend "CLO" if numeric) |
+| `textbooks` (string) | `textbooks` (array) | String → Array (split by newline) |
+| `references` (string) | `references` (array) | String → Array (split by newline) |
+| `tools` (string) | `course_requirements` (object) | String → `{ software: [tools], hardware: [], lab_equipment: [], classroom_setup: "" }` |
+| *(none)* | `language_instruction` | New field (default: "") |
+| *(none)* | `_schema_version` | New field (set to 2) |
 
 ### Migration strategy
 
-- On-read migration: detect old structure (`content.summary` exists, `content.course_description` does not) → auto-convert to new structure when loading.
-- Save always writes new structure.
+- **Detection:** Use `_schema_version` field. If absent or < 2, content is old format.
+- On-read migration: detect old structure (`!content._schema_version`) → auto-convert to new structure when loading.
+- Save always writes new structure with `_schema_version: 2`.
 - No batch migration needed — convert-on-read, save-as-new.
+- Empty content `{}` is treated as new format (no migration needed).
 
 ## 3. Backend — API Endpoint & Gemini Integration
+
+### Permission model
+
+The endpoint reuses the same permission check as `PUT /api/syllabi/:id`:
+- User must be the assigned author (`author_id`) for this syllabus, OR have role level >= 2 (TRUONG_NGANH and above).
+- Syllabus must be in `draft` status.
 
 ### New endpoint: `POST /api/syllabi/:id/import-pdf`
 
@@ -147,12 +182,12 @@ Request: multipart/form-data
 Response: {
   success: true,
   data: {
-    content: { ... },        // New JSONB content extracted
-    clos: [                   // Extracted CLOs
+    content: { ... },        // New JSONB content extracted (preview only, not saved)
+    clos: [                   // Extracted CLOs (preview only, not saved)
       { code: "CLO1", description: "...", pi_code: "PI6.04", plo_code: "PLO6" }
     ],
-    clo_plo_map: [            // Auto-matched mappings
-      { clo_code: "CLO1", plo_id: 123, contribution_level: 3 }
+    clo_plo_map: [            // Auto-matched mappings (using plo_id from DB)
+      { clo_code: "CLO1", plo_id: 123, plo_code: "PLO6", contribution_level: 3 }
     ],
     warnings: [               // Matching warnings
       "PLO không tìm thấy: PLO8 (trong PDF) không khớp với version hiện tại"
@@ -160,35 +195,95 @@ Response: {
     course_info: {            // Verification info
       pdf_course_code: "AIT129",
       pdf_course_name: "Trí tuệ nhân tạo ứng dụng",
-      matched: true
+      matched: true           // courses.code exact match (case-insensitive) with syllabus's course
     }
   }
 }
 ```
 
-### Processing pipeline (in server.js)
+### Processing pipeline
 
-1. **Upload + validate** — PDF only, max 10MB
+1. **Upload + validate** — Check `req.file.mimetype === 'application/pdf'`, max 10MB
 2. **pdf-parse** → extract raw text from PDF
-3. **Build Gemini prompt:**
-   - System: "Bạn là chuyên gia phân tích đề cương chi tiết học phần đại học Việt Nam..."
-   - User: raw text + desired JSON schema with field descriptions
-4. **Call Gemini API** — model: `gemini-2.0-flash`, temperature: 0, JSON response mode
-5. **Parse + validate** JSON response against expected schema
-6. **CLO-PLO matching:**
+3. **Truncate** text to max 50,000 characters (with warning if truncated)
+4. **Build Gemini prompt** (see Prompt Template below)
+5. **Call Gemini API** — model: `gemini-2.0-flash`, temperature: 0, JSON response mode, timeout: 60s
+6. **Parse + validate** JSON response against expected schema
+7. **CLO-PLO matching:**
+   - Resolve `version_id` from `version_syllabi.version_id` for this syllabus
    - Query `version_plos` + `plo_pis` for current version
    - Match PI code from PDF (e.g. PI6.04) → `plo_pis.pi_code` → get `plo_id`
+   - Course info matching: compare `pdf_course_code` against `courses.code` (case-insensitive) for the syllabus's `course_id`
    - Generate warnings for unmatched codes
-7. **Return response** with content, CLOs, mappings, and warnings
+8. **Return response** with content, CLOs, mappings, and warnings
 
-### Gemini prompt structure
+### Gemini prompt template
 
 ```
-Prompt consists of 3 parts:
-1. Role: Expert in analyzing Vietnamese university course syllabi (de cuong chi tiet hoc phan)
-2. Task: Extract information from syllabus text, return structured JSON
-3. JSON schema: Exact structure with field descriptions + 1-2 example outputs
+System prompt:
+"Bạn là chuyên gia phân tích đề cương chi tiết học phần (syllabus) của đại học Việt Nam.
+Nhiệm vụ: Trích xuất thông tin từ văn bản đề cương, trả về JSON theo đúng cấu trúc yêu cầu.
+Chú ý:
+- Giữ nguyên tiếng Việt, không dịch sang tiếng Anh
+- Mã CLO giữ format CLO1, CLO2...
+- Mã PLO giữ format PLO1, PLO2...
+- Mã PI giữ format PI1.01, PI6.04...
+- Nếu không tìm thấy thông tin cho field nào, trả về chuỗi rỗng hoặc mảng rỗng"
+
+User prompt:
+"Phân tích đề cương sau và trả về JSON:
+
+<syllabus_text>
+{extracted_text}
+</syllabus_text>
+
+Trả về JSON với cấu trúc:
+{
+  "course_code": "mã học phần",
+  "course_name": "tên học phần tiếng Việt",
+  "credits": number,
+  "language_instruction": "ngôn ngữ giảng dạy",
+  "prerequisites": "học phần học trước",
+  "course_objectives": "mục tiêu của học phần (mục 7)",
+  "course_description": "mô tả tóm tắt nội dung (mục 11)",
+  "learning_methods": "phương pháp dạy học (mục 12)",
+  "clos": [
+    { "code": "CLO1", "description": "...", "pi_code": "PI6.04", "plo_code": "PLO6" }
+  ],
+  "course_outline": [
+    {
+      "lesson": 1,
+      "title": "tên bài",
+      "hours": number,
+      "topics": ["mục con"],
+      "teaching_methods": "phương pháp dạy học cho bài này",
+      "clos": ["CLO1", "CLO2"]
+    }
+  ],
+  "assessment_methods": [
+    { "component": "thành phần đánh giá", "weight": number, "assessment_tool": "bài đánh giá", "clos": ["CLO1"] }
+  ],
+  "textbooks": ["tài liệu chính"],
+  "references": ["tài liệu tham khảo"],
+  "course_requirements": {
+    "software": ["phần mềm/công cụ"],
+    "hardware": ["phần cứng"],
+    "lab_equipment": ["thiết bị phòng thí nghiệm"],
+    "classroom_setup": "yêu cầu phòng học"
+  }
+}"
 ```
+
+### File structure
+
+Create `pdf-syllabus-parser.js` (analogous to existing `word-parser.js`) containing:
+- `parsePdfToText(buffer)` — pdf-parse wrapper
+- `buildGeminiPrompt(text)` — prompt construction
+- `callGeminiApi(prompt)` — Gemini SDK call with timeout
+- `validateResponse(json)` — schema validation
+- `matchCloPlo(clos, versionId, pool)` — CLO-PLO matching logic
+
+Route handler in `server.js` stays thin (< 30 lines), delegating to `pdf-syllabus-parser.js`.
 
 ### New dependencies
 
@@ -199,11 +294,12 @@ Prompt consists of 3 parts:
 
 | Error | Response |
 |---|---|
-| File is not PDF | 400 — "Chỉ hỗ trợ file PDF" |
+| File is not PDF (mimetype check) | 400 — "Chỉ hỗ trợ file PDF" |
 | File too large (>10MB) | 400 — "File vượt quá 10MB" |
 | pdf-parse fails | 500 — "Không thể đọc file PDF" |
-| Gemini API error / timeout | 500 — "Lỗi kết nối AI, vui lòng thử lại" |
+| Gemini API error / timeout (60s) | 500 — "Lỗi kết nối AI, vui lòng thử lại" |
 | Gemini returns invalid JSON | 500 — "Không thể phân tích đề cương, vui lòng thử lại" |
+| Text too long (>50K chars) | Truncate + add warning |
 | Course code in PDF doesn't match | Warning in response (non-blocking) |
 
 ## 4. Frontend — Syllabus Editor Updates
@@ -238,12 +334,15 @@ Click → file picker (accept=".pdf") → upload → loading spinner "Đang phâ
 3. POST /api/syllabi/:id/import-pdf (FormData)
 4. Receive response:
    a. Populate content fields in form
-   b. Populate CLOs in CLO tab (replace)
-   c. Populate CLO-PLO map in matrix tab
+   b. Populate CLOs in CLO tab (replace) — hold in memory
+   c. Store CLO-PLO map data in memory (with plo_ids from response)
    d. Display warnings as alert/toast
    e. Display course_info for user verification
 5. User reviews, edits
-6. User clicks Save → PUT /api/syllabi/:id
+6. User clicks Save:
+   a. PUT /api/syllabi/:id → save content JSONB
+   b. Delete existing CLOs, POST new CLOs → get clo_ids
+   c. PUT clo-plo-map with real clo_ids + plo_ids
 ```
 
 ### 4.4 Handling existing data
@@ -257,19 +356,28 @@ When importing into a syllabus that already has data:
 
 When editor loads a syllabus with old structure:
 ```javascript
-if (content.summary && !content.course_description) {
+if (!content._schema_version || content._schema_version < 2) {
   content = migrateOldToNew(content);
 }
 ```
 
-`migrateOldToNew()` converts: `summary` → `course_description`, `objectives` → `course_objectives`, `schedule[]` → `course_outline[]`, `grading[]` → `assessment_methods[]`, `textbooks` string → array, `references` string → array, `tools` → `course_requirements.software`.
+`migrateOldToNew()` converts:
+- `summary` → `course_description`
+- `objectives` → `course_objectives`
+- `methods` → `learning_methods`
+- `schedule[]` → `course_outline[]` (map `week` → `lesson`, `topic` → `title`, `activities` → `teaching_methods`)
+- `grading[]` → `assessment_methods[]` (map `method` → `assessment_tool`; split `clos` string by comma, trim, prepend "CLO" if values are numeric)
+- `textbooks` string → array (split by newline, filter empty)
+- `references` string → array (split by newline, filter empty)
+- `tools` string → `course_requirements: { software: [tools], hardware: [], lab_equipment: [], classroom_setup: "" }`
+- Sets `_schema_version: 2`
 
 ## 5. Files to Create/Modify
 
 | File | Action | Description |
 |---|---|---|
-| `server.js` | Modify | Add `POST /api/syllabi/:id/import-pdf` endpoint, update `PUT /api/syllabi/:id` for new JSONB structure |
-| `public/js/pages/syllabus-editor.js` | Modify | Add import button, update all tabs for new field names/structures, add migration function |
+| `.gitignore` | **Create** | Add `.env`, `node_modules/` — then `git rm --cached .env` to untrack |
+| `pdf-syllabus-parser.js` | **Create** | Gemini integration: PDF text extraction, prompt, API call, validation, CLO-PLO matching (analogous to `word-parser.js`) |
+| `server.js` | Modify | Add thin `POST /api/syllabi/:id/import-pdf` route handler, update `PUT /api/syllabi/:id` for new JSONB structure |
+| `public/js/pages/syllabus-editor.js` | Modify | Add import button, update all tabs for new field names/structures, add migration function, add multi-step save logic |
 | `package.json` | Modify | Add `pdf-parse` and `@google/generative-ai` dependencies |
-
-No new files needed — all changes go into existing files following the project's two-file backend pattern.
