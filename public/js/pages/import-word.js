@@ -99,7 +99,7 @@ window.ImportWordPage = {
       const res = await fetch('/api/import/parse-word', { method: 'POST', body: formData });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Lỗi phân tích file');
-      this.parsedData = json;
+      this.parsedData = json.data || json;
       await this._loadDepartments();
       this._renderPreview();
     } catch (e) {
@@ -236,11 +236,32 @@ window.ImportWordPage = {
   // ======= TAB RENDERERS =======
 
   _tabGeneral(d) {
-    const info = d.general_info || {};
-    const rows = Object.entries(info).map(([k, v]) =>
+    const prog = d.program || {};
+    const ver = d.version || {};
+    const fields = [
+      ['Tên ngành (Việt)', 'program.name', prog.name],
+      ['Tên ngành (Anh)', 'program.name_en', prog.name_en],
+      ['Mã ngành', 'program.code', prog.code],
+      ['Trình độ', 'program.degree', prog.degree],
+      ['Tên văn bằng', 'program.degree_name', prog.degree_name],
+      ['Tổng tín chỉ', 'program.total_credits', prog.total_credits],
+      ['Hình thức đào tạo', 'program.training_mode', prog.training_mode],
+      ['Trường cấp bằng', 'program.institution', prog.institution],
+      ['Thời gian đào tạo', 'version.training_duration', ver.training_duration],
+      ['Thang điểm', 'version.grading_scale', ver.grading_scale],
+      ['Điều kiện tốt nghiệp', 'version.graduation_requirements', ver.graduation_requirements],
+      ['Đối tượng tuyển sinh', 'version.admission_targets', ver.admission_targets],
+      ['Tiêu chí tuyển sinh', 'version.admission_criteria', ver.admission_criteria],
+      ['Vị trí việc làm', 'version.job_positions', ver.job_positions],
+      ['Học tập nâng cao', 'version.further_education', ver.further_education],
+      ['CT tham khảo', 'version.reference_programs', ver.reference_programs],
+      ['Quy trình đào tạo', 'version.training_process', ver.training_process],
+      ['Mục tiêu chung', 'general_objective', d.general_objective],
+    ];
+    const rows = fields.map(([label, path, val]) =>
       `<tr>
-        <td style="font-weight:500;padding:8px 12px;background:#f8f9fa;white-space:nowrap;width:220px;">${this._escHtml(k)}</td>
-        <td contenteditable="true" data-path="general_info.${this._escAttr(k)}" style="padding:8px 12px;">${this._escHtml(v ?? '')}</td>
+        <td style="font-weight:500;padding:8px 12px;background:#f8f9fa;white-space:nowrap;width:220px;">${this._escHtml(label)}</td>
+        <td contenteditable="true" data-path="${this._escAttr(path)}" style="padding:8px 12px;">${this._escHtml(val ?? '')}</td>
       </tr>`
     ).join('');
     return `
@@ -362,14 +383,14 @@ window.ImportWordPage = {
   },
 
   _tabBlocks(d) {
-    const blocks = d.knowledge_blocks || [];
+    const blocks = d.knowledgeBlocks || [];
     if (!blocks.length) return '<p style="color:var(--text-muted);">Không có dữ liệu cấu trúc khối kiến thức.</p>';
     const rows = blocks.map((b, i) =>
       `<tr>
-        <td style="padding:8px;" contenteditable="true" data-path="knowledge_blocks.${i}.name">${this._escHtml(b.name || '')}</td>
-        <td style="padding:8px;text-align:center;" contenteditable="true" data-path="knowledge_blocks.${i}.credits">${this._escHtml(String(b.credits ?? ''))}</td>
-        <td style="padding:8px;" contenteditable="true" data-path="knowledge_blocks.${i}.required">${this._escHtml(b.required || '')}</td>
-        <td style="padding:8px;" contenteditable="true" data-path="knowledge_blocks.${i}.elective">${this._escHtml(b.elective || '')}</td>
+        <td style="padding:8px;" contenteditable="true" data-path="knowledgeBlocks.${i}.name">${this._escHtml(b.name || '')}</td>
+        <td style="padding:8px;text-align:center;" contenteditable="true" data-path="knowledgeBlocks.${i}.credits">${this._escHtml(String(b.credits ?? ''))}</td>
+        <td style="padding:8px;" contenteditable="true" data-path="knowledgeBlocks.${i}.required">${this._escHtml(b.required || '')}</td>
+        <td style="padding:8px;" contenteditable="true" data-path="knowledgeBlocks.${i}.elective">${this._escHtml(b.elective || '')}</td>
       </tr>`
     ).join('');
     return `
@@ -386,7 +407,7 @@ window.ImportWordPage = {
   _tabPOPLO(d) {
     const pos = d.objectives || [];
     const plos = d.plos || [];
-    const matrix = d.po_plo_matrix || {};
+    const matrix = d.poploMatrix || {};
 
     if (!pos.length || !plos.length) return '<p style="color:var(--text-muted);">Không có đủ dữ liệu PO/PLO để hiển thị ma trận.</p>';
 
@@ -433,7 +454,7 @@ window.ImportWordPage = {
   _tabCoursePI(d) {
     const courses = d.courses || [];
     const pis = d.pis || [];
-    const matrix = d.course_pi_matrix || {};
+    const matrix = d.coursePIMatrix || {};
 
     if (!courses.length || !pis.length) return '<p style="color:var(--text-muted);">Không có đủ dữ liệu course/PI để hiển thị ma trận.</p>';
 
@@ -477,7 +498,7 @@ window.ImportWordPage = {
   },
 
   _tabSchedule(d) {
-    const schedule = d.teaching_plan || [];
+    const schedule = d.teachingPlan || [];
     if (!schedule.length) return '<p style="color:var(--text-muted);">Không có dữ liệu kế hoạch giảng dạy.</p>';
 
     // Group by semester
@@ -491,10 +512,10 @@ window.ImportWordPage = {
     const html = Object.entries(groups).map(([sem, items]) => {
       const rows = items.map(item =>
         `<tr>
-          <td style="padding:8px;" contenteditable="true" data-path="teaching_plan.${item._idx}.course_code">${this._escHtml(item.course_code || '')}</td>
-          <td style="padding:8px;" contenteditable="true" data-path="teaching_plan.${item._idx}.course_name">${this._escHtml(item.course_name || '')}</td>
-          <td style="padding:8px;text-align:center;" contenteditable="true" data-path="teaching_plan.${item._idx}.credits">${this._escHtml(String(item.credits ?? ''))}</td>
-          <td style="padding:8px;" contenteditable="true" data-path="teaching_plan.${item._idx}.notes">${this._escHtml(item.notes || '')}</td>
+          <td style="padding:8px;" contenteditable="true" data-path="teachingPlan.${item._idx}.course_code">${this._escHtml(item.course_code || '')}</td>
+          <td style="padding:8px;" contenteditable="true" data-path="teachingPlan.${item._idx}.course_name">${this._escHtml(item.course_name || '')}</td>
+          <td style="padding:8px;text-align:center;" contenteditable="true" data-path="teachingPlan.${item._idx}.credits">${this._escHtml(String(item.credits ?? ''))}</td>
+          <td style="padding:8px;" contenteditable="true" data-path="teachingPlan.${item._idx}.notes">${this._escHtml(item.notes || '')}</td>
         </tr>`
       ).join('');
       return `
@@ -509,15 +530,15 @@ window.ImportWordPage = {
   },
 
   _tabAssessment(d) {
-    const assessments = d.assessment_plan || [];
+    const assessments = d.assessmentPlan || [];
     if (!assessments.length) return '<p style="color:var(--text-muted);">Không có dữ liệu kế hoạch đánh giá.</p>';
     const rows = assessments.map((a, i) =>
       `<tr>
-        <td style="padding:8px;" contenteditable="true" data-path="assessment_plan.${i}.course_code">${this._escHtml(a.course_code || '')}</td>
-        <td style="padding:8px;" contenteditable="true" data-path="assessment_plan.${i}.method">${this._escHtml(a.method || '')}</td>
-        <td style="padding:8px;text-align:center;" contenteditable="true" data-path="assessment_plan.${i}.weight">${this._escHtml(String(a.weight ?? ''))}</td>
-        <td style="padding:8px;" contenteditable="true" data-path="assessment_plan.${i}.plo_codes">${this._escHtml(Array.isArray(a.plo_codes) ? a.plo_codes.join(', ') : (a.plo_codes || ''))}</td>
-        <td style="padding:8px;" contenteditable="true" data-path="assessment_plan.${i}.notes">${this._escHtml(a.notes || '')}</td>
+        <td style="padding:8px;" contenteditable="true" data-path="assessmentPlan.${i}.course_code">${this._escHtml(a.course_code || '')}</td>
+        <td style="padding:8px;" contenteditable="true" data-path="assessmentPlan.${i}.method">${this._escHtml(a.method || '')}</td>
+        <td style="padding:8px;text-align:center;" contenteditable="true" data-path="assessmentPlan.${i}.weight">${this._escHtml(String(a.weight ?? ''))}</td>
+        <td style="padding:8px;" contenteditable="true" data-path="assessmentPlan.${i}.plo_codes">${this._escHtml(Array.isArray(a.plo_codes) ? a.plo_codes.join(', ') : (a.plo_codes || ''))}</td>
+        <td style="padding:8px;" contenteditable="true" data-path="assessmentPlan.${i}.notes">${this._escHtml(a.notes || '')}</td>
       </tr>`
     ).join('');
     return `
@@ -532,18 +553,18 @@ window.ImportWordPage = {
   },
 
   _tabDescriptions(d) {
-    const descs = d.course_descriptions || [];
+    const descs = d.courseDescriptions || [];
     if (!descs.length) return '<p style="color:var(--text-muted);">Không có dữ liệu mô tả học phần.</p>';
     const items = descs.map((desc, i) =>
       `<div style="border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:12px;">
         <div style="display:flex;gap:12px;margin-bottom:8px;">
-          <div style="font-weight:600;color:var(--primary,#0d6efd);min-width:80px;" contenteditable="true" data-path="course_descriptions.${i}.code">${this._escHtml(desc.code || '')}</div>
-          <div style="font-weight:500;" contenteditable="true" data-path="course_descriptions.${i}.name">${this._escHtml(desc.name || '')}</div>
+          <div style="font-weight:600;color:var(--primary,#0d6efd);min-width:80px;" contenteditable="true" data-path="courseDescriptions.${i}.code">${this._escHtml(desc.code || '')}</div>
+          <div style="font-weight:500;" contenteditable="true" data-path="courseDescriptions.${i}.name">${this._escHtml(desc.name || '')}</div>
         </div>
         <div style="font-size:13px;color:var(--text-muted);margin-bottom:4px;">Mô tả tiếng Việt:</div>
-        <div contenteditable="true" data-path="course_descriptions.${i}.description_vi" style="padding:6px;border:1px dashed var(--border);border-radius:4px;min-height:40px;font-size:13px;">${this._escHtml(desc.description_vi || '')}</div>
+        <div contenteditable="true" data-path="courseDescriptions.${i}.description_vi" style="padding:6px;border:1px dashed var(--border);border-radius:4px;min-height:40px;font-size:13px;">${this._escHtml(desc.description_vi || '')}</div>
         <div style="font-size:13px;color:var(--text-muted);margin:8px 0 4px;">Mô tả tiếng Anh:</div>
-        <div contenteditable="true" data-path="course_descriptions.${i}.description_en" style="padding:6px;border:1px dashed var(--border);border-radius:4px;min-height:40px;font-size:13px;">${this._escHtml(desc.description_en || '')}</div>
+        <div contenteditable="true" data-path="courseDescriptions.${i}.description_en" style="padding:6px;border:1px dashed var(--border);border-radius:4px;min-height:40px;font-size:13px;">${this._escHtml(desc.description_en || '')}</div>
       </div>`
     ).join('');
     return `<h6 style="font-weight:600;margin-bottom:12px;">Mô tả học phần</h6>${items}`;
@@ -563,8 +584,8 @@ window.ImportWordPage = {
     document.querySelectorAll('[data-cpi]').forEach(el => {
       const key = el.dataset.cpi;
       const value = el.textContent.trim();
-      if (!this.parsedData.course_pi_matrix) this.parsedData.course_pi_matrix = {};
-      this.parsedData.course_pi_matrix[key] = value;
+      if (!this.parsedData.coursePIMatrix) this.parsedData.coursePIMatrix = {};
+      this.parsedData.coursePIMatrix[key] = value;
     });
 
     // Invalidate rendered tab cache so re-renders use updated data
@@ -589,9 +610,9 @@ window.ImportWordPage = {
     const ploCode = cell.dataset.plo;
     const poCode = cell.dataset.po;
     const key = `${ploCode}|${poCode}`;
-    if (!this.parsedData.po_plo_matrix) this.parsedData.po_plo_matrix = {};
-    const current = !!this.parsedData.po_plo_matrix[key];
-    this.parsedData.po_plo_matrix[key] = !current;
+    if (!this.parsedData.poploMatrix) this.parsedData.poploMatrix = {};
+    const current = !!this.parsedData.poploMatrix[key];
+    this.parsedData.poploMatrix[key] = !current;
     if (!current) {
       cell.textContent = 'X';
       cell.style.background = 'var(--primary,#0d6efd)';
@@ -632,10 +653,11 @@ window.ImportWordPage = {
     saveBtn.textContent = 'Đang lưu...';
 
     try {
+      const data = this.parsedData;
+      if (data.version) data.version.academic_year = yearInput.value.trim();
       const payload = {
-        ...this.parsedData,
+        ...data,
         department_id: parseInt(deptSelect.value, 10),
-        academic_year: yearInput.value.trim(),
       };
       const res = await fetch('/api/import/save', {
         method: 'POST',
