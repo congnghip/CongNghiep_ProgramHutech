@@ -287,6 +287,49 @@ async function initDB() {
       ALTER TABLE program_versions ADD COLUMN IF NOT EXISTS is_locked BOOLEAN DEFAULT false;
       ALTER TABLE version_pi_courses ADD COLUMN IF NOT EXISTS contribution_level INT DEFAULT 0;
 
+      -- Migration: Import Word feature
+      ALTER TABLE courses ADD COLUMN IF NOT EXISTS credits_theory INT DEFAULT 0;
+      ALTER TABLE courses ADD COLUMN IF NOT EXISTS credits_practice INT DEFAULT 0;
+      ALTER TABLE courses ADD COLUMN IF NOT EXISTS credits_project INT DEFAULT 0;
+      ALTER TABLE courses ADD COLUMN IF NOT EXISTS credits_internship INT DEFAULT 0;
+
+      ALTER TABLE version_courses ADD COLUMN IF NOT EXISTS prerequisite_course_ids INT[];
+      ALTER TABLE version_courses ADD COLUMN IF NOT EXISTS corequisite_course_ids INT[];
+      ALTER TABLE version_courses ADD COLUMN IF NOT EXISTS elective_group VARCHAR(100);
+
+      ALTER TABLE program_versions ADD COLUMN IF NOT EXISTS general_objective TEXT;
+
+      ALTER TABLE assessment_plans ADD COLUMN IF NOT EXISTS direct_evidence VARCHAR(200);
+      ALTER TABLE assessment_plans ADD COLUMN IF NOT EXISTS expected_result VARCHAR(200);
+      ALTER TABLE assessment_plans ADD COLUMN IF NOT EXISTS contributing_course_codes TEXT;
+
+      -- Knowledge blocks (curriculum structure)
+      CREATE TABLE IF NOT EXISTS knowledge_blocks (
+        id SERIAL PRIMARY KEY,
+        version_id INT REFERENCES program_versions(id) ON DELETE CASCADE,
+        name VARCHAR(200) NOT NULL,
+        parent_id INT REFERENCES knowledge_blocks(id) ON DELETE CASCADE,
+        total_credits INT DEFAULT 0,
+        required_credits INT DEFAULT 0,
+        elective_credits INT DEFAULT 0,
+        sort_order INT DEFAULT 0
+      );
+
+      -- Teaching plan (detailed per-semester schedule)
+      CREATE TABLE IF NOT EXISTS teaching_plan (
+        id SERIAL PRIMARY KEY,
+        version_course_id INT REFERENCES version_courses(id) ON DELETE CASCADE,
+        total_hours INT DEFAULT 0,
+        hours_theory INT DEFAULT 0,
+        hours_practice INT DEFAULT 0,
+        hours_project INT DEFAULT 0,
+        hours_internship INT DEFAULT 0,
+        software VARCHAR(500),
+        managing_dept VARCHAR(200),
+        batch VARCHAR(10),
+        notes TEXT
+      );
+
       -- Audit Logs
       CREATE TABLE IF NOT EXISTS audit_logs (
         id SERIAL PRIMARY KEY,
