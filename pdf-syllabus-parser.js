@@ -1,17 +1,17 @@
 /**
- * pdf-syllabus-parser.js — PDF Syllabus parser using pdf-parse + Gemini LLM
+ * pdf-syllabus-parser.js — PDF Syllabus parser using pdf-parse + Groq LLM
  *
  * Parses a PDF syllabus buffer into structured data: content, CLOs, CLO-PLO mappings.
  * Analogous to word-parser.js but for PDF syllabus import.
  *
- * Dependencies: pdf-parse, @google/generative-ai
+ * Dependencies: pdf-parse, groq-sdk
  */
 
 const pdfParse = require('pdf-parse');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const Groq = require('groq-sdk');
 
 const MAX_TEXT_LENGTH = 50000;
-const GEMINI_TIMEOUT = 60000; // 60s
+const LLM_TIMEOUT = 60000; // 60s
 
 // ───────────────────────────────────────────────────────────────────────────
 // 1. PDF Text Extraction
@@ -91,39 +91,29 @@ Trả về JSON với cấu trúc chính xác sau:
 }
 
 // ───────────────────────────────────────────────────────────────────────────
-// 3. Gemini API Call
+// 3. Groq API Call
 // ───────────────────────────────────────────────────────────────────────────
 
-async function callGeminiApi(userPrompt) {
-  const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-  if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY chưa được cấu hình');
+async function callLlmApi(userPrompt) {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) throw new Error('GROQ_API_KEY chưa được cấu hình trong .env');
 
-  const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-2.0-flash-lite',
-    generationConfig: {
-      temperature: 0,
-      responseMimeType: 'application/json',
-    },
-    systemInstruction: SYSTEM_PROMPT,
+  const groq = new Groq({ apiKey });
+
+  const result = await groq.chat.completions.create({
+    model: 'llama-3.3-70b-versatile',
+    messages: [
+      { role: 'system', content: SYSTEM_PROMPT },
+      { role: 'user', content: userPrompt },
+    ],
+    temperature: 0,
+    response_format: { type: 'json_object' },
+    timeout: LLM_TIMEOUT,
   });
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), GEMINI_TIMEOUT);
-
-  try {
-    const result = await model.generateContent(
-      { contents: [{ role: 'user', parts: [{ text: userPrompt }] }] },
-      { signal: controller.signal }
-    );
-    clearTimeout(timeout);
-    const text = result.response.text();
-    return JSON.parse(text);
-  } catch (err) {
-    clearTimeout(timeout);
-    if (err.name === 'AbortError') throw new Error('Gemini API timeout (60s)');
-    throw err;
-  }
+  const text = result.choices[0]?.message?.content;
+  if (!text) throw new Error('LLM trả về kết quả rỗng');
+  return JSON.parse(text);
 }
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -260,7 +250,7 @@ async function parseSyllabusPdf(buffer, versionId, courseId, pool) {
   const userPrompt = buildUserPrompt(text);
   let rawJson;
   try {
-    rawJson = await callGeminiApi(userPrompt);
+    rawJson = await callLlmApi(userPrompt);
   } catch (err) {
     throw new Error(`Lỗi kết nối AI: ${err.message}`);
   }
