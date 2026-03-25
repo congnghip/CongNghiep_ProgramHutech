@@ -108,7 +108,6 @@ async function callLlmApi(userPrompt) {
     ],
     temperature: 0,
     response_format: { type: 'json_object' },
-    timeout: LLM_TIMEOUT,
   });
 
   const text = result.choices[0]?.message?.content;
