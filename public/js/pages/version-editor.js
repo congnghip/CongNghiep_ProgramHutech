@@ -145,43 +145,72 @@ window.VersionEditorPage = {
   async renderInfoTab(body, editable) {
     const v = this.version;
     const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    const dis = editable ? '' : 'disabled';
+    const textField = (label, key, val) => `
+      <div class="input-group"><label>${label}</label>
+        <textarea id="info-${key}" rows="3" style="resize:vertical;" ${dis}>${esc(val)}</textarea>
+      </div>`;
     body.innerHTML = `
-      <div style="max-width:480px;">
-        <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;">Thông tin chung</h3>
+      <div style="max-width:640px;">
+        <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;">Thông tin ngành</h3>
         <div class="input-group"><label>Tên ngành</label><input type="text" value="${esc(v.program_name)}" disabled></div>
         <div class="input-group"><label>Mã ngành</label><input type="text" value="${esc(v.program_code)}" disabled></div>
         <div class="input-group"><label>Bậc đào tạo</label><input type="text" value="${esc(v.degree)}" disabled></div>
         <div class="input-group"><label>Tên văn bằng</label><input type="text" value="${esc(v.degree_name)}" disabled></div>
         <div class="input-group"><label>Tổng tín chỉ</label><input type="text" value="${esc(v.total_credits)}" disabled></div>
         <div class="input-group"><label>Hình thức đào tạo</label><input type="text" value="${esc(v.training_mode)}" disabled></div>
-        <div class="input-group"><label>Thời gian đào tạo</label><input type="text" value="${esc(v.training_duration)}" disabled></div>
         <div class="input-group"><label>Trường cấp bằng</label><input type="text" value="${esc(v.institution)}" disabled></div>
         <div class="input-group"><label>Khoa/Viện</label><input type="text" value="${esc(v.dept_name)}" disabled></div>
         <div class="input-group"><label>Năm học</label><input type="text" value="${esc(v.academic_year)}" disabled></div>
         <div class="input-group"><label>Trạng thái</label><input type="text" value="${esc(v.status)}" disabled></div>
+
+        <h3 style="font-size:15px;font-weight:600;margin:24px 0 16px;">Thông tin phiên bản</h3>
+        <div class="input-group"><label>Thời gian đào tạo</label><input type="text" id="info-training_duration" value="${esc(v.training_duration)}" ${dis}></div>
+        <div class="input-group"><label>Thang điểm</label><input type="text" id="info-grading_scale" value="${esc(v.grading_scale)}" ${dis}></div>
+        ${textField('Điều kiện tốt nghiệp', 'graduation_requirements', v.graduation_requirements)}
+        ${textField('Đối tượng tuyển sinh', 'admission_targets', v.admission_targets)}
+        ${textField('Tiêu chí tuyển sinh', 'admission_criteria', v.admission_criteria)}
+        ${textField('Vị trí việc làm', 'job_positions', v.job_positions)}
+        ${textField('Học tập nâng cao', 'further_education', v.further_education)}
+        ${textField('CT tham khảo', 'reference_programs', v.reference_programs)}
+        ${textField('Quy trình đào tạo', 'training_process', v.training_process)}
+        ${textField('Mục tiêu chung', 'general_objective', v.general_objective)}
+
+        ${editable ? `<div style="display:flex;justify-content:flex-end;margin-top:16px;">
+          <button class="btn btn-primary btn-sm" id="save-info-btn">Lưu thông tin</button>
+        </div>` : ''}
       </div>
-      ${v.general_objective ? `
-      <div style="max-width:640px;margin-top:24px;">
-        <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;">Mục tiêu chung</h3>
-        <div style="font-size:13px;line-height:1.6;white-space:pre-wrap;padding:12px;background:var(--bg-secondary);border-radius:var(--radius-lg);">${esc(v.general_objective)}</div>
-      </div>` : ''}
-      ${v.job_positions ? `
-      <div style="max-width:640px;margin-top:24px;">
-        <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;">Vị trí việc làm</h3>
-        <div style="font-size:13px;line-height:1.6;white-space:pre-wrap;padding:12px;background:var(--bg-secondary);border-radius:var(--radius-lg);">${esc(v.job_positions)}</div>
-      </div>` : ''}
-      ${v.further_education ? `
-      <div style="max-width:640px;margin-top:24px;">
-        <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;">Học tập nâng cao</h3>
-        <div style="font-size:13px;line-height:1.6;white-space:pre-wrap;padding:12px;background:var(--bg-secondary);border-radius:var(--radius-lg);">${esc(v.further_education)}</div>
-      </div>` : ''}
-      ${v.graduation_requirements ? `
-      <div style="max-width:640px;margin-top:24px;">
-        <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;">Điều kiện tốt nghiệp</h3>
-        <div style="font-size:13px;line-height:1.6;white-space:pre-wrap;padding:12px;background:var(--bg-secondary);border-radius:var(--radius-lg);">${esc(v.graduation_requirements)}</div>
-      </div>` : ''}
-      <p style="color:var(--text-muted);font-size:12px;margin-top:16px;">Thông tin chung được kế thừa từ CTĐT gốc.</p>
     `;
+    if (editable) {
+      document.getElementById('save-info-btn')?.addEventListener('click', () => this.saveInfo());
+    }
+  },
+
+  async saveInfo() {
+    const get = id => document.getElementById(id)?.value?.trim() || null;
+    const data = {
+      training_duration: get('info-training_duration'),
+      grading_scale: get('info-grading_scale'),
+      graduation_requirements: get('info-graduation_requirements'),
+      admission_targets: get('info-admission_targets'),
+      admission_criteria: get('info-admission_criteria'),
+      job_positions: get('info-job_positions'),
+      further_education: get('info-further_education'),
+      reference_programs: get('info-reference_programs'),
+      training_process: get('info-training_process'),
+      general_objective: get('info-general_objective'),
+    };
+    try {
+      const res = await fetch(`/api/versions/${this.versionId}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error((await res.json()).error || 'Lỗi lưu');
+      window.toast?.success('Đã lưu thông tin phiên bản');
+      // refresh version data
+      const vRes = await fetch(`/api/versions/${this.versionId}`);
+      if (vRes.ok) this.version = await vRes.json();
+    } catch (e) { window.toast?.error(e.message); }
   },
 
   // ===== TAB 2: PO =====
