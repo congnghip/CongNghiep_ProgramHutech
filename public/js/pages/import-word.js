@@ -10,13 +10,15 @@ window.ImportWordPage = {
     this.renderedTabs = {};
 
     container.innerHTML = `
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title">Import Chương trình từ Word</div>
+      <div style="margin-bottom:24px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <button class="btn btn-secondary btn-sm" onclick="window.App.navigate('programs')">← Quay lại</button>
+          <span style="color:var(--text-muted);">/ Import</span>
         </div>
-        <div class="card-body" id="iw-body">
-          ${this._uploadStepHTML()}
-        </div>
+        <h1 style="font-size:24px;font-weight:700;letter-spacing:-0.3px;">Import Chương trình từ Word</h1>
+      </div>
+      <div id="iw-body">
+        ${this._uploadStepHTML()}
       </div>
     `;
     this._bindUpload();
@@ -30,12 +32,12 @@ window.ImportWordPage = {
         </p>
         <div id="iw-drop-zone" style="
           border: 2px dashed var(--border);
-          border-radius: 10px;
+          border-radius: var(--radius-lg);
           padding: 48px 32px;
           text-align: center;
           cursor: pointer;
           transition: border-color 0.2s, background 0.2s;
-          background: var(--bg-secondary, #f8f9fa);
+          background: var(--bg-secondary);
         ">
           <div style="font-size:48px;margin-bottom:12px;">📄</div>
           <div style="font-size:16px;font-weight:600;margin-bottom:8px;">Kéo thả file .docx vào đây</div>
@@ -43,7 +45,7 @@ window.ImportWordPage = {
           <button class="btn btn-primary" id="iw-pick-btn">Chọn file</button>
           <input type="file" id="iw-file-input" accept=".docx" style="display:none;">
         </div>
-        <div id="iw-upload-error" style="color:var(--danger,#dc3545);margin-top:12px;display:none;"></div>
+        <div id="iw-upload-error" style="color:var(--danger);margin-top:12px;display:none;"></div>
         <div id="iw-spinner" style="text-align:center;margin-top:24px;display:none;">
           <div class="spinner"></div>
           <div style="margin-top:8px;color:var(--text-muted);">Đang phân tích file...</div>
@@ -64,17 +66,17 @@ window.ImportWordPage = {
 
     dropZone.addEventListener('dragover', (e) => {
       e.preventDefault();
-      dropZone.style.borderColor = 'var(--primary, #0d6efd)';
-      dropZone.style.background = 'rgba(13,110,253,0.05)';
+      dropZone.style.borderColor = 'var(--primary)';
+      dropZone.style.background = 'rgba(35,131,226,0.05)';
     });
     dropZone.addEventListener('dragleave', () => {
       dropZone.style.borderColor = 'var(--border)';
-      dropZone.style.background = 'var(--bg-secondary, #f8f9fa)';
+      dropZone.style.background = 'var(--bg-secondary)';
     });
     dropZone.addEventListener('drop', (e) => {
       e.preventDefault();
       dropZone.style.borderColor = 'var(--border)';
-      dropZone.style.background = 'var(--bg-secondary, #f8f9fa)';
+      dropZone.style.background = 'var(--bg-secondary)';
       const file = e.dataTransfer.files[0];
       if (file) this._parseFile(file);
     });
@@ -129,54 +131,44 @@ window.ImportWordPage = {
     ).join('');
 
     document.getElementById('iw-body').innerHTML = `
-      <!-- Warnings bar -->
-      <div id="iw-alerts" style="margin-bottom:16px;${(errCount + warnCount) === 0 ? 'display:none;' : ''}">
-        ${errCount > 0 ? `<div class="alert alert-danger d-flex align-items-center gap-2 mb-2" style="padding:10px 14px;border-radius:6px;background:#fff5f5;border:1px solid #fca5a5;color:#dc2626;">
+      <!-- Warnings/errors bar -->
+      ${(errCount + warnCount) > 0 ? `<div style="margin-bottom:16px;">
+        ${errCount > 0 ? `<div style="padding:10px 14px;border-radius:var(--radius-lg);background:var(--danger-bg);border:1px solid var(--danger);color:var(--danger);margin-bottom:8px;display:flex;align-items:center;gap:8px;">
           <strong>Lỗi:</strong>
-          <span class="badge bg-danger">${errCount}</span>
-          <span>${errors.slice(0, 3).join(' | ')}${errCount > 3 ? ` và ${errCount - 3} lỗi khác...` : ''}</span>
+          <span class="badge badge-danger">${errCount}</span>
+          <span>${this._escHtml(errors.slice(0, 3).join(' | '))}${errCount > 3 ? ` và ${errCount - 3} lỗi khác...` : ''}</span>
         </div>` : ''}
-        ${warnCount > 0 ? `<div class="alert alert-warning d-flex align-items-center gap-2 mb-2" style="padding:10px 14px;border-radius:6px;background:#fffbeb;border:1px solid #fcd34d;color:#92400e;">
+        ${warnCount > 0 ? `<div style="padding:10px 14px;border-radius:var(--radius-lg);background:var(--warning-bg);border:1px solid var(--warning);color:var(--warning);display:flex;align-items:center;gap:8px;">
           <strong>Cảnh báo:</strong>
-          <span class="badge bg-warning text-dark">${warnCount}</span>
-          <span>${warnings.slice(0, 3).join(' | ')}${warnCount > 3 ? ` và ${warnCount - 3} cảnh báo khác...` : ''}</span>
+          <span class="badge badge-warning">${warnCount}</span>
+          <span>${this._escHtml(warnings.slice(0, 3).join(' | '))}${warnCount > 3 ? ` và ${warnCount - 3} cảnh báo khác...` : ''}</span>
         </div>` : ''}
-      </div>
-
-      <!-- Tab navigation -->
-      <ul class="nav nav-tabs" id="iw-tabs" style="flex-wrap:wrap;">
-        <li class="nav-item"><button class="nav-link active" data-tab="general">Thông tin chung</button></li>
-        <li class="nav-item"><button class="nav-link" data-tab="po">Mục tiêu PO</button></li>
-        <li class="nav-item"><button class="nav-link" data-tab="plo">Chuẩn đầu ra PLO</button></li>
-        <li class="nav-item"><button class="nav-link" data-tab="pi">Chỉ số PI</button></li>
-        <li class="nav-item"><button class="nav-link" data-tab="courses">Danh sách HP</button></li>
-        <li class="nav-item"><button class="nav-link" data-tab="blocks">Cấu trúc khối KT</button></li>
-        <li class="nav-item"><button class="nav-link" data-tab="po-plo">Ma trận PO-PLO</button></li>
-        <li class="nav-item"><button class="nav-link" data-tab="course-pi">Ma trận Course-PI</button></li>
-        <li class="nav-item"><button class="nav-link" data-tab="schedule">KH giảng dạy</button></li>
-        <li class="nav-item"><button class="nav-link" data-tab="assessment">KH đánh giá</button></li>
-        <li class="nav-item"><button class="nav-link" data-tab="descriptions">Mô tả HP</button></li>
-      </ul>
-      <div id="iw-tab-content" style="border:1px solid #dee2e6;border-top:none;padding:16px;min-height:300px;"></div>
+      </div>` : ''}
 
       <!-- Save area -->
-      <div style="margin-top:20px;padding:16px;border:1px solid var(--border);border-radius:8px;background:var(--bg-secondary,#f8f9fa);">
-        <div style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;">
-          <div class="input-group" style="flex:1;min-width:180px;margin:0;">
-            <label style="margin-bottom:4px;font-weight:500;">Khoa quản lý <span style="color:var(--danger);">*</span></label>
-            <select id="iw-dept-select" class="form-control">${deptOptions}</select>
-          </div>
-          <div class="input-group" style="flex:1;min-width:150px;margin:0;">
-            <label style="margin-bottom:4px;font-weight:500;">Năm học <span style="color:var(--danger);">*</span></label>
-            <input type="text" id="iw-year-input" class="form-control" placeholder="VD: 2024-2025" value="${d.academic_year || ''}">
-          </div>
-          <button class="btn btn-secondary" onclick="window.ImportWordPage._backToUpload()">Quay lại</button>
-          <button class="btn btn-primary" id="iw-save-btn" ${errCount > 0 ? 'disabled' : ''} onclick="window.ImportWordPage._confirmSave()">
-            Lưu chương trình
-          </button>
-        </div>
-        ${errCount > 0 ? `<div style="color:var(--danger,#dc3545);font-size:13px;margin-top:8px;">Có ${errCount} lỗi cần sửa trước khi lưu.</div>` : ''}
+      <div style="display:flex;gap:10px;align-items:end;margin-bottom:16px;padding:14px;background:var(--bg-secondary);border-radius:var(--radius-lg);">
+        <div class="input-group" style="flex:1;margin:0;"><label>Khoa quản lý</label><select id="iw-dept-select">${deptOptions}</select></div>
+        <div class="input-group" style="width:140px;margin:0;"><label>Năm học</label><input type="text" id="iw-year-input" placeholder="2024-2025" value="${this._escAttr(d.academic_year || '')}"></div>
+        <button class="btn btn-secondary btn-sm" onclick="window.ImportWordPage._backToUpload()">← Chọn lại file</button>
+        <button class="btn btn-primary btn-sm" id="iw-save-btn" ${errCount > 0 ? 'disabled' : ''} onclick="window.ImportWordPage._confirmSave()">Lưu chương trình</button>
       </div>
+      ${errCount > 0 ? `<div style="color:var(--danger);font-size:13px;margin-bottom:12px;">Có ${errCount} lỗi cần sửa trước khi lưu.</div>` : ''}
+
+      <!-- Tab navigation -->
+      <div class="tab-bar" id="iw-tabs">
+        <div class="tab-item active" data-tab="general">Thông tin</div>
+        <div class="tab-item" data-tab="po">Mục tiêu PO</div>
+        <div class="tab-item" data-tab="plo">Chuẩn đầu ra PLO</div>
+        <div class="tab-item" data-tab="pi">Chỉ số PI</div>
+        <div class="tab-item" data-tab="courses">Danh sách HP</div>
+        <div class="tab-item" data-tab="blocks">Cấu trúc khối KT</div>
+        <div class="tab-item" data-tab="po-plo">Ma trận PO-PLO</div>
+        <div class="tab-item" data-tab="course-pi">Ma trận Course-PI</div>
+        <div class="tab-item" data-tab="schedule">KH giảng dạy</div>
+        <div class="tab-item" data-tab="assessment">KH đánh giá</div>
+        <div class="tab-item" data-tab="descriptions">Mô tả HP</div>
+      </div>
+      <div id="iw-tab-content" style="min-height:300px;padding-top:16px;"></div>
     `;
 
     this._bindTabs();
@@ -184,12 +176,12 @@ window.ImportWordPage = {
   },
 
   _bindTabs() {
-    document.querySelectorAll('#iw-tabs .nav-link').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('#iw-tabs .nav-link').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
+    document.querySelectorAll('#iw-tabs .tab-item').forEach(el => {
+      el.addEventListener('click', () => {
+        document.querySelectorAll('#iw-tabs .tab-item').forEach(e => e.classList.remove('active'));
+        el.classList.add('active');
         this.syncEdits();
-        this._renderTab(btn.dataset.tab);
+        this._renderTab(el.dataset.tab);
       });
     });
   },
@@ -231,6 +223,16 @@ window.ImportWordPage = {
         cell.addEventListener('click', () => this.togglePOPLO(cell));
       });
     }
+    if (tab === 'course-pi') {
+      document.querySelectorAll('#iw-tab-content select[data-cpi]').forEach(sel => {
+        sel.addEventListener('change', () => {
+          const key = sel.dataset.cpi;
+          if (!this.parsedData.coursePIMatrix) this.parsedData.coursePIMatrix = {};
+          this.parsedData.coursePIMatrix[key] = sel.value;
+          delete this.renderedTabs['course-pi'];
+        });
+      });
+    }
   },
 
   // ======= TAB RENDERERS =======
@@ -238,6 +240,7 @@ window.ImportWordPage = {
   _tabGeneral(d) {
     const prog = d.program || {};
     const ver = d.version || {};
+    const longTextPaths = ['version.job_positions', 'general_objective', 'version.graduation_requirements', 'version.training_process', 'version.reference_programs'];
     const fields = [
       ['Tên ngành (Việt)', 'program.name', prog.name],
       ['Tên ngành (Anh)', 'program.name_en', prog.name_en],
@@ -247,6 +250,8 @@ window.ImportWordPage = {
       ['Tổng tín chỉ', 'program.total_credits', prog.total_credits],
       ['Hình thức đào tạo', 'program.training_mode', prog.training_mode],
       ['Trường cấp bằng', 'program.institution', prog.institution],
+    ];
+    const versionFields = [
       ['Thời gian đào tạo', 'version.training_duration', ver.training_duration],
       ['Thang điểm', 'version.grading_scale', ver.grading_scale],
       ['Điều kiện tốt nghiệp', 'version.graduation_requirements', ver.graduation_requirements],
@@ -258,67 +263,79 @@ window.ImportWordPage = {
       ['Quy trình đào tạo', 'version.training_process', ver.training_process],
       ['Mục tiêu chung', 'general_objective', d.general_objective],
     ];
-    const rows = fields.map(([label, path, val]) =>
-      `<tr>
-        <td style="font-weight:500;padding:8px 12px;background:#f8f9fa;white-space:nowrap;width:220px;">${this._escHtml(label)}</td>
-        <td contenteditable="true" data-path="${this._escAttr(path)}" style="padding:8px 12px;">${this._escHtml(val ?? '')}</td>
-      </tr>`
-    ).join('');
+
+    const renderField = ([label, path, val]) => {
+      const isLong = longTextPaths.includes(path);
+      if (isLong) {
+        return `<div class="input-group" style="margin:0 0 12px;">
+          <label>${this._escHtml(label)}</label>
+          <textarea rows="3" data-path="${this._escAttr(path)}">${this._escHtml(val ?? '')}</textarea>
+        </div>`;
+      }
+      return `<div class="input-group" style="margin:0 0 12px;">
+        <label>${this._escHtml(label)}</label>
+        <input type="text" data-path="${this._escAttr(path)}" value="${this._escAttr(val ?? '')}">
+      </div>`;
+    };
+
     return `
-      <h6 style="font-weight:600;margin-bottom:12px;">Thông tin chung</h6>
-      <div style="overflow-x:auto;">
-        <table class="table table-bordered" style="margin:0;">
-          <tbody>${rows || '<tr><td colspan="2" style="color:var(--text-muted);text-align:center;padding:24px;">Không có dữ liệu</td></tr>'}</tbody>
-        </table>
+      <div style="max-width:480px;">
+        <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;">Thông tin ngành</h3>
+        ${fields.map(renderField).join('')}
+        <h3 style="font-size:15px;font-weight:600;margin:24px 0 16px;">Thông tin phiên bản</h3>
+        ${versionFields.map(renderField).join('')}
       </div>
     `;
   },
 
   _tabPO(d) {
     const pos = d.objectives || [];
-    if (!pos.length) return '<p style="color:var(--text-muted);">Không có dữ liệu mục tiêu PO.</p>';
-    const rows = pos.map((po, i) =>
-      `<tr>
-        <td style="padding:8px 12px;width:100px;" contenteditable="true" data-path="objectives.${i}.code">${this._escHtml(po.code || '')}</td>
-        <td style="padding:8px 12px;" contenteditable="true" data-path="objectives.${i}.description">${this._escHtml(po.description || '')}</td>
-      </tr>`
-    ).join('');
+    if (!pos.length) return '<p style="color:var(--text-muted);font-size:13px;">Không có dữ liệu mục tiêu PO.</p>';
     return `
-      <h6 style="font-weight:600;margin-bottom:12px;">Mục tiêu chương trình (PO)</h6>
-      <div style="overflow-x:auto;">
-        <table class="table table-bordered">
-          <thead><tr><th style="width:100px;">Mã PO</th><th>Mô tả</th></tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h3 style="font-size:15px;font-weight:600;">Mục tiêu chương trình (PO)</h3>
+        <span style="color:var(--text-muted);font-size:13px;">${pos.length} mục tiêu</span>
+      </div>
+      <div id="iw-po-list">
+        ${pos.map((po, i) => `
+          <div class="tree-node" style="display:flex;justify-content:space-between;align-items:start;">
+            <div style="flex:1;">
+              <strong style="color:var(--primary);">${this._escHtml(po.code || '')}</strong>
+              <span contenteditable="true" data-path="objectives.${i}.description" style="color:var(--text-muted);margin-left:8px;font-size:13px;">${this._escHtml(po.description || '')}</span>
+            </div>
+          </div>
+        `).join('')}
       </div>
     `;
   },
 
   _tabPLO(d) {
     const plos = d.plos || [];
-    if (!plos.length) return '<p style="color:var(--text-muted);">Không có dữ liệu chuẩn đầu ra PLO.</p>';
-    const rows = plos.map((plo, i) =>
-      `<tr>
-        <td style="padding:8px;" contenteditable="true" data-path="plos.${i}.code">${this._escHtml(plo.code || '')}</td>
-        <td style="padding:8px;" contenteditable="true" data-path="plos.${i}.description">${this._escHtml(plo.description || '')}</td>
-        <td style="padding:8px;" contenteditable="true" data-path="plos.${i}.bloom_level">${this._escHtml(plo.bloom_level || '')}</td>
-        <td style="padding:8px;" contenteditable="true" data-path="plos.${i}.po_codes">${this._escHtml(Array.isArray(plo.po_codes) ? plo.po_codes.join(', ') : (plo.po_codes || ''))}</td>
-      </tr>`
-    ).join('');
+    if (!plos.length) return '<p style="color:var(--text-muted);font-size:13px;">Không có dữ liệu chuẩn đầu ra PLO.</p>';
     return `
-      <h6 style="font-weight:600;margin-bottom:12px;">Chuẩn đầu ra (PLO)</h6>
-      <div style="overflow-x:auto;">
-        <table class="table table-bordered">
-          <thead><tr><th style="width:90px;">Mã PLO</th><th>Mô tả</th><th style="width:120px;">Bloom</th><th style="width:120px;">PO liên quan</th></tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h3 style="font-size:15px;font-weight:600;">Chuẩn đầu ra (PLO)</h3>
+        <span style="color:var(--text-muted);font-size:13px;">${plos.length} PLO</span>
       </div>
+      <table class="data-table">
+        <thead><tr><th style="width:90px;">Mã</th><th style="width:80px;">Bloom</th><th>Mô tả</th><th style="width:120px;">PO liên quan</th></tr></thead>
+        <tbody>
+          ${plos.map((plo, i) => `
+            <tr>
+              <td><strong style="color:var(--primary);" contenteditable="true" data-path="plos.${i}.code">${this._escHtml(plo.code || '')}</strong></td>
+              <td><span class="badge badge-info">${this._escHtml(String(plo.bloom_level ?? ''))}</span></td>
+              <td style="font-size:13px;" contenteditable="true" data-path="plos.${i}.description">${this._escHtml(plo.description || '')}</td>
+              <td contenteditable="true" data-path="plos.${i}.po_codes" style="font-size:13px;">${this._escHtml(Array.isArray(plo.po_codes) ? plo.po_codes.join(', ') : (plo.po_codes || ''))}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
     `;
   },
 
   _tabPI(d) {
     const pis = d.pis || [];
-    if (!pis.length) return '<p style="color:var(--text-muted);">Không có dữ liệu chỉ số PI.</p>';
+    if (!pis.length) return '<p style="color:var(--text-muted);font-size:13px;">Không có dữ liệu chỉ số PI.</p>';
 
     // Group by PLO
     const groups = {};
@@ -331,52 +348,73 @@ window.ImportWordPage = {
     const html = Object.entries(groups).map(([plo, items]) => {
       const rows = items.map(pi =>
         `<tr>
-          <td style="padding:8px;" contenteditable="true" data-path="pis.${pi._idx}.code">${this._escHtml(pi.code || '')}</td>
-          <td style="padding:8px;" contenteditable="true" data-path="pis.${pi._idx}.description">${this._escHtml(pi.description || '')}</td>
+          <td style="width:100px;" contenteditable="true" data-path="pis.${pi._idx}.code"><strong style="color:var(--primary);">${this._escHtml(pi.code || '')}</strong></td>
+          <td style="font-size:13px;" contenteditable="true" data-path="pis.${pi._idx}.description">${this._escHtml(pi.description || '')}</td>
         </tr>`
       ).join('');
       return `
-        <h6 style="margin:12px 0 6px;font-weight:600;color:var(--primary,#0d6efd);">${this._escHtml(plo)}</h6>
-        <table class="table table-bordered table-sm">
-          <thead><tr><th style="width:100px;">Mã PI</th><th>Mô tả</th></tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
+        <div style="margin-bottom:20px;">
+          <div style="display:flex;align-items:center;margin-bottom:8px;">
+            <strong style="color:var(--primary);">${this._escHtml(plo)}</strong>
+            <span style="color:var(--text-muted);font-size:12px;margin-left:8px;">${items.length} PI</span>
+          </div>
+          <table class="data-table">
+            <thead><tr><th style="width:100px;">Mã PI</th><th>Mô tả</th></tr></thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
       `;
     }).join('');
-    return `<h6 style="font-weight:600;margin-bottom:12px;">Chỉ số PI (nhóm theo PLO)</h6>${html}`;
+    return `
+      <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;">Chỉ số PI (nhóm theo PLO)</h3>
+      ${html}
+    `;
   },
 
   _tabCourses(d) {
     const courses = d.courses || [];
-    if (!courses.length) return '<p style="color:var(--text-muted);">Không có dữ liệu học phần.</p>';
-    const rows = courses.map((c, i) =>
-      `<tr>
-        <td style="padding:6px;" contenteditable="true" data-path="courses.${i}.code">${this._escHtml(c.code || '')}</td>
-        <td style="padding:6px;" contenteditable="true" data-path="courses.${i}.name">${this._escHtml(c.name || '')}</td>
-        <td style="padding:6px;text-align:center;" contenteditable="true" data-path="courses.${i}.credits_total">${this._escHtml(String(c.credits_total ?? ''))}</td>
-        <td style="padding:6px;text-align:center;" contenteditable="true" data-path="courses.${i}.credits_theory">${this._escHtml(String(c.credits_theory ?? ''))}</td>
-        <td style="padding:6px;text-align:center;" contenteditable="true" data-path="courses.${i}.credits_practice">${this._escHtml(String(c.credits_practice ?? ''))}</td>
-        <td style="padding:6px;text-align:center;" contenteditable="true" data-path="courses.${i}.credits_self">${this._escHtml(String(c.credits_self ?? ''))}</td>
-        <td style="padding:6px;" contenteditable="true" data-path="courses.${i}.course_type">${this._escHtml(c.course_type || '')}</td>
-        <td style="padding:6px;" contenteditable="true" data-path="courses.${i}.prerequisite">${this._escHtml(c.prerequisite || '')}</td>
-      </tr>`
-    ).join('');
+    if (!courses.length) return '<p style="color:var(--text-muted);font-size:13px;">Không có dữ liệu học phần.</p>';
+    const totalCredits = courses.reduce((s, c) => s + (Number(c.credits_total) || 0), 0);
     return `
-      <h6 style="font-weight:600;margin-bottom:12px;">Danh sách học phần</h6>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h3 style="font-size:15px;font-weight:600;">Danh sách học phần</h3>
+        <span style="color:var(--text-muted);font-size:13px;">${totalCredits} TC / ${courses.length} HP</span>
+      </div>
       <div style="overflow-x:auto;">
-        <table class="table table-bordered table-sm">
+        <table class="data-table">
           <thead>
             <tr>
-              <th>Mã HP</th><th>Tên học phần</th>
-              <th title="Tổng tín chỉ">TC</th>
-              <th title="Lý thuyết">LT</th>
-              <th title="Thực hành">TH</th>
-              <th title="Tự học">Tự học</th>
-              <th>Loại HP</th>
-              <th>Tiên quyết</th>
+              <th>Mã</th><th>Tên HP</th>
+              <th title="Tổng tín chỉ" style="width:50px;">TC</th>
+              <th title="Lý thuyết" style="width:40px;">LT</th>
+              <th title="Thực hành" style="width:40px;">TH</th>
+              <th title="Đồ án" style="width:40px;">ĐA</th>
+              <th title="Thực tập" style="width:40px;">TT</th>
+              <th style="width:50px;">HK</th>
+              <th style="width:80px;">Loại</th>
+              <th>Nhóm TC</th>
             </tr>
           </thead>
-          <tbody>${rows}</tbody>
+          <tbody>
+            ${courses.map((c, i) => {
+              const typeLabel = (c.course_type || '').toLowerCase();
+              const isRequired = typeLabel === 'required' || typeLabel === 'bắt buộc' || typeLabel === 'bb';
+              const typeBadge = isRequired ? 'badge-success' : 'badge-warning';
+              const typeText = isRequired ? 'BB' : 'TC';
+              return `<tr>
+                <td contenteditable="true" data-path="courses.${i}.code"><strong>${this._escHtml(c.code || '')}</strong></td>
+                <td contenteditable="true" data-path="courses.${i}.name">${this._escHtml(c.name || '')}</td>
+                <td style="text-align:center;" contenteditable="true" data-path="courses.${i}.credits_total">${this._escHtml(String(c.credits_total ?? ''))}</td>
+                <td style="text-align:center;" contenteditable="true" data-path="courses.${i}.credits_theory">${this._escHtml(String(c.credits_theory ?? ''))}</td>
+                <td style="text-align:center;" contenteditable="true" data-path="courses.${i}.credits_practice">${this._escHtml(String(c.credits_practice ?? ''))}</td>
+                <td style="text-align:center;" contenteditable="true" data-path="courses.${i}.credits_project">${this._escHtml(String(c.credits_project ?? ''))}</td>
+                <td style="text-align:center;" contenteditable="true" data-path="courses.${i}.credits_internship">${this._escHtml(String(c.credits_internship ?? ''))}</td>
+                <td style="text-align:center;">${c.semester ? `<span class="badge badge-info">HK ${this._escHtml(String(c.semester))}</span>` : ''}</td>
+                <td><span class="badge ${typeBadge}">${typeText}</span></td>
+                <td contenteditable="true" data-path="courses.${i}.elective_group" style="font-size:13px;">${this._escHtml(c.elective_group || '')}</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
         </table>
       </div>
     `;
@@ -384,23 +422,23 @@ window.ImportWordPage = {
 
   _tabBlocks(d) {
     const blocks = d.knowledgeBlocks || [];
-    if (!blocks.length) return '<p style="color:var(--text-muted);">Không có dữ liệu cấu trúc khối kiến thức.</p>';
-    const rows = blocks.map((b, i) =>
-      `<tr>
-        <td style="padding:8px;" contenteditable="true" data-path="knowledgeBlocks.${i}.name">${this._escHtml(b.name || '')}</td>
-        <td style="padding:8px;text-align:center;" contenteditable="true" data-path="knowledgeBlocks.${i}.credits">${this._escHtml(String(b.credits ?? ''))}</td>
-        <td style="padding:8px;" contenteditable="true" data-path="knowledgeBlocks.${i}.required">${this._escHtml(b.required || '')}</td>
-        <td style="padding:8px;" contenteditable="true" data-path="knowledgeBlocks.${i}.elective">${this._escHtml(b.elective || '')}</td>
-      </tr>`
-    ).join('');
+    if (!blocks.length) return '<p style="color:var(--text-muted);font-size:13px;">Không có dữ liệu cấu trúc khối kiến thức.</p>';
     return `
-      <h6 style="font-weight:600;margin-bottom:12px;">Cấu trúc khối kiến thức</h6>
-      <div style="overflow-x:auto;">
-        <table class="table table-bordered">
-          <thead><tr><th>Tên khối</th><th style="width:80px;">Tín chỉ</th><th>Bắt buộc</th><th>Tự chọn</th></tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>
+      <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;">Cấu trúc khối kiến thức</h3>
+      <table class="data-table">
+        <thead><tr><th>Tên khối</th><th style="width:80px;">Tổng TC</th><th style="width:80px;">BB</th><th style="width:80px;">TC</th></tr></thead>
+        <tbody>
+          ${blocks.map((b, i) => {
+            const isParent = b.is_parent || b.parent === true || b.level === 0;
+            return `<tr>
+              <td style="${isParent ? 'font-weight:600;' : 'padding-left:24px;'}" contenteditable="true" data-path="knowledgeBlocks.${i}.name">${this._escHtml(b.name || '')}</td>
+              <td style="text-align:center;" contenteditable="true" data-path="knowledgeBlocks.${i}.credits">${this._escHtml(String(b.credits ?? ''))}</td>
+              <td style="text-align:center;" contenteditable="true" data-path="knowledgeBlocks.${i}.required">${this._escHtml(String(b.required ?? ''))}</td>
+              <td style="text-align:center;" contenteditable="true" data-path="knowledgeBlocks.${i}.elective">${this._escHtml(String(b.elective ?? ''))}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
     `;
   },
 
@@ -409,12 +447,12 @@ window.ImportWordPage = {
     const plos = d.plos || [];
     const matrix = d.poploMatrix || {};
 
-    if (!pos.length || !plos.length) return '<p style="color:var(--text-muted);">Không có đủ dữ liệu PO/PLO để hiển thị ma trận.</p>';
+    if (!pos.length || !plos.length) return '<p style="color:var(--text-muted);font-size:13px;">Không có đủ dữ liệu PO/PLO để hiển thị ma trận.</p>';
 
     const poCodes = pos.map(p => p.code);
     const ploCodes = plos.map(p => p.code);
 
-    const headerCells = poCodes.map(pc => `<th style="text-align:center;padding:6px;min-width:50px;">${this._escHtml(pc)}</th>`).join('');
+    const headerCells = poCodes.map(pc => `<th style="text-align:center;min-width:50px;font-size:12px;">${this._escHtml(pc)}</th>`).join('');
     const rows = ploCodes.map(ploCode => {
       const cells = poCodes.map(poCode => {
         const key = `${ploCode}|${poCode}`;
@@ -422,26 +460,29 @@ window.ImportWordPage = {
         return `<td style="text-align:center;padding:4px;">
           <span class="plo-cell" data-plo="${this._escAttr(ploCode)}" data-po="${this._escAttr(poCode)}" style="
             display:inline-block;width:28px;height:28px;line-height:28px;
-            border-radius:4px;cursor:pointer;font-weight:700;font-size:14px;
-            background:${checked ? 'var(--primary,#0d6efd)' : '#f0f0f0'};
-            color:${checked ? '#fff' : '#ccc'};
+            border-radius:var(--radius);cursor:pointer;font-weight:700;font-size:14px;
+            background:${checked ? 'var(--primary)' : 'var(--bg-secondary)'};
+            color:${checked ? '#fff' : 'var(--text-muted)'};
             transition:background 0.15s,color 0.15s;
           ">${checked ? 'X' : ''}</span>
         </td>`;
       }).join('');
       return `<tr>
-        <td style="padding:6px;font-weight:500;white-space:nowrap;">${this._escHtml(ploCode)}</td>
+        <td style="position:sticky;left:0;z-index:5;background:#fff;box-shadow:inset -1px 0 0 var(--border);font-weight:500;white-space:nowrap;">${this._escHtml(ploCode)}</td>
         ${cells}
       </tr>`;
     }).join('');
 
     return `
-      <h6 style="font-weight:600;margin-bottom:12px;">Ma trận PO-PLO <small style="font-weight:400;color:var(--text-muted);">(click để bật/tắt)</small></h6>
-      <div style="overflow-x:auto;">
-        <table class="table table-bordered table-sm" id="iw-poplo-table">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h3 style="font-size:15px;font-weight:600;">Ma trận PO-PLO</h3>
+        <span style="color:var(--text-muted);font-size:12px;">Click để bật/tắt</span>
+      </div>
+      <div style="overflow-x:auto;padding-bottom:16px;">
+        <table class="data-table" id="iw-poplo-table" style="white-space:nowrap;">
           <thead>
             <tr>
-              <th style="padding:6px;">PLO \\ PO</th>
+              <th style="position:sticky;left:0;z-index:10;background:var(--bg-secondary);box-shadow:inset -1px 0 0 var(--border);">PLO \\ PO</th>
               ${headerCells}
             </tr>
           </thead>
@@ -456,38 +497,42 @@ window.ImportWordPage = {
     const pis = d.pis || [];
     const matrix = d.coursePIMatrix || {};
 
-    if (!courses.length || !pis.length) return '<p style="color:var(--text-muted);">Không có đủ dữ liệu course/PI để hiển thị ma trận.</p>';
+    if (!courses.length || !pis.length) return '<p style="color:var(--text-muted);font-size:13px;">Không có đủ dữ liệu course/PI để hiển thị ma trận.</p>';
 
     const courseCodes = courses.map(c => c.code);
     const piCodes = pis.map(p => p.code);
 
-    const headerCells = piCodes.map(pc => `<th style="text-align:center;padding:4px;min-width:60px;font-size:12px;">${this._escHtml(pc)}</th>`).join('');
+    const headerCells = piCodes.map(pc => `<th style="text-align:center;min-width:55px;font-size:11px;padding:4px;">${this._escHtml(pc)}</th>`).join('');
 
     const rows = courseCodes.map(courseCode => {
       const cells = piCodes.map(piCode => {
         const key = `${courseCode}|${piCode}`;
-        const val = matrix[key] || '';
+        const val = matrix[key] || '0';
         return `<td style="text-align:center;padding:2px;">
-          <span contenteditable="true" data-cpi="${this._escAttr(key)}" style="
-            display:inline-block;min-width:40px;padding:2px 4px;
-            border:1px solid transparent;border-radius:3px;
-            font-size:12px;
-          " onfocus="this.style.border='1px solid var(--primary,#0d6efd)'" onblur="this.style.border='1px solid transparent'">${this._escHtml(val)}</span>
+          <select data-cpi="${this._escAttr(key)}" style="width:38px;padding:1px;font-size:11px;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;font-family:inherit;">
+            <option value="0" ${val === '0' || val === '' || val === 0 ? 'selected' : ''}>—</option>
+            <option value="1" ${val === '1' || val === 1 ? 'selected' : ''}>1</option>
+            <option value="2" ${val === '2' || val === 2 ? 'selected' : ''}>2</option>
+            <option value="3" ${val === '3' || val === 3 ? 'selected' : ''}>3</option>
+          </select>
         </td>`;
       }).join('');
       return `<tr>
-        <td style="padding:6px;font-weight:500;white-space:nowrap;font-size:12px;">${this._escHtml(courseCode)}</td>
+        <td style="position:sticky;left:0;z-index:5;background:#fff;box-shadow:inset -1px 0 0 var(--border);font-size:12px;white-space:nowrap;"><strong>${this._escHtml(courseCode)}</strong></td>
         ${cells}
       </tr>`;
     }).join('');
 
     return `
-      <h6 style="font-weight:600;margin-bottom:12px;">Ma trận Course-PI</h6>
-      <div style="overflow-x:auto;">
-        <table class="table table-bordered table-sm" id="iw-coursepi-table">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h3 style="font-size:15px;font-weight:600;">Ma trận Course-PI</h3>
+        <span style="color:var(--text-muted);font-size:12px;">— = 0, 1 = Thấp, 2 = TB, 3 = Cao</span>
+      </div>
+      <div style="overflow-x:auto;padding-bottom:16px;">
+        <table class="data-table" id="iw-coursepi-table" style="white-space:nowrap;">
           <thead>
             <tr>
-              <th style="padding:6px;">HP \\ PI</th>
+              <th style="position:sticky;left:0;z-index:10;background:var(--bg-secondary);box-shadow:inset -1px 0 0 var(--border);">HP \\ PI</th>
               ${headerCells}
             </tr>
           </thead>
@@ -499,7 +544,7 @@ window.ImportWordPage = {
 
   _tabSchedule(d) {
     const schedule = d.teachingPlan || [];
-    if (!schedule.length) return '<p style="color:var(--text-muted);">Không có dữ liệu kế hoạch giảng dạy.</p>';
+    if (!schedule.length) return '<p style="color:var(--text-muted);font-size:13px;">Không có dữ liệu kế hoạch giảng dạy.</p>';
 
     // Group by semester
     const groups = {};
@@ -509,44 +554,63 @@ window.ImportWordPage = {
       groups[sem].push({ ...item, _idx: i });
     });
 
-    const html = Object.entries(groups).map(([sem, items]) => {
-      const rows = items.map(item =>
-        `<tr>
-          <td style="padding:8px;" contenteditable="true" data-path="teachingPlan.${item._idx}.course_code">${this._escHtml(item.course_code || '')}</td>
-          <td style="padding:8px;" contenteditable="true" data-path="teachingPlan.${item._idx}.course_name">${this._escHtml(item.course_name || '')}</td>
-          <td style="padding:8px;text-align:center;" contenteditable="true" data-path="teachingPlan.${item._idx}.credits">${this._escHtml(String(item.credits ?? ''))}</td>
-          <td style="padding:8px;" contenteditable="true" data-path="teachingPlan.${item._idx}.notes">${this._escHtml(item.notes || '')}</td>
-        </tr>`
-      ).join('');
-      return `
-        <h6 style="margin:12px 0 6px;font-weight:600;color:var(--primary,#0d6efd);">Học kỳ ${this._escHtml(String(sem))}</h6>
-        <table class="table table-bordered table-sm">
-          <thead><tr><th>Mã HP</th><th>Tên học phần</th><th style="width:70px;">TC</th><th>Ghi chú</th></tr></thead>
-          <tbody>${rows}</tbody>
-        </table>
-      `;
-    }).join('');
-    return `<h6 style="font-weight:600;margin-bottom:12px;">Kế hoạch giảng dạy (theo học kỳ)</h6>${html}`;
+    const semKeys = Object.keys(groups).sort((a, b) => a - b);
+
+    return `
+      <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;">Kế hoạch giảng dạy</h3>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px;">
+        ${semKeys.map(sem => {
+          const items = groups[sem];
+          const semCredits = items.reduce((s, it) => s + (Number(it.credits) || 0), 0);
+          return `
+            <div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                <strong style="font-size:14px;">Học kỳ ${this._escHtml(String(sem))}</strong>
+                <span style="color:var(--text-muted);font-size:12px;">${semCredits} TC</span>
+              </div>
+              ${items.map(item => `
+                <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid var(--divider);">
+                  <span>
+                    <strong contenteditable="true" data-path="teachingPlan.${item._idx}.course_code">${this._escHtml(item.course_code || '')}</strong>
+                    <span contenteditable="true" data-path="teachingPlan.${item._idx}.course_name" style="margin-left:4px;">${this._escHtml(item.course_name || '')}</span>
+                  </span>
+                  <span style="color:var(--text-muted);" contenteditable="true" data-path="teachingPlan.${item._idx}.credits">${this._escHtml(String(item.credits ?? ''))}</span>
+                </div>
+              `).join('')}
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
   },
 
   _tabAssessment(d) {
     const assessments = d.assessmentPlan || [];
-    if (!assessments.length) return '<p style="color:var(--text-muted);">Không có dữ liệu kế hoạch đánh giá.</p>';
-    const rows = assessments.map((a, i) =>
-      `<tr>
-        <td style="padding:8px;" contenteditable="true" data-path="assessmentPlan.${i}.course_code">${this._escHtml(a.course_code || '')}</td>
-        <td style="padding:8px;" contenteditable="true" data-path="assessmentPlan.${i}.method">${this._escHtml(a.method || '')}</td>
-        <td style="padding:8px;text-align:center;" contenteditable="true" data-path="assessmentPlan.${i}.weight">${this._escHtml(String(a.weight ?? ''))}</td>
-        <td style="padding:8px;" contenteditable="true" data-path="assessmentPlan.${i}.plo_codes">${this._escHtml(Array.isArray(a.plo_codes) ? a.plo_codes.join(', ') : (a.plo_codes || ''))}</td>
-        <td style="padding:8px;" contenteditable="true" data-path="assessmentPlan.${i}.notes">${this._escHtml(a.notes || '')}</td>
-      </tr>`
-    ).join('');
+    if (!assessments.length) return '<p style="color:var(--text-muted);font-size:13px;">Không có dữ liệu kế hoạch đánh giá.</p>';
     return `
-      <h6 style="font-weight:600;margin-bottom:12px;">Kế hoạch đánh giá</h6>
+      <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;">Kế hoạch đánh giá</h3>
       <div style="overflow-x:auto;">
-        <table class="table table-bordered table-sm">
-          <thead><tr><th>Mã HP</th><th>Phương pháp</th><th style="width:80px;">Trọng số (%)</th><th>PLO liên quan</th><th>Ghi chú</th></tr></thead>
-          <tbody>${rows}</tbody>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>PLO</th><th>PI</th><th>HP mẫu</th><th>Công cụ</th><th>Tiêu chuẩn</th><th>Ngưỡng</th><th>HK</th><th>GV</th><th>Đơn vị</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${assessments.map((a, i) => `
+              <tr>
+                <td contenteditable="true" data-path="assessmentPlan.${i}.plo_codes" style="font-size:13px;">${this._escHtml(Array.isArray(a.plo_codes) ? a.plo_codes.join(', ') : (a.plo_codes || ''))}</td>
+                <td contenteditable="true" data-path="assessmentPlan.${i}.pi_codes" style="font-size:13px;">${this._escHtml(Array.isArray(a.pi_codes) ? a.pi_codes.join(', ') : (a.pi_codes || ''))}</td>
+                <td contenteditable="true" data-path="assessmentPlan.${i}.course_code" style="font-size:13px;">${this._escHtml(a.course_code || '')}</td>
+                <td contenteditable="true" data-path="assessmentPlan.${i}.method" style="font-size:13px;">${this._escHtml(a.method || '')}</td>
+                <td contenteditable="true" data-path="assessmentPlan.${i}.criteria" style="font-size:13px;">${this._escHtml(a.criteria || '')}</td>
+                <td contenteditable="true" data-path="assessmentPlan.${i}.weight" style="font-size:13px;text-align:center;">${this._escHtml(String(a.weight ?? ''))}</td>
+                <td contenteditable="true" data-path="assessmentPlan.${i}.semester" style="font-size:13px;text-align:center;">${this._escHtml(String(a.semester ?? ''))}</td>
+                <td contenteditable="true" data-path="assessmentPlan.${i}.instructor" style="font-size:13px;">${this._escHtml(a.instructor || '')}</td>
+                <td contenteditable="true" data-path="assessmentPlan.${i}.notes" style="font-size:13px;">${this._escHtml(a.notes || '')}</td>
+              </tr>
+            `).join('')}
+          </tbody>
         </table>
       </div>
     `;
@@ -554,38 +618,44 @@ window.ImportWordPage = {
 
   _tabDescriptions(d) {
     const descs = d.courseDescriptions || [];
-    if (!descs.length) return '<p style="color:var(--text-muted);">Không có dữ liệu mô tả học phần.</p>';
-    const items = descs.map((desc, i) =>
-      `<div style="border:1px solid var(--border);border-radius:6px;padding:12px;margin-bottom:12px;">
-        <div style="display:flex;gap:12px;margin-bottom:8px;">
-          <div style="font-weight:600;color:var(--primary,#0d6efd);min-width:80px;" contenteditable="true" data-path="courseDescriptions.${i}.code">${this._escHtml(desc.code || '')}</div>
-          <div style="font-weight:500;" contenteditable="true" data-path="courseDescriptions.${i}.name">${this._escHtml(desc.name || '')}</div>
-        </div>
-        <div style="font-size:13px;color:var(--text-muted);margin-bottom:4px;">Mô tả tiếng Việt:</div>
-        <div contenteditable="true" data-path="courseDescriptions.${i}.description_vi" style="padding:6px;border:1px dashed var(--border);border-radius:4px;min-height:40px;font-size:13px;">${this._escHtml(desc.description_vi || '')}</div>
-        <div style="font-size:13px;color:var(--text-muted);margin:8px 0 4px;">Mô tả tiếng Anh:</div>
-        <div contenteditable="true" data-path="courseDescriptions.${i}.description_en" style="padding:6px;border:1px dashed var(--border);border-radius:4px;min-height:40px;font-size:13px;">${this._escHtml(desc.description_en || '')}</div>
-      </div>`
-    ).join('');
-    return `<h6 style="font-weight:600;margin-bottom:12px;">Mô tả học phần</h6>${items}`;
+    if (!descs.length) return '<p style="color:var(--text-muted);font-size:13px;">Không có dữ liệu mô tả học phần.</p>';
+    return `
+      <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;">Mô tả học phần</h3>
+      <table class="data-table">
+        <thead><tr><th style="width:100px;">Mã HP</th><th style="width:200px;">Tên HP</th><th>Mô tả</th></tr></thead>
+        <tbody>
+          ${descs.map((desc, i) => `
+            <tr>
+              <td contenteditable="true" data-path="courseDescriptions.${i}.code"><strong style="color:var(--primary);">${this._escHtml(desc.code || '')}</strong></td>
+              <td contenteditable="true" data-path="courseDescriptions.${i}.name" style="font-size:13px;">${this._escHtml(desc.name || '')}</td>
+              <td contenteditable="true" data-path="courseDescriptions.${i}.description_vi" style="font-size:13px;">${this._escHtml(desc.description_vi || '')}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
   },
 
   // ======= SYNC & TOGGLE =======
 
   syncEdits() {
-    // Sync contenteditable cells with data-path back to parsedData
+    // Sync input/textarea/contenteditable cells with data-path back to parsedData
     document.querySelectorAll('[data-path]').forEach(el => {
       const path = el.dataset.path;
-      const value = el.textContent;
+      let value;
+      if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+        value = el.value;
+      } else {
+        value = el.textContent;
+      }
       this._setPath(this.parsedData, path, value);
     });
 
-    // Sync Course-PI matrix cells with data-cpi
-    document.querySelectorAll('[data-cpi]').forEach(el => {
+    // Sync Course-PI matrix selects with data-cpi
+    document.querySelectorAll('select[data-cpi]').forEach(el => {
       const key = el.dataset.cpi;
-      const value = el.textContent.trim();
       if (!this.parsedData.coursePIMatrix) this.parsedData.coursePIMatrix = {};
-      this.parsedData.coursePIMatrix[key] = value;
+      this.parsedData.coursePIMatrix[key] = el.value;
     });
 
     // Invalidate rendered tab cache so re-renders use updated data
@@ -615,12 +685,12 @@ window.ImportWordPage = {
     this.parsedData.poploMatrix[key] = !current;
     if (!current) {
       cell.textContent = 'X';
-      cell.style.background = 'var(--primary,#0d6efd)';
+      cell.style.background = 'var(--primary)';
       cell.style.color = '#fff';
     } else {
       cell.textContent = '';
-      cell.style.background = '#f0f0f0';
-      cell.style.color = '#ccc';
+      cell.style.background = 'var(--bg-secondary)';
+      cell.style.color = 'var(--text-muted)';
     }
     // Invalidate po-plo tab cache
     delete this.renderedTabs['po-plo'];
