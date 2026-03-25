@@ -1,4 +1,5 @@
 // HUTECH Program — Server
+require('dotenv').config();
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const jwt = require('jsonwebtoken');

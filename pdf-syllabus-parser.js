@@ -10,7 +10,6 @@
 const pdfParse = require('pdf-parse');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const MAX_TEXT_LENGTH = 50000;
 const GEMINI_TIMEOUT = 60000; // 60s
 
@@ -96,6 +95,7 @@ Trả về JSON với cấu trúc chính xác sau:
 // ───────────────────────────────────────────────────────────────────────────
 
 async function callGeminiApi(userPrompt) {
+  const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
   if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY chưa được cấu hình');
 
   const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
