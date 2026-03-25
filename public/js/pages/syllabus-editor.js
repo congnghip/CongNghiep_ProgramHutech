@@ -1,22 +1,66 @@
-// Syllabus Editor — Notion-style
+// Syllabus Editor — Notion-style (v2: new JSONB structure + PDF import)
+
+function migrateOldToNew(c) {
+  if (c._schema_version >= 2) return c;
+  const n = { _schema_version: 2 };
+  n.course_description = c.summary || c.course_description || '';
+  n.course_objectives = c.objectives || c.course_objectives || '';
+  n.prerequisites = c.prerequisites || '';
+  n.language_instruction = c.language_instruction || '';
+  n.learning_methods = c.methods || c.learning_methods || '';
+  // schedule → course_outline
+  if (Array.isArray(c.schedule)) {
+    n.course_outline = c.schedule.map(w => ({
+      lesson: w.week || 0, title: w.topic || '', hours: 0,
+      topics: [], teaching_methods: w.activities || '',
+      clos: typeof w.clos === 'string' ? w.clos.split(',').map(s => s.trim()).filter(Boolean).map(s => /^\d+$/.test(s) ? `CLO${s}` : s) : (Array.isArray(w.clos) ? w.clos : []),
+    }));
+  } else { n.course_outline = c.course_outline || []; }
+  // grading → assessment_methods
+  if (Array.isArray(c.grading)) {
+    n.assessment_methods = c.grading.map(g => ({
+      component: g.component || '', weight: g.weight || 0,
+      assessment_tool: g.method || g.assessment_tool || '',
+      clos: typeof g.clos === 'string' ? g.clos.split(',').map(s => s.trim()).filter(Boolean).map(s => /^\d+$/.test(s) ? `CLO${s}` : s) : (Array.isArray(g.clos) ? g.clos : []),
+    }));
+  } else { n.assessment_methods = c.assessment_methods || []; }
+  // textbooks/references: string → array
+  if (typeof c.textbooks === 'string') { n.textbooks = c.textbooks.split('\n').map(s => s.trim()).filter(Boolean); }
+  else { n.textbooks = Array.isArray(c.textbooks) ? c.textbooks : []; }
+  if (typeof c.references === 'string') { n.references = c.references.split('\n').map(s => s.trim()).filter(Boolean); }
+  else { n.references = Array.isArray(c.references) ? c.references : []; }
+  // tools → course_requirements
+  if (typeof c.tools === 'string') {
+    n.course_requirements = { software: c.tools.split(',').map(s => s.trim()).filter(Boolean), hardware: [], lab_equipment: [], classroom_setup: '' };
+  } else { n.course_requirements = c.course_requirements || { software: [], hardware: [], lab_equipment: [], classroom_setup: '' }; }
+  return n;
+}
+
+const INP = 'width:100%;padding:4px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:inherit;';
+
 window.SyllabusEditorPage = {
   syllabusId: null,
   syllabus: null,
   clos: [],
   plos: [],
   activeTab: 0,
+  importedClos: null,
+  importedMappings: null,
 
   async render(container, syllabusId) {
     this.syllabusId = syllabusId;
+    this.importedClos = null;
+    this.importedMappings = null;
     container.innerHTML = '<div class="spinner"></div>';
     try {
       this.syllabus = await fetch(`/api/syllabi/${syllabusId}`).then(r => r.json());
       if (this.syllabus.error) throw new Error(this.syllabus.error);
-      const content = typeof this.syllabus.content === 'string' ? JSON.parse(this.syllabus.content) : (this.syllabus.content || {});
+      let content = typeof this.syllabus.content === 'string' ? JSON.parse(this.syllabus.content) : (this.syllabus.content || {});
+      content = migrateOldToNew(content);
       this.syllabus.content = content;
-    } catch (e) { container.innerHTML = `<div class="empty-state"><div class="icon">❌</div><p>${e.message}</p></div>`; return; }
+    } catch (e) { container.innerHTML = `<div class="empty-state"><div class="icon">!</div><p>${e.message}</p></div>`; return; }
 
-    const statusLabels = { draft:'Nháp', submitted:'Đã nộp', approved_tbm:'TBM ✓', approved_khoa:'Khoa ✓', approved_pdt:'PĐT ✓', published:'Công bố' };
+    const statusLabels = { draft:'Nháp', submitted:'Đã nộp', approved_tbm:'TBM duyệt', approved_khoa:'Khoa duyệt', approved_pdt:'PĐT duyệt', published:'Công bố' };
     const s = this.syllabus;
     const editable = s.status === 'draft';
 
@@ -35,14 +79,18 @@ window.SyllabusEditorPage = {
               <span style="color:var(--text-muted);font-size:12px;">${s.credits} TC · ${s.author_name || '?'}</span>
             </div>
           </div>
-          ${editable ? '<button class="btn btn-primary btn-sm" onclick="window.SyllabusEditorPage.submitForApproval()">Nộp duyệt</button>' : ''}
+          <div style="display:flex;gap:8px;">
+            ${editable ? '<button class="btn btn-secondary btn-sm" onclick="window.SyllabusEditorPage.importPdf()">Import từ PDF</button>' : ''}
+            ${editable ? '<button class="btn btn-primary btn-sm" onclick="window.SyllabusEditorPage.submitForApproval()">Nộp duyệt</button>' : ''}
+          </div>
         </div>
       </div>
+      <div id="syl-import-warnings" style="display:none;margin-bottom:16px;"></div>
       <div class="tab-bar" id="syl-tabs">
         <div class="tab-item active" data-tab="0">Thông tin chung</div>
         <div class="tab-item" data-tab="1">CLO</div>
         <div class="tab-item" data-tab="2">CLO ↔ PLO</div>
-        <div class="tab-item" data-tab="3">Lịch giảng dạy</div>
+        <div class="tab-item" data-tab="3">Nội dung chi tiết</div>
         <div class="tab-item" data-tab="4">Đánh giá</div>
         <div class="tab-item" data-tab="5">Tài liệu</div>
       </div>
@@ -70,21 +118,23 @@ window.SyllabusEditorPage = {
         case 0: this.renderGeneralTab(body, editable, c); break;
         case 1: await this.renderCLOTab(body, editable); break;
         case 2: await this.renderCLOPLOTab(body, editable); break;
-        case 3: this.renderScheduleTab(body, editable, c); break;
+        case 3: this.renderOutlineTab(body, editable, c); break;
         case 4: this.renderGradingTab(body, editable, c); break;
         case 5: this.renderResourcesTab(body, editable, c); break;
       }
     } catch (e) { body.innerHTML = `<p style="color:var(--danger);">Lỗi: ${e.message}</p>`; }
   },
 
+  // ============ TAB 0: Thông tin chung ============
   renderGeneralTab(body, editable, c) {
     body.innerHTML = `
-      <div style="max-width:560px;">
+      <div style="max-width:600px;">
         <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;">Thông tin chung</h3>
-        <div class="input-group"><label>Mô tả tóm tắt</label><textarea id="syl-summary" ${editable ? '' : 'disabled'} rows="3" placeholder="Mô tả tóm tắt HP">${c.summary || ''}</textarea></div>
-        <div class="input-group"><label>Mục tiêu học phần</label><textarea id="syl-objectives" ${editable ? '' : 'disabled'} rows="3" placeholder="Mục tiêu khi hoàn thành HP">${c.objectives || ''}</textarea></div>
+        <div class="input-group"><label>Mô tả tóm tắt nội dung học phần</label><textarea id="syl-course-desc" ${editable ? '' : 'disabled'} rows="3" placeholder="Mô tả tóm tắt HP (mục 11)">${c.course_description || ''}</textarea></div>
+        <div class="input-group"><label>Mục tiêu học phần</label><textarea id="syl-course-obj" ${editable ? '' : 'disabled'} rows="3" placeholder="Mục tiêu khi hoàn thành HP (mục 7)">${c.course_objectives || ''}</textarea></div>
         <div class="input-group"><label>Yêu cầu tiên quyết</label><input type="text" id="syl-prereq" ${editable ? '' : 'disabled'} value="${c.prerequisites || ''}" placeholder="HP tiên quyết"></div>
-        <div class="input-group"><label>Phương pháp giảng dạy</label><textarea id="syl-methods" ${editable ? '' : 'disabled'} rows="2" placeholder="Thuyết trình, thảo luận...">${c.methods || ''}</textarea></div>
+        <div class="input-group"><label>Ngôn ngữ giảng dạy</label><input type="text" id="syl-lang-inst" ${editable ? '' : 'disabled'} value="${c.language_instruction || ''}" placeholder="Tiếng Việt"></div>
+        <div class="input-group"><label>Phương pháp giảng dạy</label><textarea id="syl-learning-methods" ${editable ? '' : 'disabled'} rows="3" placeholder="Phương pháp, hình thức tổ chức dạy học (mục 12)">${c.learning_methods || ''}</textarea></div>
         ${editable ? '<button class="btn btn-primary" onclick="window.SyllabusEditorPage.saveGeneral()">Lưu nháp</button>' : ''}
       </div>
     `;
@@ -92,10 +142,11 @@ window.SyllabusEditorPage = {
 
   async saveGeneral() {
     const content = { ...this.syllabus.content,
-      summary: document.getElementById('syl-summary').value,
-      objectives: document.getElementById('syl-objectives').value,
+      course_description: document.getElementById('syl-course-desc').value,
+      course_objectives: document.getElementById('syl-course-obj').value,
       prerequisites: document.getElementById('syl-prereq').value,
-      methods: document.getElementById('syl-methods').value,
+      language_instruction: document.getElementById('syl-lang-inst').value,
+      learning_methods: document.getElementById('syl-learning-methods').value,
     };
     try {
       await fetch(`/api/syllabi/${this.syllabusId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content }) });
@@ -104,12 +155,22 @@ window.SyllabusEditorPage = {
     } catch (e) { window.toast.error(e.message); }
   },
 
+  // ============ TAB 1: CLO ============
   async renderCLOTab(body, editable) {
-    this.clos = await fetch(`/api/syllabi/${this.syllabusId}/clos`).then(r => r.json());
+    // If we have imported CLOs pending, show them instead of fetching from DB
+    if (this.importedClos) {
+      this.clos = this.importedClos.map((c, i) => ({ id: null, code: c.code, description: c.description, _idx: i }));
+    } else {
+      this.clos = await fetch(`/api/syllabi/${this.syllabusId}/clos`).then(r => r.json());
+    }
+    const hasPending = !!this.importedClos;
     body.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
         <h3 style="font-size:15px;font-weight:600;">Chuẩn đầu ra môn học (CLO)</h3>
-        ${editable ? '<button class="btn btn-primary btn-sm" id="add-clo-btn">+ Thêm</button>' : ''}
+        <div style="display:flex;gap:8px;">
+          ${hasPending ? '<span class="badge" style="background:var(--warning);color:#fff;">Đã import — cần Lưu</span>' : ''}
+          ${editable ? '<button class="btn btn-primary btn-sm" id="add-clo-btn">+ Thêm</button>' : ''}
+        </div>
       </div>
       <table class="data-table">
         <thead><tr><th>Mã</th><th>Mô tả</th>${editable ? '<th style="width:100px;"></th>' : ''}</tr></thead>
@@ -119,13 +180,14 @@ window.SyllabusEditorPage = {
               <td><strong style="color:var(--primary);">${c.code}</strong></td>
               <td style="font-size:13px;">${c.description || ''}</td>
               ${editable ? `<td style="white-space:nowrap;">
-                <button class="btn btn-secondary btn-sm" onclick="window.SyllabusEditorPage.editCLO(${c.id},'${c.code}',\`${(c.description||'').replace(/`/g,"'")}\`)">Sửa</button>
-                <button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="window.SyllabusEditorPage.deleteCLO(${c.id})">Xóa</button>
+                ${c.id ? `<button class="btn btn-secondary btn-sm" onclick="window.SyllabusEditorPage.editCLO(${c.id},'${c.code}',\`${(c.description||'').replace(/`/g,"'")}\`)">Sửa</button>
+                <button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="window.SyllabusEditorPage.deleteCLO(${c.id})">Xóa</button>` : ''}
               </td>` : ''}
             </tr>
           `).join('')}
         </tbody>
       </table>
+      ${hasPending ? `<div style="margin-top:16px;"><button class="btn btn-primary" onclick="window.SyllabusEditorPage.saveImportedClos()">Lưu CLO đã import</button></div>` : ''}
       <div id="clo-form-area" style="display:none;margin-top:16px;padding:16px;background:var(--bg-secondary);border-radius:var(--radius-lg);">
         <input type="hidden" id="clo-edit-id">
         <div style="display:flex;gap:10px;align-items:end;">
@@ -172,6 +234,45 @@ window.SyllabusEditorPage = {
     this.renderSylTab();
   },
 
+  async saveImportedClos() {
+    if (!this.importedClos) return;
+    try {
+      // Step 1: Delete existing CLOs
+      const existingClos = await fetch(`/api/syllabi/${this.syllabusId}/clos`).then(r => r.json());
+      for (const c of existingClos) {
+        await fetch(`/api/clos/${c.id}`, { method: 'DELETE' });
+      }
+      // Step 2: Create new CLOs and collect IDs
+      const cloIdMap = {}; // code → new DB id
+      for (const c of this.importedClos) {
+        const res = await fetch(`/api/syllabi/${this.syllabusId}/clos`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: c.code, description: c.description })
+        });
+        if (!res.ok) throw new Error((await res.json()).error);
+        const created = await res.json();
+        cloIdMap[c.code] = created.id;
+      }
+      // Step 3: Save CLO-PLO mappings
+      if (this.importedMappings && this.importedMappings.length) {
+        const mappings = this.importedMappings
+          .filter(m => cloIdMap[m.clo_code] && m.plo_id)
+          .map(m => ({ clo_id: cloIdMap[m.clo_code], plo_id: m.plo_id, contribution_level: m.contribution_level }));
+        if (mappings.length) {
+          await fetch(`/api/syllabi/${this.syllabusId}/clo-plo-map`, {
+            method: 'PUT', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mappings })
+          });
+        }
+      }
+      this.importedClos = null;
+      this.importedMappings = null;
+      window.toast.success('Đã lưu CLO và CLO-PLO mapping');
+      this.renderSylTab();
+    } catch (e) { window.toast.error(e.message); }
+  },
+
+  // ============ TAB 2: CLO ↔ PLO ============
   async renderCLOPLOTab(body, editable) {
     const [clos, maps] = await Promise.all([
       fetch(`/api/syllabi/${this.syllabusId}/clos`).then(r => r.json()),
@@ -222,34 +323,64 @@ window.SyllabusEditorPage = {
     });
   },
 
-  renderScheduleTab(body, editable, c) {
-    const weeks = c.schedule || Array.from({length: 15}, (_, i) => ({ week: i + 1, topic: '', activities: '', clos: '' }));
+  // ============ TAB 3: Nội dung chi tiết (course_outline) ============
+  renderOutlineTab(body, editable, c) {
+    const lessons = c.course_outline || [];
     body.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <h3 style="font-size:15px;font-weight:600;">Lịch giảng dạy</h3>
-        ${editable ? '<button class="btn btn-primary btn-sm" onclick="window.SyllabusEditorPage.saveSchedule()">Lưu</button>' : ''}
+        <h3 style="font-size:15px;font-weight:600;">Nội dung chi tiết học phần</h3>
+        <div style="display:flex;gap:8px;">
+          ${editable ? '<button class="btn btn-secondary btn-sm" onclick="window.SyllabusEditorPage.addOutlineRow()">+ Thêm bài</button>' : ''}
+          ${editable ? '<button class="btn btn-primary btn-sm" onclick="window.SyllabusEditorPage.saveOutline()">Lưu</button>' : ''}
+        </div>
       </div>
-      <div style="overflow-x:auto;">
-        <table class="data-table" id="schedule-table">
-          <thead><tr><th style="width:50px;">Tuần</th><th>Nội dung</th><th>Hoạt động</th><th style="width:80px;">CLO</th></tr></thead>
-          <tbody>
-            ${weeks.map(w => `<tr>
-              <td style="text-align:center;font-weight:500;">${w.week}</td>
-              <td><input type="text" value="${w.topic || ''}" data-week="${w.week}" data-field="topic" ${editable ? '' : 'disabled'} style="width:100%;padding:4px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:inherit;"></td>
-              <td><input type="text" value="${w.activities || ''}" data-week="${w.week}" data-field="activities" ${editable ? '' : 'disabled'} style="width:100%;padding:4px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:inherit;"></td>
-              <td><input type="text" value="${w.clos || ''}" data-week="${w.week}" data-field="clos" ${editable ? '' : 'disabled'} style="width:100%;padding:4px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:inherit;" placeholder="1,2"></td>
-            </tr>`).join('')}
-          </tbody>
-        </table>
+      <div id="outline-container">
+        ${lessons.length === 0 ? '<p style="color:var(--text-muted);font-size:13px;">Chưa có nội dung. Bấm "+ Thêm bài" để bắt đầu.</p>' :
+          lessons.map((l, i) => this._outlineRowHtml(l, i, editable)).join('')}
       </div>
     `;
   },
 
-  async saveSchedule() {
-    const inputs = document.querySelectorAll('#schedule-table input');
-    const weeks = {};
-    inputs.forEach(inp => { const w = inp.dataset.week; if (!weeks[w]) weeks[w] = { week: parseInt(w) }; weeks[w][inp.dataset.field] = inp.value; });
-    const content = { ...this.syllabus.content, schedule: Object.values(weeks) };
+  _outlineRowHtml(l, i, editable) {
+    const dis = editable ? '' : 'disabled';
+    const topicsStr = Array.isArray(l.topics) ? l.topics.join('\n') : '';
+    const closStr = Array.isArray(l.clos) ? l.clos.join(', ') : '';
+    return `<div class="outline-row" data-idx="${i}" style="border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;margin-bottom:12px;background:var(--bg-secondary);">
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:10px;">
+        <strong style="color:var(--primary);white-space:nowrap;">Bài ${l.lesson || i + 1}</strong>
+        <input type="text" data-field="title" value="${(l.title || '').replace(/"/g, '&quot;')}" ${dis} placeholder="Tên bài" style="flex:1;${INP}">
+        <div style="display:flex;align-items:center;gap:4px;"><label style="font-size:12px;white-space:nowrap;">Số tiết:</label><input type="number" data-field="hours" value="${l.hours || 0}" ${dis} min="0" style="width:60px;${INP}text-align:center;"></div>
+        <div style="display:flex;align-items:center;gap:4px;"><label style="font-size:12px;white-space:nowrap;">CLO:</label><input type="text" data-field="clos" value="${closStr}" ${dis} placeholder="CLO1, CLO2" style="width:120px;${INP}"></div>
+        ${editable ? `<button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="this.closest('.outline-row').remove()">✕</button>` : ''}
+      </div>
+      <div style="display:flex;gap:12px;">
+        <div class="input-group" style="flex:1;margin:0;"><label style="font-size:12px;">Nội dung chi tiết (mỗi dòng = 1 mục)</label><textarea data-field="topics" ${dis} rows="3" style="${INP}">${topicsStr}</textarea></div>
+        <div class="input-group" style="flex:1;margin:0;"><label style="font-size:12px;">Phương pháp dạy học</label><textarea data-field="teaching_methods" ${dis} rows="3" style="${INP}">${l.teaching_methods || ''}</textarea></div>
+      </div>
+    </div>`;
+  },
+
+  addOutlineRow() {
+    const container = document.getElementById('outline-container');
+    const idx = container.querySelectorAll('.outline-row').length;
+    const emptyRow = { lesson: idx + 1, title: '', hours: 0, topics: [], teaching_methods: '', clos: [] };
+    // Remove "Chưa có nội dung" message if present
+    const p = container.querySelector('p');
+    if (p) p.remove();
+    container.insertAdjacentHTML('beforeend', this._outlineRowHtml(emptyRow, idx, true));
+  },
+
+  async saveOutline() {
+    const rows = document.querySelectorAll('#outline-container .outline-row');
+    const course_outline = Array.from(rows).map((r, i) => ({
+      lesson: i + 1,
+      title: r.querySelector('[data-field="title"]').value,
+      hours: parseFloat(r.querySelector('[data-field="hours"]').value) || 0,
+      topics: r.querySelector('[data-field="topics"]').value.split('\n').map(s => s.trim()).filter(Boolean),
+      teaching_methods: r.querySelector('[data-field="teaching_methods"]').value,
+      clos: r.querySelector('[data-field="clos"]').value.split(',').map(s => s.trim()).filter(Boolean),
+    }));
+    const content = { ...this.syllabus.content, course_outline };
     try {
       await fetch(`/api/syllabi/${this.syllabusId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content }) });
       this.syllabus.content = content;
@@ -257,12 +388,13 @@ window.SyllabusEditorPage = {
     } catch (e) { window.toast.error(e.message); }
   },
 
+  // ============ TAB 4: Đánh giá (assessment_methods) ============
   renderGradingTab(body, editable, c) {
-    const items = c.grading || [
-      { component: 'Chuyên cần', weight: 10, method: 'Điểm danh', clos: '' },
-      { component: 'Bài tập', weight: 20, method: 'Bài tập nhóm', clos: '' },
-      { component: 'Giữa kỳ', weight: 20, method: 'Trắc nghiệm', clos: '' },
-      { component: 'Cuối kỳ', weight: 50, method: 'Tự luận', clos: '' },
+    const items = c.assessment_methods || [
+      { component: 'Chuyên cần', weight: 10, assessment_tool: 'Điểm danh', clos: [] },
+      { component: 'Bài tập', weight: 20, assessment_tool: 'Bài tập nhóm', clos: [] },
+      { component: 'Giữa kỳ', weight: 20, assessment_tool: 'Trắc nghiệm', clos: [] },
+      { component: 'Cuối kỳ', weight: 50, assessment_tool: 'Tự luận', clos: [] },
     ];
     body.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
@@ -270,15 +402,18 @@ window.SyllabusEditorPage = {
         ${editable ? '<button class="btn btn-primary btn-sm" onclick="window.SyllabusEditorPage.saveGrading()">Lưu</button>' : ''}
       </div>
       <table class="data-table" id="grading-table">
-        <thead><tr><th>Thành phần</th><th style="width:70px;">%</th><th>Hình thức</th><th style="width:80px;">CLO</th>${editable ? '<th></th>' : ''}</tr></thead>
+        <thead><tr><th>Thành phần</th><th style="width:70px;">%</th><th>Hình thức đánh giá</th><th style="width:120px;">CLO</th>${editable ? '<th></th>' : ''}</tr></thead>
         <tbody>
-          ${items.map((g, i) => `<tr data-idx="${i}">
-            <td><input type="text" value="${g.component}" data-field="component" ${editable ? '' : 'disabled'} style="width:100%;padding:4px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:inherit;"></td>
-            <td><input type="number" value="${g.weight}" data-field="weight" ${editable ? '' : 'disabled'} min="0" max="100" style="width:100%;padding:4px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:inherit;text-align:center;"></td>
-            <td><input type="text" value="${g.method}" data-field="method" ${editable ? '' : 'disabled'} style="width:100%;padding:4px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:inherit;"></td>
-            <td><input type="text" value="${g.clos || ''}" data-field="clos" ${editable ? '' : 'disabled'} style="width:100%;padding:4px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:inherit;"></td>
-            ${editable ? `<td><button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="this.closest('tr').remove()">✕</button></td>` : ''}
-          </tr>`).join('')}
+          ${items.map((g, i) => {
+            const closStr = Array.isArray(g.clos) ? g.clos.join(', ') : (g.clos || '');
+            return `<tr data-idx="${i}">
+              <td><input type="text" value="${g.component || ''}" data-field="component" ${editable ? '' : 'disabled'} style="${INP}"></td>
+              <td><input type="number" value="${g.weight || 0}" data-field="weight" ${editable ? '' : 'disabled'} min="0" max="100" style="${INP}text-align:center;"></td>
+              <td><input type="text" value="${g.assessment_tool || ''}" data-field="assessment_tool" ${editable ? '' : 'disabled'} style="${INP}"></td>
+              <td><input type="text" value="${closStr}" data-field="clos" ${editable ? '' : 'disabled'} style="${INP}" placeholder="CLO1, CLO2"></td>
+              ${editable ? `<td><button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="this.closest('tr').remove()">✕</button></td>` : ''}
+            </tr>`;
+          }).join('')}
         </tbody>
       </table>
       ${editable ? '<button class="btn btn-secondary btn-sm" style="margin-top:12px;" onclick="window.SyllabusEditorPage.addGradingRow()">+ Thêm dòng</button>' : ''}
@@ -288,23 +423,23 @@ window.SyllabusEditorPage = {
   addGradingRow() {
     const tbody = document.querySelector('#grading-table tbody');
     tbody.insertAdjacentHTML('beforeend', `<tr>
-      <td><input type="text" data-field="component" style="width:100%;padding:4px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:inherit;"></td>
-      <td><input type="number" data-field="weight" value="0" style="width:100%;padding:4px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:inherit;text-align:center;"></td>
-      <td><input type="text" data-field="method" style="width:100%;padding:4px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:inherit;"></td>
-      <td><input type="text" data-field="clos" style="width:100%;padding:4px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:inherit;"></td>
+      <td><input type="text" data-field="component" style="${INP}"></td>
+      <td><input type="number" data-field="weight" value="0" style="${INP}text-align:center;"></td>
+      <td><input type="text" data-field="assessment_tool" style="${INP}"></td>
+      <td><input type="text" data-field="clos" style="${INP}" placeholder="CLO1, CLO2"></td>
       <td><button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="this.closest('tr').remove()">✕</button></td>
     </tr>`);
   },
 
   async saveGrading() {
     const rows = document.querySelectorAll('#grading-table tbody tr');
-    const grading = Array.from(rows).map(r => ({
+    const assessment_methods = Array.from(rows).map(r => ({
       component: r.querySelector('[data-field="component"]').value,
       weight: parseInt(r.querySelector('[data-field="weight"]').value) || 0,
-      method: r.querySelector('[data-field="method"]').value,
-      clos: r.querySelector('[data-field="clos"]').value,
+      assessment_tool: r.querySelector('[data-field="assessment_tool"]').value,
+      clos: r.querySelector('[data-field="clos"]').value.split(',').map(s => s.trim()).filter(Boolean),
     }));
-    const content = { ...this.syllabus.content, grading };
+    const content = { ...this.syllabus.content, assessment_methods };
     try {
       await fetch(`/api/syllabi/${this.syllabusId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content }) });
       this.syllabus.content = content;
@@ -312,23 +447,55 @@ window.SyllabusEditorPage = {
     } catch (e) { window.toast.error(e.message); }
   },
 
+  // ============ TAB 5: Tài liệu (textbooks, references, course_requirements) ============
   renderResourcesTab(body, editable, c) {
+    const textbooks = Array.isArray(c.textbooks) ? c.textbooks : [];
+    const references = Array.isArray(c.references) ? c.references : [];
+    const req = c.course_requirements || { software: [], hardware: [], lab_equipment: [], classroom_setup: '' };
+
     body.innerHTML = `
-      <div style="max-width:560px;">
-        <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;">Tài liệu tham khảo</h3>
-        <div class="input-group"><label>Giáo trình chính</label><textarea id="syl-textbooks" ${editable ? '' : 'disabled'} rows="3" placeholder="Tên sách, Tác giả, NXB">${c.textbooks || ''}</textarea></div>
-        <div class="input-group"><label>Tài liệu tham khảo</label><textarea id="syl-references" ${editable ? '' : 'disabled'} rows="3" placeholder="Bài báo, website">${c.references || ''}</textarea></div>
-        <div class="input-group"><label>Phần mềm / Công cụ</label><textarea id="syl-tools" ${editable ? '' : 'disabled'} rows="2">${c.tools || ''}</textarea></div>
+      <div style="max-width:600px;">
+        <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;">Tài liệu & Yêu cầu</h3>
+
+        <div class="input-group"><label>Giáo trình chính (mỗi dòng = 1 tài liệu)</label>
+          <textarea id="syl-textbooks" ${editable ? '' : 'disabled'} rows="3" placeholder="Tên sách, Tác giả, NXB">${textbooks.join('\n')}</textarea>
+        </div>
+
+        <div class="input-group"><label>Tài liệu tham khảo (mỗi dòng = 1 tài liệu)</label>
+          <textarea id="syl-references" ${editable ? '' : 'disabled'} rows="3" placeholder="Bài báo, website...">${references.join('\n')}</textarea>
+        </div>
+
+        <h4 style="font-size:14px;font-weight:600;margin:20px 0 12px;">Yêu cầu học phần</h4>
+
+        <div class="input-group"><label>Phần mềm / Công cụ (mỗi dòng = 1 item)</label>
+          <textarea id="syl-software" ${editable ? '' : 'disabled'} rows="3">${(req.software || []).join('\n')}</textarea>
+        </div>
+        <div class="input-group"><label>Phần cứng (mỗi dòng = 1 item)</label>
+          <textarea id="syl-hardware" ${editable ? '' : 'disabled'} rows="2">${(req.hardware || []).join('\n')}</textarea>
+        </div>
+        <div class="input-group"><label>Thiết bị phòng thí nghiệm (mỗi dòng = 1 item)</label>
+          <textarea id="syl-lab" ${editable ? '' : 'disabled'} rows="2">${(req.lab_equipment || []).join('\n')}</textarea>
+        </div>
+        <div class="input-group"><label>Yêu cầu phòng học</label>
+          <input type="text" id="syl-classroom" ${editable ? '' : 'disabled'} value="${req.classroom_setup || ''}" placeholder="VD: Phòng máy tính">
+        </div>
+
         ${editable ? '<button class="btn btn-primary" onclick="window.SyllabusEditorPage.saveResources()">Lưu nháp</button>' : ''}
       </div>
     `;
   },
 
   async saveResources() {
+    const toArr = id => document.getElementById(id).value.split('\n').map(s => s.trim()).filter(Boolean);
     const content = { ...this.syllabus.content,
-      textbooks: document.getElementById('syl-textbooks').value,
-      references: document.getElementById('syl-references').value,
-      tools: document.getElementById('syl-tools').value,
+      textbooks: toArr('syl-textbooks'),
+      references: toArr('syl-references'),
+      course_requirements: {
+        software: toArr('syl-software'),
+        hardware: toArr('syl-hardware'),
+        lab_equipment: toArr('syl-lab'),
+        classroom_setup: document.getElementById('syl-classroom').value,
+      },
     };
     try {
       await fetch(`/api/syllabi/${this.syllabusId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content }) });
@@ -337,6 +504,80 @@ window.SyllabusEditorPage = {
     } catch (e) { window.toast.error(e.message); }
   },
 
+  // ============ PDF IMPORT ============
+  importPdf() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.pdf';
+    input.onchange = async () => {
+      const file = input.files[0];
+      if (!file) return;
+
+      // Check existing data
+      const c = this.syllabus.content || {};
+      const hasData = c.course_description || c.course_objectives || (c.course_outline && c.course_outline.length);
+      if (hasData && !confirm('Đề cương đã có dữ liệu. Import sẽ ghi đè toàn bộ nội dung. Tiếp tục?')) return;
+
+      // Show loading
+      const tabContent = document.getElementById('syl-tab-content');
+      tabContent.innerHTML = '<div style="text-align:center;padding:40px;"><div class="spinner"></div><p style="margin-top:12px;color:var(--text-muted);">Đang phân tích đề cương bằng AI...</p></div>';
+
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const res = await fetch(`/api/syllabi/${this.syllabusId}/import-pdf`, { method: 'POST', body: formData });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || 'Import thất bại');
+
+        const { content, clos, clo_plo_map, warnings, course_info } = json.data;
+
+        // Apply content
+        this.syllabus.content = { ...content, _schema_version: 2 };
+
+        // Save content to DB immediately
+        await fetch(`/api/syllabi/${this.syllabusId}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content: this.syllabus.content })
+        });
+
+        // Store CLOs and mappings for later save
+        this.importedClos = clos;
+        this.importedMappings = clo_plo_map;
+
+        // Show warnings
+        const warningsEl = document.getElementById('syl-import-warnings');
+        if (warnings && warnings.length) {
+          warningsEl.style.display = 'block';
+          warningsEl.innerHTML = `
+            <div style="background:var(--warning-bg, #fff3cd);border:1px solid var(--warning, #ffc107);border-radius:var(--radius-lg);padding:12px;">
+              <strong style="font-size:13px;">Cảnh báo import:</strong>
+              <ul style="margin:8px 0 0 16px;font-size:13px;">${warnings.map(w => `<li>${w}</li>`).join('')}</ul>
+            </div>`;
+        }
+
+        // Show course info
+        if (course_info) {
+          const matchBadge = course_info.matched
+            ? '<span class="badge" style="background:var(--success);color:#fff;">Khớp</span>'
+            : '<span class="badge" style="background:var(--warning);color:#fff;">Không khớp</span>';
+          window.toast.success(`Import thành công: ${course_info.pdf_course_code} — ${course_info.pdf_course_name} ${course_info.matched ? '' : '(mã HP không khớp)'}`);
+        } else {
+          window.toast.success('Import thành công!');
+        }
+
+        // Re-render current tab
+        this.renderSylTab();
+
+      } catch (e) {
+        window.toast.error(e.message);
+        this.renderSylTab();
+      }
+    };
+    input.click();
+  },
+
+  // ============ APPROVAL ============
   async submitForApproval() {
     if (!confirm('Nộp đề cương để phê duyệt?')) return;
     try {

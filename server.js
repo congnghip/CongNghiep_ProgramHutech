@@ -7,6 +7,7 @@ const { pool, initDB, getUserPermissions, getUserRoles, hasPermission, isAdmin }
 const multer = require('multer');
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 const { parseWordFile } = require('./word-parser');
+const { parseSyllabusPdf } = require('./pdf-syllabus-parser');
 
 const app = express();
 const PORT = process.env.PORT || 3600;
@@ -1564,6 +1565,38 @@ app.put('/api/syllabi/:sId/clo-plo-map', authMiddleware, async (req, res) => {
     }
     res.json({ success: true, count: mappings.length });
   } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+// ============ SYLLABUS PDF IMPORT ============
+app.post('/api/syllabi/:id/import-pdf', authMiddleware, upload.single('file'), async (req, res) => {
+  try {
+    // Validate file
+    if (!req.file) return res.status(400).json({ error: 'Chưa chọn file' });
+    if (req.file.mimetype !== 'application/pdf') return res.status(400).json({ error: 'Chỉ hỗ trợ file PDF' });
+
+    // Get syllabus + check exists and draft
+    const sylRes = await pool.query('SELECT version_id, course_id, status FROM version_syllabi WHERE id=$1', [req.params.id]);
+    if (!sylRes.rows.length) return res.status(404).json({ error: 'Không tìm thấy đề cương' });
+    if (sylRes.rows[0].status !== 'draft') return res.status(400).json({ error: 'Chỉ có thể import khi đề cương ở trạng thái nháp' });
+
+    const { version_id, course_id } = sylRes.rows[0];
+
+    // Permission check: assigned GV or syllabus.edit
+    const assignRes = await pool.query(
+      'SELECT id FROM syllabus_assignments WHERE version_id=$1 AND course_id=$2 AND assigned_to=$3',
+      [version_id, course_id, req.user.id]
+    );
+    if (!assignRes.rows.length) {
+      await checkVersionEditAccess(req.user.id, version_id, 'syllabus.edit');
+    }
+
+    // Parse PDF via Gemini
+    const data = await parseSyllabusPdf(req.file.buffer, version_id, course_id, pool);
+    res.json({ success: true, data });
+  } catch (e) {
+    const status = e.message.includes('Không tìm thấy') ? 404 : e.message.includes('quyền') ? 403 : 500;
+    res.status(status).json({ error: e.message });
+  }
 });
 
 // ============ APPROVAL WORKFLOW ============
