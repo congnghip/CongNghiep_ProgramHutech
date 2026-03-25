@@ -115,8 +115,9 @@ window.ImportWordPage = {
   async _loadDepartments() {
     try {
       const res = await fetch('/api/departments');
-      if (res.ok) this.departments = await res.json();
-    } catch (e) { this.departments = []; }
+      if (res.ok) this.allDepartments = await res.json();
+      this.departments = this.allDepartments.filter(d => d.type === 'KHOA' || d.type === 'VIEN' || d.type === 'TRUNG_TAM');
+    } catch (e) { this.allDepartments = []; this.departments = []; }
   },
 
   _renderPreview() {
@@ -146,9 +147,10 @@ window.ImportWordPage = {
       </div>` : ''}
 
       <!-- Save area -->
-      <div style="display:flex;gap:10px;align-items:end;margin-bottom:16px;padding:14px;background:var(--bg-secondary);border-radius:var(--radius-lg);">
-        <div class="input-group" style="flex:1;margin:0;"><label>Khoa quản lý</label><select id="iw-dept-select">${deptOptions}</select></div>
-        <div class="input-group" style="width:140px;margin:0;"><label>Năm học</label><input type="text" id="iw-year-input" placeholder="2024-2025" value="${this._escAttr(d.academic_year || '')}"></div>
+      <div style="display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin-bottom:16px;padding:14px;background:var(--bg-secondary);border-radius:var(--radius-lg);">
+        <div class="input-group" style="min-width:180px;flex:1;margin:0;"><label>Khoa quản lý <span style="color:var(--danger);">*</span></label><select id="iw-dept-select">${deptOptions}</select></div>
+        <div class="input-group" style="min-width:160px;flex:1;margin:0;"><label>Ngành</label><select id="iw-nganh-select"><option value="">— Toàn khoa —</option></select></div>
+        <div class="input-group" style="width:140px;margin:0;"><label>Năm học <span style="color:var(--danger);">*</span></label><input type="text" id="iw-year-input" placeholder="2024-2025" value="${this._escAttr(d.version?.academic_year || d.academic_year || '')}"></div>
         <button class="btn btn-secondary btn-sm" onclick="window.ImportWordPage._backToUpload()">← Chọn lại file</button>
         <button class="btn btn-primary btn-sm" id="iw-save-btn" ${errCount > 0 ? 'disabled' : ''} onclick="window.ImportWordPage._confirmSave()">Lưu chương trình</button>
       </div>
@@ -172,7 +174,21 @@ window.ImportWordPage = {
     `;
 
     this._bindTabs();
+    this._bindDeptNganh();
     this._renderTab('general');
+  },
+
+  _bindDeptNganh() {
+    const deptSel = document.getElementById('iw-dept-select');
+    const nganhSel = document.getElementById('iw-nganh-select');
+    const updateNganh = () => {
+      const khoaId = deptSel.value;
+      const children = (this.allDepartments || []).filter(d => d.parent_id == khoaId && d.type === 'BO_MON');
+      nganhSel.innerHTML = '<option value="">— Toàn khoa —</option>' +
+        children.map(d => `<option value="${d.id}">${d.name} (${d.code})</option>`).join('');
+    };
+    deptSel.addEventListener('change', updateNganh);
+    updateNganh();
   },
 
   _bindTabs() {
@@ -702,6 +718,7 @@ window.ImportWordPage = {
     this.syncEdits();
 
     const deptSelect = document.getElementById('iw-dept-select');
+    const nganhSelect = document.getElementById('iw-nganh-select');
     const yearInput = document.getElementById('iw-year-input');
 
     if (!deptSelect || !deptSelect.value) {
@@ -713,8 +730,14 @@ window.ImportWordPage = {
       return;
     }
 
+    // Use ngành if selected, otherwise use khoa
+    const selectedDeptId = nganhSelect?.value || deptSelect.value;
+    const selectedDeptName = nganhSelect?.value
+      ? nganhSelect.options[nganhSelect.selectedIndex]?.text
+      : deptSelect.options[deptSelect.selectedIndex]?.text;
+
     const confirmed = confirm(
-      `Xác nhận lưu chương trình đào tạo?\n\nKhoa: ${deptSelect.options[deptSelect.selectedIndex]?.text}\nNăm học: ${yearInput.value.trim()}`
+      `Xác nhận lưu chương trình đào tạo?\n\nĐơn vị: ${selectedDeptName}\nNăm học: ${yearInput.value.trim()}`
     );
     if (!confirmed) return;
 
@@ -727,7 +750,7 @@ window.ImportWordPage = {
       if (data.version) data.version.academic_year = yearInput.value.trim();
       const payload = {
         ...data,
-        department_id: parseInt(deptSelect.value, 10),
+        department_id: parseInt(selectedDeptId, 10),
       };
       const res = await fetch('/api/import/save', {
         method: 'POST',

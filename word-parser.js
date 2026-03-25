@@ -392,6 +392,69 @@ function extractGeneralInfo(table) {
     }
   }
 
+  // Training duration → version
+  for (const [key, val] of Object.entries(infoMap)) {
+    if (key.includes('thời gian đào tạo')) {
+      version.training_duration = val.trim();
+    }
+  }
+
+  // Grading scale (thang điểm)
+  for (const [key, val] of Object.entries(infoMap)) {
+    if (key.includes('thang điểm')) {
+      version.grading_scale = val.trim();
+    }
+  }
+
+  // Graduation requirements (điều kiện tốt nghiệp)
+  for (const [key, val] of Object.entries(infoMap)) {
+    if (key.includes('điều kiện tốt nghiệp') || key.includes('đk tốt nghiệp')) {
+      version.graduation_requirements = val.trim();
+    }
+  }
+
+  // Job positions (vị trí việc làm / vị trí công tác)
+  for (const [key, val] of Object.entries(infoMap)) {
+    if (key.includes('vị trí việc làm') || key.includes('vị trí công tác')) {
+      version.job_positions = val.trim();
+    }
+  }
+
+  // Further education (khả năng học tập nâng cao)
+  for (const [key, val] of Object.entries(infoMap)) {
+    if (key.includes('học tập nâng cao') || key.includes('khả năng học tập')) {
+      version.further_education = val.trim();
+    }
+  }
+
+  // Reference programs (chương trình tham khảo)
+  for (const [key, val] of Object.entries(infoMap)) {
+    if (key.includes('tham khảo') || key.includes('chương trình đào tạo tham khảo')) {
+      version.reference_programs = val.trim();
+    }
+  }
+
+  // Training process (quy trình đào tạo)
+  for (const [key, val] of Object.entries(infoMap)) {
+    if (key.includes('quy trình đào tạo') || key.includes('quá trình đào tạo')) {
+      version.training_process = val.trim();
+    }
+  }
+
+  // Admission targets (đối tượng tuyển sinh)
+  for (const [key, val] of Object.entries(infoMap)) {
+    if (key.includes('đối tượng tuyển sinh')) {
+      version.admission_targets = val.trim();
+    }
+  }
+
+  // Admission criteria (tiêu chí tuyển sinh / điều kiện tuyển sinh)
+  for (const [key, val] of Object.entries(infoMap)) {
+    if (key.includes('tiêu chí tuyển sinh') || key.includes('điều kiện tuyển sinh')) {
+      version.admission_criteria = val.trim();
+    }
+  }
+
   // Version info: academic year extracted from program name or default
   version.academic_year = new Date().getFullYear().toString();
   version.status = 'draft';
