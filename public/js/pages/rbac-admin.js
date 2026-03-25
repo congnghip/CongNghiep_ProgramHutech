@@ -384,7 +384,6 @@ window.RBACAdminPage = {
       plo: 'Chuẩn đầu ra (PLO)',
       syllabus: 'Đề cương học phần',
       courses: 'Danh mục học phần',
-      rbac: 'Quản trị hệ thống',
     };
 
     body.innerHTML = `

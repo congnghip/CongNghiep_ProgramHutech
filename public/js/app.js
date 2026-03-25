@@ -119,15 +119,14 @@
                 <span class="icon">📬</span> Phê duyệt
               </div>
 
-              ${this.hasPerm('rbac.manage_users') || this.hasPerm('rbac.manage_departments') || this.hasPerm('rbac.manage_roles') ? `
+              ${this.isAdmin ? `
               <div class="nav-section">Cài đặt</div>
               <div class="nav-item" data-page="rbac-admin">
                 <span class="icon">⚙️</span> Phân quyền
               </div>
-              ${this.hasPerm('rbac.view_audit_logs') ? `
               <div class="nav-item" data-page="audit-logs">
                 <span class="icon">📜</span> Nhật ký
-              </div>` : ''}
+              </div>
               ` : ''}
             </nav>
             <div class="sidebar-user">

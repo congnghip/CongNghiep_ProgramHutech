@@ -44,6 +44,17 @@ function authMiddleware(req, res, next) {
   } catch (e) { return res.status(401).json({ error: 'Token hết hạn' }); }
 }
 
+// Admin-only middleware
+function requireAdmin() {
+  return async (req, res, next) => {
+    try {
+      const admin = await isAdmin(req.user.id);
+      if (!admin) return res.status(403).json({ error: 'Không có quyền truy cập' });
+      next();
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  };
+}
+
 // Permission middleware factory
 function requirePerm(permCode) {
   return async (req, res, next) => {
@@ -240,7 +251,7 @@ app.get('/api/departments', authMiddleware, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/departments', authMiddleware, requirePerm('rbac.manage_departments'), async (req, res) => {
+app.post('/api/departments', authMiddleware, requireAdmin(), async (req, res) => {
   const { code, name, type, parent_id } = req.body;
   try {
     const result = await pool.query(
@@ -251,7 +262,7 @@ app.post('/api/departments', authMiddleware, requirePerm('rbac.manage_department
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
-app.put('/api/departments/:id', authMiddleware, requirePerm('rbac.manage_departments'), async (req, res) => {
+app.put('/api/departments/:id', authMiddleware, requireAdmin(), async (req, res) => {
   const { name, type } = req.body;
   try {
     const result = await pool.query('UPDATE departments SET name=$1, type=COALESCE($2,type) WHERE id=$3 RETURNING *', [name, type, req.params.id]);
@@ -259,7 +270,7 @@ app.put('/api/departments/:id', authMiddleware, requirePerm('rbac.manage_departm
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
-app.delete('/api/departments/:id', authMiddleware, requirePerm('rbac.manage_departments'), async (req, res) => {
+app.delete('/api/departments/:id', authMiddleware, requireAdmin(), async (req, res) => {
   try {
     const id = req.params.id;
     // Check constraints
@@ -275,7 +286,7 @@ app.delete('/api/departments/:id', authMiddleware, requirePerm('rbac.manage_depa
 });
 
 // ============ USERS API ============
-app.get('/api/users', authMiddleware, requirePerm('rbac.manage_users'), async (req, res) => {
+app.get('/api/users', authMiddleware, requireAdmin(), async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT u.id, u.username, u.display_name, u.email, u.is_active, u.created_at,
@@ -292,7 +303,7 @@ app.get('/api/users', authMiddleware, requirePerm('rbac.manage_users'), async (r
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/users', authMiddleware, requirePerm('rbac.manage_users'), async (req, res) => {
+app.post('/api/users', authMiddleware, requireAdmin(), async (req, res) => {
   const { username, password, display_name, email } = req.body;
   try {
     const hash = await bcrypt.hash(password, 10);
@@ -304,7 +315,7 @@ app.post('/api/users', authMiddleware, requirePerm('rbac.manage_users'), async (
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
-app.put('/api/users/:id', authMiddleware, requirePerm('rbac.manage_users'), async (req, res) => {
+app.put('/api/users/:id', authMiddleware, requireAdmin(), async (req, res) => {
   const { display_name, email, password, is_active } = req.body;
   try {
     if (password) {
@@ -320,7 +331,7 @@ app.put('/api/users/:id', authMiddleware, requirePerm('rbac.manage_users'), asyn
 });
 
 // Assign role to user
-app.post('/api/users/:id/roles', authMiddleware, requirePerm('rbac.manage_users'), async (req, res) => {
+app.post('/api/users/:id/roles', authMiddleware, requireAdmin(), async (req, res) => {
   const { role_code, department_id } = req.body;
   try {
     const role = await pool.query('SELECT id FROM roles WHERE code=$1', [role_code]);
@@ -334,7 +345,7 @@ app.post('/api/users/:id/roles', authMiddleware, requirePerm('rbac.manage_users'
 });
 
 // Remove role from user
-app.delete('/api/users/:userId/roles/:roleCode/:deptId', authMiddleware, requirePerm('rbac.manage_users'), async (req, res) => {
+app.delete('/api/users/:userId/roles/:roleCode/:deptId', authMiddleware, requireAdmin(), async (req, res) => {
   try {
     const role = await pool.query('SELECT id FROM roles WHERE code=$1', [req.params.roleCode]);
     if (!role.rows.length) return res.status(400).json({ error: 'Role không tồn tại' });
@@ -347,7 +358,7 @@ app.delete('/api/users/:userId/roles/:roleCode/:deptId', authMiddleware, require
 });
 
 // Delete user
-app.delete('/api/users/:id', authMiddleware, requirePerm('rbac.manage_users'), async (req, res) => {
+app.delete('/api/users/:id', authMiddleware, requireAdmin(), async (req, res) => {
   try {
     const id = req.params.id;
     if (parseInt(id) === req.user.id) return res.status(400).json({ error: 'Không thể xóa chính mình.' });
@@ -361,7 +372,7 @@ app.delete('/api/users/:id', authMiddleware, requirePerm('rbac.manage_users'), a
 });
 
 // Toggle active
-app.put('/api/users/:id/toggle-active', authMiddleware, requirePerm('rbac.manage_users'), async (req, res) => {
+app.put('/api/users/:id/toggle-active', authMiddleware, requireAdmin(), async (req, res) => {
   try {
     const result = await pool.query(
       'UPDATE users SET is_active = NOT is_active WHERE id=$1 RETURNING id, is_active',
@@ -397,7 +408,7 @@ app.get('/api/roles', authMiddleware, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/roles', authMiddleware, requirePerm('rbac.manage_roles'), async (req, res) => {
+app.post('/api/roles', authMiddleware, requireAdmin(), async (req, res) => {
   const { code, name, level } = req.body;
   try {
     const result = await pool.query(
@@ -408,7 +419,7 @@ app.post('/api/roles', authMiddleware, requirePerm('rbac.manage_roles'), async (
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
-app.put('/api/roles/:id', authMiddleware, requirePerm('rbac.manage_roles'), async (req, res) => {
+app.put('/api/roles/:id', authMiddleware, requireAdmin(), async (req, res) => {
   const { name, level } = req.body;
   try {
     const result = await pool.query(
@@ -419,7 +430,7 @@ app.put('/api/roles/:id', authMiddleware, requirePerm('rbac.manage_roles'), asyn
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
-app.delete('/api/roles/:id', authMiddleware, requirePerm('rbac.manage_roles'), async (req, res) => {
+app.delete('/api/roles/:id', authMiddleware, requireAdmin(), async (req, res) => {
   try {
     const role = await pool.query('SELECT is_system FROM roles WHERE id=$1', [req.params.id]);
     if (role.rows[0]?.is_system) return res.status(400).json({ error: 'Không thể xóa vai trò hệ thống.' });
@@ -443,7 +454,7 @@ app.get('/api/roles/:id/permissions', authMiddleware, async (req, res) => {
 });
 
 // List all permissions
-app.get('/api/permissions', authMiddleware, requirePerm('rbac.manage_roles'), async (req, res) => {
+app.get('/api/permissions', authMiddleware, requireAdmin(), async (req, res) => {
   try {
     const result = await pool.query('SELECT * FROM permissions ORDER BY module, code');
     res.json(result.rows);
@@ -451,7 +462,7 @@ app.get('/api/permissions', authMiddleware, requirePerm('rbac.manage_roles'), as
 });
 
 // Update role permissions (batch)
-app.put('/api/roles/:id/permissions', authMiddleware, requirePerm('rbac.manage_roles'), async (req, res) => {
+app.put('/api/roles/:id/permissions', authMiddleware, requireAdmin(), async (req, res) => {
   const { permission_ids } = req.body; // array of permission IDs
   const client = await pool.connect();
   try {
@@ -1863,7 +1874,7 @@ app.get('/api/dashboard/stats', authMiddleware, async (req, res) => {
 });
 
 // ============ AUDIT LOGS ============
-app.get('/api/audit-logs', authMiddleware, requirePerm('rbac.view_audit_logs'), async (req, res) => {
+app.get('/api/audit-logs', authMiddleware, requireAdmin(), async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 50;
     const offset = parseInt(req.query.offset) || 0;
