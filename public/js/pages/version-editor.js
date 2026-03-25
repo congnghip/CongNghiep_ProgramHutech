@@ -10,9 +10,12 @@ window.VersionEditorPage = {
     { key: 'plo', label: 'Chuẩn đầu ra PLO', viewPerm: 'programs.view_published', editPerm: 'programs.plo.edit' },
     { key: 'pi', label: 'Chỉ số PI', viewPerm: 'programs.view_published', editPerm: 'programs.plo.edit' },
     { key: 'po_plo', label: 'PO ↔ PLO', viewPerm: 'programs.view_published', editPerm: 'programs.matrix.edit' },
+    { key: 'knowledge_blocks', label: 'Khối KT', viewPerm: 'programs.view_published', editPerm: 'programs.courses.edit' },
     { key: 'courses', label: 'Học phần', viewPerm: 'programs.view_published', editPerm: 'programs.courses.edit' },
+    { key: 'descriptions', label: 'Mô tả HP', viewPerm: 'programs.view_published', editPerm: 'programs.courses.edit' },
     { key: 'plan', label: 'Kế hoạch GD', viewPerm: 'programs.view_published', editPerm: 'programs.courses.edit' },
     { key: 'course_plo', label: 'HP ↔ PLO', viewPerm: 'programs.view_published', editPerm: 'programs.matrix.edit' },
+    { key: 'course_pi', label: 'HP ↔ PI', viewPerm: 'programs.view_published', editPerm: 'programs.matrix.edit' },
     { key: 'assessment', label: 'Đánh giá CĐR', viewPerm: 'programs.view_published', editPerm: 'programs.assessment.edit' },
     { key: 'syllabi', label: 'Đề cương', viewPerm: 'programs.view_published', editPerm: 'syllabus.edit' },
   ],
@@ -124,9 +127,12 @@ window.VersionEditorPage = {
         case 'plo': await this.renderPLOTab(body, tabEditable); break;
         case 'pi': await this.renderPITab(body, tabEditable); break;
         case 'po_plo': await this.renderPOPLOMatrix(body, tabEditable); break;
+        case 'knowledge_blocks': await this.renderKnowledgeBlocksTab(body, tabEditable); break;
         case 'courses': await this.renderCoursesTab(body, tabEditable); break;
+        case 'descriptions': await this.renderDescriptionsTab(body, tabEditable); break;
         case 'plan': await this.renderPlanTab(body, tabEditable); break;
         case 'course_plo': await this.renderCoursePLOMatrix(body, tabEditable); break;
+        case 'course_pi': await this.renderCoursePIMatrix(body, tabEditable); break;
         case 'assessment': await this.renderAssessmentTab(body, tabEditable); break;
         case 'syllabi': await this.renderSyllabiTab(body, tabEditable); break;
       }
@@ -647,13 +653,79 @@ window.VersionEditorPage = {
     `;
   },
 
-  // ===== TAB 8: Course-PLO Matrix =====
+  // ===== Knowledge Blocks Tab =====
+  async renderKnowledgeBlocksTab(body, editable) {
+    const blocks = await fetch(`/api/versions/${this.versionId}/knowledge-blocks`).then(r => r.json()).catch(() => []);
+    if (!blocks.length) {
+      body.innerHTML = '<p style="color:var(--text-muted);font-size:13px;">Chưa có dữ liệu cấu trúc khối kiến thức.</p>';
+      return;
+    }
+    // Build tree: parent blocks first, children indented
+    const parentMap = {};
+    const roots = [];
+    blocks.forEach(b => {
+      if (!b.parent_id) roots.push(b);
+      else {
+        if (!parentMap[b.parent_id]) parentMap[b.parent_id] = [];
+        parentMap[b.parent_id].push(b);
+      }
+    });
+    const flatList = [];
+    roots.forEach(r => {
+      flatList.push({ ...r, _depth: 0 });
+      (parentMap[r.id] || []).forEach(c => flatList.push({ ...c, _depth: 1 }));
+    });
+
+    body.innerHTML = `
+      <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;">Cấu trúc khối kiến thức</h3>
+      <table class="data-table">
+        <thead><tr><th>Khối kiến thức</th><th style="text-align:center;width:80px;">Tổng TC</th><th style="text-align:center;width:80px;">Bắt buộc</th><th style="text-align:center;width:80px;">Tự chọn</th></tr></thead>
+        <tbody>
+          ${flatList.map(b => `
+            <tr>
+              <td style="padding-left:${12 + b._depth * 24}px;${b._depth === 0 ? 'font-weight:600;' : ''}">${b.name}</td>
+              <td style="text-align:center;${b._depth === 0 ? 'font-weight:600;' : ''}">${b.total_credits || ''}</td>
+              <td style="text-align:center;">${b.required_credits || ''}</td>
+              <td style="text-align:center;">${b.elective_credits || ''}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  },
+
+  // ===== Course Descriptions Tab =====
+  async renderDescriptionsTab(body, editable) {
+    const vCourses = await fetch(`/api/versions/${this.versionId}/courses`).then(r => r.json());
+    const coursesWithDesc = vCourses.filter(c => c.course_desc);
+    body.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h3 style="font-size:15px;font-weight:600;">Mô tả tóm tắt học phần</h3>
+        <span style="color:var(--text-muted);font-size:13px;">${coursesWithDesc.length}/${vCourses.length} HP có mô tả</span>
+      </div>
+      ${vCourses.length === 0 ? '<p style="color:var(--text-muted);font-size:13px;">Hãy gán HP vào CTĐT trước.</p>' : `
+        <table class="data-table">
+          <thead><tr><th style="width:80px;">Mã HP</th><th style="width:200px;">Tên HP</th><th>Mô tả</th></tr></thead>
+          <tbody>
+            ${vCourses.map(c => `
+              <tr>
+                <td><strong style="color:var(--primary);">${c.course_code}</strong></td>
+                <td>${c.course_name}</td>
+                <td style="font-size:13px;color:${c.course_desc ? 'var(--text)' : 'var(--text-muted)'};">${c.course_desc || '—'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `}
+    `;
+  },
+
+  // ===== Course-PLO Matrix Tab =====
   async renderCoursePLOMatrix(body, editable) {
-    const [vCourses, plos, ploMaps, piMaps] = await Promise.all([
+    const [vCourses, plos, ploMaps] = await Promise.all([
       fetch(`/api/versions/${this.versionId}/courses`).then(r => r.json()),
       fetch(`/api/versions/${this.versionId}/plos`).then(r => r.json()),
-      fetch(`/api/versions/${this.versionId}/course-plo-map`).then(r => r.json()),
-      fetch(`/api/versions/${this.versionId}/course-pi-map`).then(r => r.json())
+      fetch(`/api/versions/${this.versionId}/course-plo-map`).then(r => r.json())
     ]);
     if (!vCourses.length || !plos.length) {
       body.innerHTML = '<p style="color:var(--text-muted);font-size:13px;">Hãy thêm PLO và Học phần trước.</p>';
@@ -661,18 +733,13 @@ window.VersionEditorPage = {
     }
     const ploMapObj = {};
     ploMaps.forEach(m => { ploMapObj[`${m.course_id}-${m.plo_id}`] = m.contribution_level; });
-    const piMapObj = {};
-    piMaps.forEach(m => { piMapObj[`${m.course_id}-${m.pi_id}`] = m; });
-
-    const hasPIs = plos.some(p => p.pis && p.pis.length > 0);
 
     body.innerHTML = `
-      <!-- ===== Ma trận HP ↔ PLO ===== -->
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
         <h3 style="font-size:15px;font-weight:600;">Ma trận HP ↔ PLO</h3>
-        ${editable ? '<button class="btn btn-primary btn-sm" id="save-c-plo-btn">Lưu ma trận PLO</button>' : ''}
+        ${editable ? '<button class="btn btn-primary btn-sm" id="save-c-plo-btn">Lưu ma trận</button>' : ''}
       </div>
-      <p style="color:var(--text-muted);font-size:12px;margin-bottom:12px;">— = Không áp dụng · 1 = Thấp · 2 = TB · 3 = Cao. Thiết lập mức đóng góp của mỗi HP vào từng PLO.</p>
+      <p style="color:var(--text-muted);font-size:12px;margin-bottom:12px;">— = Không áp dụng · 1 = Thấp · 2 = TB · 3 = Cao</p>
       <div style="overflow-x:auto;padding-bottom:16px;">
         <table class="data-table" id="c-plo-table" style="border-collapse:collapse;white-space:nowrap;">
           <thead>
@@ -704,12 +771,52 @@ window.VersionEditorPage = {
           </tbody>
         </table>
       </div>
+    `;
 
-      ${hasPIs ? `
-      <!-- ===== Ma trận HP ↔ PI ===== -->
-      <div style="display:flex;justify-content:space-between;align-items:center;margin:32px 0 12px;">
+    document.getElementById('save-c-plo-btn')?.addEventListener('click', async () => {
+      const btn = document.getElementById('save-c-plo-btn');
+      btn.textContent = 'Đang lưu...'; btn.disabled = true;
+      const ploSelects = document.querySelectorAll('#c-plo-table select.plo-select');
+      const mappings = [];
+      ploSelects.forEach(s => {
+        const val = parseInt(s.value);
+        if (val > 0) {
+          mappings.push({ course_id: parseInt(s.dataset.vc), plo_id: parseInt(s.dataset.plo), contribution_level: val });
+        }
+      });
+      try {
+        const res = await fetch(`/api/versions/${this.versionId}/course-plo-map`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mappings })
+        });
+        if (!res.ok) throw new Error((await res.json()).error);
+        window.toast.success(`Đã lưu ${mappings.length} liên kết HP ↔ PLO`);
+      } catch (e) { window.toast.error(e.message); }
+      btn.textContent = 'Lưu ma trận'; btn.disabled = false;
+    });
+  },
+
+  // ===== Course-PI Matrix Tab =====
+  async renderCoursePIMatrix(body, editable) {
+    const [vCourses, plos, ploMaps, piMaps] = await Promise.all([
+      fetch(`/api/versions/${this.versionId}/courses`).then(r => r.json()),
+      fetch(`/api/versions/${this.versionId}/plos`).then(r => r.json()),
+      fetch(`/api/versions/${this.versionId}/course-plo-map`).then(r => r.json()),
+      fetch(`/api/versions/${this.versionId}/course-pi-map`).then(r => r.json())
+    ]);
+    const hasPIs = plos.some(p => p.pis && p.pis.length > 0);
+    if (!vCourses.length || !plos.length || !hasPIs) {
+      body.innerHTML = '<p style="color:var(--text-muted);font-size:13px;">Hãy thêm PLO, PI và Học phần trước.</p>';
+      return;
+    }
+    const ploMapObj = {};
+    ploMaps.forEach(m => { ploMapObj[`${m.course_id}-${m.plo_id}`] = m.contribution_level; });
+    const piMapObj = {};
+    piMaps.forEach(m => { piMapObj[`${m.course_id}-${m.pi_id}`] = m; });
+
+    body.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
         <h3 style="font-size:15px;font-weight:600;">Ma trận HP ↔ PI</h3>
-        ${editable ? '<button class="btn btn-primary btn-sm" id="save-c-pi-btn">Lưu ma trận PI</button>' : ''}
+        ${editable ? '<button class="btn btn-primary btn-sm" id="save-c-pi-btn">Lưu ma trận</button>' : ''}
       </div>
       <p style="color:var(--text-muted);font-size:12px;margin-bottom:12px;">Chỉ các ô có HP ↔ PLO đã map (≥1) mới được chỉnh sửa.</p>
       <div style="overflow-x:auto;padding-bottom:16px;">
@@ -757,32 +864,8 @@ window.VersionEditorPage = {
           </tbody>
         </table>
       </div>
-      ` : ''}
     `;
 
-    // === Save Course-PLO mappings ===
-    document.getElementById('save-c-plo-btn')?.addEventListener('click', async () => {
-      const btn = document.getElementById('save-c-plo-btn');
-      btn.textContent = 'Đang lưu...'; btn.disabled = true;
-      const ploSelects = document.querySelectorAll('#c-plo-table select.plo-select');
-      const mappings = [];
-      ploSelects.forEach(s => {
-        const val = parseInt(s.value);
-        if (val > 0) {
-          mappings.push({ course_id: parseInt(s.dataset.vc), plo_id: parseInt(s.dataset.plo), contribution_level: val });
-        }
-      });
-      try {
-        const res = await fetch(`/api/versions/${this.versionId}/course-plo-map`, {
-          method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mappings })
-        });
-        if (!res.ok) throw new Error((await res.json()).error);
-        window.toast.success(`Đã lưu ${mappings.length} liên kết HP ↔ PLO`);
-        this.renderTab(); // Re-render to update PI table enabled/disabled states
-      } catch (e) { window.toast.error(e.message); }
-    });
-
-    // === Save Course-PI mappings ===
     document.getElementById('save-c-pi-btn')?.addEventListener('click', async () => {
       const btn = document.getElementById('save-c-pi-btn');
       btn.textContent = 'Đang lưu...'; btn.disabled = true;
@@ -799,8 +882,8 @@ window.VersionEditorPage = {
         });
         if (!res.ok) throw new Error((await res.json()).error);
         window.toast.success(`Đã lưu ma trận PI`);
-        this.renderTab();
       } catch (e) { window.toast.error(e.message); }
+      btn.textContent = 'Lưu ma trận'; btn.disabled = false;
     });
   },
 
