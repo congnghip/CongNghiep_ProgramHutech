@@ -9,10 +9,10 @@ window.ProgramsPage = {
       <div class="card">
         <div class="card-header">
           <div class="card-title">Chương trình Đào tạo</div>
-          ${window.App.hasPerm('programs.create') ? `
+          ${(window.App.hasPerm('programs.create') || window.App.hasPerm('programs.import_word')) ? `
             <div style="display:flex;gap:8px;">
-              <button class="btn btn-secondary" onclick="window.App.navigate('syllabus-import')">📂 Nhập từ DOCX</button>
-              <button class="btn btn-primary" onclick="window.ProgramsPage.openAddModal()">+ Tạo CTĐT</button>
+              ${window.App.hasPerm('programs.import_word') ? `<button class="btn btn-secondary" onclick="window.App.navigate('syllabus-import')">📂 Nhập từ DOCX</button>` : ''}
+              ${window.App.hasPerm('programs.create') ? `<button class="btn btn-primary" onclick="window.ProgramsPage.openAddModal()">+ Tạo CTĐT</button>` : ''}
             </div>
           ` : ''}
         </div>
@@ -361,7 +361,7 @@ window.ProgramsPage = {
     });
 
     const renderProg = (p) => `
-      <div class="tree-node" style="display:flex;justify-content:space-between;align-items:center;">
+      <div class="tree-node" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="window.ProgramsPage.viewVersions(${p.id},'${p.name.replace(/'/g,"\\'")}')">
         <div>
           <div style="font-weight:600;font-size:14px;">${p.name}</div>
           <div style="font-size:11px;color:var(--text-muted);">
@@ -370,10 +370,8 @@ window.ProgramsPage = {
           </div>
         </div>
         <div style="display:flex;gap:4px;">
-          <button class="btn btn-secondary btn-sm" onclick="window.ProgramsPage.viewVersions(${p.id},'${p.name.replace(/'/g,"\\'")}')">Phiên bản</button>
-          ${window.App.hasPerm('programs.create_version') ? `<button class="btn btn-secondary btn-sm" onclick="window.ProgramsPage.openVersionModal(${p.id})">+ Phiên bản</button>` : ''}
-          ${window.App.hasPerm('programs.edit') ? `<button class="btn btn-secondary btn-sm" onclick="window.ProgramsPage.openEditModal(${p.id})">✏️</button>` : ''}
-          ${window.App.hasPerm('programs.delete_draft') ? `<button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="window.ProgramsPage.deleteProgram(${p.id}, '${p.name.replace(/'/g, "\\'")}')">🗑️</button>` : ''}
+          ${window.App.hasPerm('programs.edit') ? `<button class="btn btn-secondary btn-sm" onclick="event.stopPropagation(); window.ProgramsPage.openEditModal(${p.id})">Chỉnh sửa</button>` : ''}
+          ${window.App.hasPerm('programs.delete_draft') ? `<button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="event.stopPropagation(); window.ProgramsPage.deleteProgram(${p.id}, '${p.name.replace(/'/g, "\\'")}')">Xóa</button>` : ''}
         </div>
       </div>
     `;
@@ -623,57 +621,90 @@ window.ProgramsPage = {
     const cardHeader = content.closest('.card').querySelector('.card-header');
     this._originalHeaderHTML = cardHeader.innerHTML;
     cardHeader.innerHTML = `
-      <div class="card-title">Phiên bản - ${programName}</div>
-      ${window.App.hasPerm('programs.create_version') ? `<button class="btn btn-primary" onclick="window.ProgramsPage.openVersionModal(${programId})">+ Tạo phiên bản</button>` : ''}
+      <div class="card-title" style="display:flex;align-items:center;margin:0;font-size:18px;font-weight:600;">
+        ${window.App.renderBreadcrumb([
+          { label: 'Chương trình đào tạo', page: 'programs' },
+          { label: 'Phiên bản' }
+        ])}
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <div style="display:flex;background:var(--bg-secondary);padding:2px;border-radius:var(--radius);border:1px solid var(--border);">
+          <button class="btn btn-sm btn-ghost" id="btn-filter-all" style="padding:4px 12px;font-weight:600;background:var(--bg-card);box-shadow:var(--shadow-sm);" onclick="window.ProgramsPage.filterByStatus('all')">Tất cả</button>
+          <button class="btn btn-sm btn-ghost" id="btn-filter-draft" style="padding:4px 12px;" onclick="window.ProgramsPage.filterByStatus('draft')">Bản nháp</button>
+          <button class="btn btn-sm btn-ghost" id="btn-filter-published" style="padding:4px 12px;" onclick="window.ProgramsPage.filterByStatus('published')">Đã công bố</button>
+        </div>
+        ${window.App.hasPerm('programs.create_version') ? `<button class="btn btn-primary" onclick="window.ProgramsPage.openVersionModal(${programId})">+ Tạo phiên bản</button>` : ''}
+      </div>
     `;
 
     try {
-      const versions = await fetch(`/api/programs/${programId}/versions`).then(r => r.json());
-      const statusColors = { draft: 'badge-warning', submitted: 'badge-info', approved_khoa: 'badge-info', approved_pdt: 'badge-info', published: 'badge-success' };
-      const statusLabels = { draft: 'Bản nháp', submitted: 'Đã nộp', approved_khoa: 'Duyệt Khoa ✓', approved_pdt: 'Duyệt PĐT ✓', published: 'Đã công bố' };
-
-      content.innerHTML = `
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
-          ${window.App.renderBreadcrumb([
-            { label: 'Chương trình đào tạo', page: 'programs' },
-            { label: 'Phiên bản' }
-          ])}
-        </div>
-        <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;">Phiên bản: ${programName}</h3>
-        ${versions.length === 0
-          ? '<div class="empty-state"><div class="icon">📭</div><p>Chưa có phiên bản nào</p></div>'
-          : `<div style="display:grid;gap:10px;">
-            ${versions.map(v => `
-              <div class="tree-node" style="display:flex;justify-content:space-between;align-items:center;${v.is_locked ? 'opacity:0.7;' : ''}">
-                <div>
-                  <div style="font-weight:600;font-size:15px;">
-                    ${v.academic_year}
-                    ${v.is_locked ? '<span class="badge badge-danger" style="margin-left:6px;">🔒 Khóa</span>' : ''}
-                  </div>
-                  <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">
-                    <span class="badge ${statusColors[v.status] || 'badge-neutral'}">${statusLabels[v.status] || v.status}</span>
-                    ${v.is_rejected ? '<span class="badge badge-danger">Bị từ chối</span>' : ''}
-                    · Hoàn thành: ${v.completion_pct || 0}%
-                    · Tạo: ${new Date(v.created_at).toLocaleDateString('vi-VN')}
-                    ${v.copied_from_id ? ' · Copy từ phiên bản trước' : ''}
-                  </div>
-                </div>
-                <div style="display:flex;gap:4px;">
-                  ${window.App.hasPerm('programs.create_version') ? `<button class="btn btn-secondary btn-sm" title="Nhân bản phiên bản này" onclick="window.ProgramsPage.cloneVersion(${programId}, ${v.id}, '${v.academic_year}')">📋 Nhân bản</button>` : ''}
-                  ${window.App.hasPerm('programs.edit') && v.status === 'draft' ? `<button class="btn btn-secondary btn-sm" title="Chỉnh sửa phiên bản" onclick="window.ProgramsPage.openVersionEditModal(${v.id}, ${programId}, '${programName.replace(/'/g, "\\'")}')">✏️</button>` : ''}
-                  <button class="btn btn-primary btn-sm" onclick="window.App.navigate('version-editor',{versionId:${v.id}, programId:${programId}, programName:'${programName.replace(/'/g, "\\'")}'})">${v.status === 'draft' ? 'Soạn thảo' : 'Xem'}</button>
-                  ${window.App.hasPerm('programs.delete_draft') && v.status === 'draft' ? `
-                    <button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="window.ProgramsPage.deleteVersion(${v.id}, '${v.academic_year}', ${programId}, '${programName.replace(/'/g, "\\'")}')">🗑️</button>
-                  ` : ''}
-                </div>
-              </div>
-            `).join('')}
-          </div>`
-        }
-      `;
+      this._allVersions = await fetch(`/api/programs/${programId}/versions`).then(r => r.json());
+      this._currentProgramId = programId;
+      this._currentProgramName = programName;
+      this.renderVersions('all');
     } catch (e) {
       content.innerHTML = `<p style="color:var(--danger);">Lỗi: ${e.message}</p>`;
     }
+  },
+
+  filterByStatus(status) {
+    this.renderVersions(status);
+  },
+
+  renderVersions(statusFilter) {
+    const content = document.getElementById('programs-content');
+    const statusColors = { draft: 'badge-warning', submitted: 'badge-info', approved_khoa: 'badge-info', approved_pdt: 'badge-info', published: 'badge-success' };
+    const statusLabels = { draft: 'Bản nháp', submitted: 'Đã nộp', approved_khoa: 'Duyệt Khoa ✓', approved_pdt: 'Duyệt PĐT ✓', published: 'Đã công bố' };
+
+    // Update filter buttons UI
+    ['all', 'draft', 'published'].forEach(s => {
+      const btn = document.getElementById(`btn-filter-${s}`);
+      if (!btn) return;
+      if (s === statusFilter) {
+        btn.style.fontWeight = '600';
+        btn.style.background = 'var(--bg-card)';
+        btn.style.boxShadow = 'var(--shadow-sm)';
+      } else {
+        btn.style.fontWeight = '400';
+        btn.style.background = 'none';
+        btn.style.boxShadow = 'none';
+      }
+    });
+
+    let filtered = this._allVersions;
+    if (statusFilter === 'draft') filtered = this._allVersions.filter(v => v.status === 'draft');
+    if (statusFilter === 'published') filtered = this._allVersions.filter(v => v.status === 'published');
+
+    content.innerHTML = `
+      <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;">Phiên bản: ${this._currentProgramName}</h3>
+      ${filtered.length === 0
+        ? '<div class="empty-state"><div class="icon">📭</div><p>Chưa có phiên bản nào trong mục này</p></div>'
+        : `<div style="display:grid;gap:10px;">
+          ${filtered.map(v => `
+            <div class="tree-node" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;" onclick="window.App.navigate('version-editor',{versionId:${v.id}, programId:${this._currentProgramId}, programName:'${this._currentProgramName.replace(/'/g, "\\'")}'})">
+              <div>
+                <div style="font-weight:600;font-size:15px;">
+                  ${v.academic_year}
+                </div>
+                <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">
+                  <span class="badge ${statusColors[v.status] || 'badge-neutral'}">${statusLabels[v.status] || v.status}</span>
+                  ${v.is_rejected ? '<span class="badge badge-danger">Bị từ chối</span>' : ''}
+                  · Tạo: ${new Date(v.created_at).toLocaleDateString('vi-VN')}
+                  ${v.copied_from_id ? ' · Copy từ phiên bản trước' : ''}
+                </div>
+              </div>
+              <div style="display:flex;gap:4px;">
+                ${window.App.hasPerm('programs.create_version') ? `<button class="btn btn-secondary btn-sm" title="Nhân bản phiên bản này" onclick="event.stopPropagation(); window.ProgramsPage.cloneVersion(${this._currentProgramId}, ${v.id}, '${v.academic_year}')">Nhân bản</button>` : ''}
+                ${window.App.hasPerm('programs.edit') ? `<button class="btn btn-secondary btn-sm" title="Chỉnh sửa phiên bản" ${v.status !== 'draft' ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : `onclick="event.stopPropagation(); window.ProgramsPage.openVersionEditModal(${v.id}, ${this._currentProgramId}, '${this._currentProgramName.replace(/'/g, "\\'")}')"`}>Chỉnh sửa</button>` : ''}
+                ${window.App.hasPerm('programs.delete_draft') ? `
+                  <button class="btn btn-secondary btn-sm" ${v.status !== 'draft' ? 'disabled style="opacity:0.5;cursor:not-allowed;color:var(--danger);"' : `style="color:var(--danger);" onclick="event.stopPropagation(); window.ProgramsPage.deleteVersion(${v.id}, '${v.academic_year}', ${this._currentProgramId}, '${this._currentProgramName.replace(/'/g, "\\'")}')"`}>Xóa</button>
+                ` : ''}
+              </div>
+            </div>
+          `).join('')}
+        </div>`
+      }
+    `;
   },
 
   // Back to program list — restore original header

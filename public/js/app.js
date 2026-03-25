@@ -28,11 +28,8 @@
     hasPerm(code) {
       if (this.isAdmin) return true;
       if (this.userPerms.includes(code)) return true;
-      // HIERARCHY: programs.edit grants all programs.*.edit, syllabus.edit, and programs.view_*
-      const isEditPerm = (code.startsWith('programs.') && code.endsWith('.edit')) || code === 'syllabus.edit';
-      const isViewPerm = code === 'programs.view_published' || code === 'programs.view_draft';
-      if (isEditPerm || isViewPerm) {
-        return this.userPerms.includes('programs.edit');
+      if (code.startsWith('programs.') && this.userPerms.includes('programs.manage_all')) {
+        return true;
       }
       return false;
     },
@@ -67,17 +64,23 @@
     renderBreadcrumb(items = []) {
       const parts = items
         .filter(item => item && item.label)
-        .map((item) => {
-          const label = this.escapeHtml(item.label);
+        .map((item, index) => {
+          let label = this.escapeHtml(item.label);
+          if (label === 'Soạn thảo' || label === 'soạn thảo') label = 'Chi tiết';
+
+          const isCurrent = index === items.length - 1;
+          const labelStyle = `font-weight:${isCurrent ? '600' : '400'}; color:${isCurrent ? 'var(--text)' : 'var(--text-muted)'};`;
+
           if (!item.page) {
-            return `<span style="font-weight:600;color:var(--text);">${label}</span>`;
+            return `<span style="${labelStyle}">${label}</span>`;
           }
 
           const encodedParams = encodeURIComponent(JSON.stringify(item.params || {}));
-          return `<button type="button" onclick="window.App.navigateFromEncoded('${item.page}','${encodedParams}')" style="background:none;border:none;padding:0;color:var(--text-muted);cursor:pointer;font:inherit;">${label}</button>`;
+          return `<button type="button" onclick="window.App.navigateFromEncoded('${item.page}','${encodedParams}')" 
+            style="background:none;border:none;padding:0;cursor:pointer;font:inherit;${labelStyle}">${label}</button>`;
         });
 
-      return `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">${parts.join('<span style="color:var(--text-muted);">/</span>')}</div>`;
+      return `<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">${parts.join('<span style="color:var(--text-muted);opacity:0.6;">/</span>')}</div>`;
     },
 
     // ====== LOGIN ======
@@ -226,6 +229,10 @@
       }
 
       if (page === 'syllabus-import') {
+        if (!this.hasPerm('programs.import_word')) {
+          container.innerHTML = `<div class="empty-state"><div class="icon">🔒</div><h3>Không có quyền</h3><p>Bạn không có quyền nhập CTĐT từ DOCX.</p></div>`;
+          return;
+        }
         this.currentPage = window.SyllabusImportPage;
         await window.SyllabusImportPage.render(container, params);
         this.checkPermissions(container);

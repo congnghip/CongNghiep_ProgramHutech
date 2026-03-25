@@ -918,7 +918,11 @@ function extractPITable(table) {
     const plo_code = normalizePLOCode(row[0]);
     if (!plo_code) continue;
     const piText = row.slice(2).join('\n') || row[1] || '';
-    splitLines(piText).forEach(line => {
+    
+    // Split lines conventionally, and also split if PI markers are merged in the same paragraph
+    const lines = splitLines(piText.replace(/PI\s*\.?\s*\d+\s*[\.\-]?\s*\d+/gi, match => `\n${match}`));
+
+    lines.forEach(line => {
       const pi_code = normalizePICode(line);
       if (!pi_code) return;
       items.push({
@@ -934,7 +938,12 @@ function extractPITable(table) {
 
 function extractCoursePLOTable(table) {
   const header = (table[0] || []).map(normalizeCompact);
-  if (!header.some(cell => cell === 'ma hoc phan') || !header.some(cell => cell === 'hoc phan') || !header.some(cell => cell.includes('chuan dau ra'))) {
+  
+  const hasCourseCode = header.some(cell => cell.includes('ma hoc phan') || cell === 'ma hp' || cell.includes('mhp'));
+  const hasCourseName = header.some(cell => cell === 'hoc phan' || cell.includes('ten hoc phan') || cell.includes('ten mon'));
+  const hasObjective = header.some(cell => cell.includes('chuan dau ra') || cell.includes('plo') || cell === 'cdr');
+
+  if (!hasCourseCode || !hasCourseName || !hasObjective) {
     return { coursePloRefs: [], coursePiRefs: [] };
   }
 

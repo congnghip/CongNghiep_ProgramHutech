@@ -14,7 +14,8 @@ const app = express();
 const PORT = process.env.PORT || 3600;
 const JWT_SECRET = process.env.JWT_SECRET || 'hutech-program-secret';
 
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(cookieParser());
 app.use(express.static('public'));
 
@@ -228,9 +229,8 @@ async function requireViewSyllabus(req, res, next) {
     }
 
     const syllabus = syllabusRes.rows[0];
-    const viewPerm = syllabus.status === 'published' ? 'programs.view_published' : 'programs.view_draft';
-    const hasVersionView = await hasPermission(req.user.id, viewPerm, syllabus.department_id);
-    if (hasVersionView) return next();
+    const hasRoleBasedSyllabusView = await hasPermission(req.user.id, 'syllabus.view', syllabus.department_id);
+    if (hasRoleBasedSyllabusView) return next();
 
     const isAssigned = await pool.query(
       'SELECT 1 FROM syllabus_assignments WHERE syllabus_id = $1 AND user_id = $2 LIMIT 1',
@@ -1205,7 +1205,7 @@ app.delete('/api/pis/:id', authMiddleware, async (req, res) => {
 });
 
 // ============ COURSES MASTER LIST ============
-app.get('/api/courses', authMiddleware, async (req, res) => {
+app.get('/api/courses', authMiddleware, requirePerm('courses.view'), async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT c.*, d.name as dept_name, d.code as dept_code
@@ -1424,6 +1424,21 @@ app.delete('/api/assessments/:id', authMiddleware, async (req, res) => {
 // ============ SYLLABI API ============
 app.get('/api/versions/:vId/syllabi', authMiddleware, requireViewVersion, async (req, res) => {
   try {
+    const admin = await isAdmin(req.user.id);
+    if (!admin) {
+      const deptRes = await pool.query(`
+        SELECT p.department_id
+        FROM program_versions pv
+        JOIN programs p ON pv.program_id = p.id
+        WHERE pv.id = $1
+      `, [req.params.vId]);
+      const deptId = deptRes.rows[0]?.department_id;
+      const hasSyllabusView = deptId ? await hasPermission(req.user.id, 'syllabus.view', deptId) : false;
+      if (!hasSyllabusView) {
+        return res.status(403).json({ error: 'Không có quyền xem danh sách đề cương của phiên bản này' });
+      }
+    }
+
     const result = await pool.query(`
       SELECT vs.*, c.code as course_code, c.name as course_name, c.credits,
              (SELECT json_agg(json_build_object('id', u.id, 'display_name', u.display_name))
@@ -1513,7 +1528,7 @@ app.post('/api/assignments', authMiddleware, async (req, res) => {
   }
 });
 
-app.post('/api/versions/:vId/syllabi', authMiddleware, requireDraft('vId', 'syllabus.edit'), async (req, res) => {
+app.post('/api/versions/:vId/syllabi', authMiddleware, requireDraft('vId', 'syllabus.create'), async (req, res) => {
   const { course_id, content } = req.body;
   try {
     const result = await pool.query(
@@ -1693,6 +1708,21 @@ app.post('/api/approval/submit', authMiddleware, async (req, res) => {
     if (!current.rows.length) return res.status(404).json({ error: 'Not found' });
     if (current.rows[0].status !== 'draft') return res.status(400).json({ error: 'Chỉ có thể nộp bản nháp' });
 
+    if (entity_type === 'program_version') {
+      const admin = await isAdmin(req.user.id);
+      if (!admin) {
+        const deptRes = await pool.query(`
+          SELECT p.department_id
+          FROM program_versions pv
+          JOIN programs p ON pv.program_id = p.id
+          WHERE pv.id = $1
+        `, [entity_id]);
+        const deptId = deptRes.rows[0]?.department_id;
+        const canSubmit = deptId ? await hasPermission(req.user.id, 'programs.submit', deptId) : false;
+        if (!canSubmit) return res.status(403).json({ error: 'Không có quyền nộp CTĐT này' });
+      }
+    }
+
     if (entity_type === 'syllabus') {
       const admin = await isAdmin(req.user.id);
       if (!admin) {
@@ -1827,7 +1857,7 @@ app.post('/api/approval/review', authMiddleware, async (req, res) => {
 
     if (!nextStatus) return res.status(400).json({ error: `Không thể duyệt ở trạng thái "${status}"` });
 
-    const isLocking = (nextStatus === 'published');
+    const isLocking = entity_type === 'program_version' && nextStatus === 'published';
     await pool.query(
       `UPDATE ${table} SET status=$1, is_rejected=false, rejection_reason=NULL, updated_at=NOW() ${isLocking ? ', is_locked=true' : ''} WHERE id=$2`,
       [nextStatus, entity_id]
@@ -1952,6 +1982,7 @@ app.get('/api/approval/pending', authMiddleware, async (req, res) => {
 // ============ DASHBOARD STATS ============
 app.get('/api/dashboard/stats', authMiddleware, async (req, res) => {
   try {
+    const canViewAuditLogs = await hasPermission(req.user.id, 'rbac.view_audit_logs');
     const [programs, versions, courses, syllabi, users, pending, depts, recentLogs] = await Promise.all([
       pool.query('SELECT COUNT(*) as c FROM programs'),
       pool.query("SELECT status, COUNT(*) as c FROM program_versions GROUP BY status"),
@@ -1960,11 +1991,11 @@ app.get('/api/dashboard/stats', authMiddleware, async (req, res) => {
       pool.query('SELECT COUNT(*) as c FROM users WHERE is_active=true'),
       pool.query("SELECT COUNT(*) as c FROM program_versions WHERE status IN ('submitted','approved_khoa','approved_pdt')"),
       pool.query("SELECT type, COUNT(*) as c FROM departments GROUP BY type"),
-      pool.query(`
+      canViewAuditLogs ? pool.query(`
         SELECT al.action, al.target, al.created_at, u.display_name
         FROM audit_logs al LEFT JOIN users u ON al.user_id = u.id
         ORDER BY al.created_at DESC LIMIT 15
-      `),
+      `) : Promise.resolve({ rows: [] }),
     ]);
 
     const versionStats = {};
@@ -1988,7 +2019,7 @@ app.get('/api/dashboard/stats', authMiddleware, async (req, res) => {
 });
 
 // ============ AUDIT LOGS ============
-app.get('/api/audit-logs', authMiddleware, async (req, res) => {
+app.get('/api/audit-logs', authMiddleware, requirePerm('rbac.view_audit_logs'), async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 50;
     const offset = parseInt(req.query.offset) || 0;
@@ -2003,7 +2034,7 @@ app.get('/api/audit-logs', authMiddleware, async (req, res) => {
 });
 
 // ============ DOCX IMPORT SESSION API ============
-app.post('/api/import/docx/session', authMiddleware, requirePerm('programs.create'), upload.single('file'), async (req, res) => {
+app.post('/api/import/docx/session', authMiddleware, requirePerm('programs.import_word'), upload.single('file'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Hãy chọn file .docx' });
   try {
     const rawData = normalizeImportData(await docxParser.parseDocx(req.file.buffer));
@@ -2164,7 +2195,7 @@ app.post('/api/import/docx/session/:id/validate', authMiddleware, async (req, re
   }
 });
 
-app.post('/api/import/docx/session/:id/commit', authMiddleware, async (req, res) => {
+app.post('/api/import/docx/session/:id/commit', authMiddleware, requirePerm('programs.import_word'), async (req, res) => {
   const client = await pool.connect();
   let startedTransaction = false;
   try {
@@ -2176,6 +2207,7 @@ app.post('/api/import/docx/session/:id/commit', authMiddleware, async (req, res)
     const poIdMap = new Map();
     const ploIdMap = new Map();
     const courseIdMap = new Map();
+    const piIdMap = new Map();
 
     if (!data.program_name || !data.program_code || !data.academic_year || !data.degree || !data.version_name || totalCreditsMissing) {
       throw new Error('Phiên import còn thiếu thông tin bắt buộc ở tab Thông tin.');
@@ -2265,14 +2297,42 @@ app.post('/api/import/docx/session/:id/commit', authMiddleware, async (req, res)
         [realPloId, pi.pi_code, pi.description]
       );
       const realPiId = insertedPi.rows[0].id;
+      piIdMap.set(pi.id, realPiId);
+    }
 
+    const finalCoursePiMap = new Map();
+    for (const mapping of data.course_pi_map || []) {
+      if (mapping.contribution_level > 0) {
+        finalCoursePiMap.set(`${mapping.pi_id}-${mapping.course_id}`, mapping.contribution_level);
+      }
+    }
+    for (const pi of data.pis || []) {
       for (const tempCourseId of pi.course_ids || []) {
-        const realCourseId = courseIdMap.get(tempCourseId);
-        if (!realCourseId) continue;
-        await client.query(
-          'INSERT INTO version_pi_courses (version_id, pi_id, course_id, contribution_level) VALUES ($1, $2, $3, $4)',
-          [versionId, realPiId, realCourseId, 1]
-        );
+        const key = `${pi.id}-${tempCourseId}`;
+        if (!finalCoursePiMap.has(key)) {
+          finalCoursePiMap.set(key, 1);
+        }
+      }
+    }
+
+    const inferredCoursePloMap = new Map();
+    for (const [key, level] of finalCoursePiMap.entries()) {
+      const [piId, courseId] = key.split('-');
+      const realPiId = piIdMap.get(piId);
+      const realCourseId = courseIdMap.get(courseId);
+      if (!realPiId || !realCourseId) continue;
+      
+      await client.query(
+        'INSERT INTO version_pi_courses (version_id, pi_id, course_id, contribution_level) VALUES ($1, $2, $3, $4)',
+        [versionId, realPiId, realCourseId, level]
+      );
+
+      const pi = (data.pis || []).find(p => `${p.id}` === piId);
+      if (pi && pi.plo_id) {
+        const ploKey = `${courseId}-${pi.plo_id}`;
+        if (!inferredCoursePloMap.has(ploKey)) {
+          inferredCoursePloMap.set(ploKey, 1);
+        }
       }
     }
 
@@ -2287,14 +2347,22 @@ app.post('/api/import/docx/session/:id/commit', authMiddleware, async (req, res)
     }
 
     for (const mapping of data.course_plo_map || []) {
-      const realCourseId = courseIdMap.get(mapping.course_id);
-      const realPloId = ploIdMap.get(mapping.plo_id);
+      if (mapping.contribution_level > 0) {
+        inferredCoursePloMap.set(`${mapping.course_id}-${mapping.plo_id}`, mapping.contribution_level);
+      }
+    }
+
+    for (const [key, level] of inferredCoursePloMap.entries()) {
+      const [courseId, ploId] = key.split('-');
+      const realCourseId = courseIdMap.get(courseId);
+      const realPloId = ploIdMap.get(ploId);
       if (!realCourseId || !realPloId) continue;
       await client.query(
         'INSERT INTO course_plo_map (version_id, course_id, plo_id, contribution_level) VALUES ($1, $2, $3, $4)',
-        [versionId, realCourseId, realPloId, mapping.contribution_level || 0]
+        [versionId, realCourseId, realPloId, level]
       );
     }
+
 
     await client.query('UPDATE docx_import_sessions SET raw_data = $1, status = $2 WHERE id = $3', [data, 'completed', req.params.id]);
     await client.query('COMMIT');
@@ -2309,7 +2377,7 @@ app.post('/api/import/docx/session/:id/commit', authMiddleware, async (req, res)
 });
 
 // ============ EXPORT ============
-app.get('/api/export/version/:vId', authMiddleware, requireViewVersion, async (req, res) => {
+app.get('/api/export/version/:vId', authMiddleware, requireViewVersion, requirePerm('programs.export'), async (req, res) => {
   try {
     const vId = req.params.vId;
     const [version, pos, plos, vCourses, poploMap, cploMap, assessments, syllabi] = await Promise.all([

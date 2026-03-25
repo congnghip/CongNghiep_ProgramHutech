@@ -25,6 +25,7 @@ window.TrainingTabs = {
     getVCourses: (vId) => fetch(`/api/versions/${vId}/courses`).then(r => r.json()),
     getAllCourses: () => fetch('/api/courses').then(r => r.json()),
     addCourse: (vId, payload) => fetch(`/api/versions/${vId}/courses`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }),
+    updateCourse: (vcId, payload) => fetch(`/api/version-courses/${vcId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }),
     removeCourse: (vcId) => fetch(`/api/version-courses/${vcId}`, { method: 'DELETE' }),
     
     // Matrix PO-PLO
@@ -62,14 +63,16 @@ window.TrainingTabs = {
     versionId: null,
     editable: false,
     handlers: null,
-    onRefresh: null // Callback to refresh the tab
+    onRefresh: null, // Callback to refresh the tab
+    canCreateSyllabus: false
   },
 
-  init(versionId, editable, customHandlers = null, onRefresh = null) {
+  init(versionId, editable, customHandlers = null, onRefresh = null, options = {}) {
     this.context.versionId = versionId;
     this.context.editable = editable;
     this.context.handlers = customHandlers || this.apiHandlers;
     this.context.onRefresh = onRefresh;
+    this.context.canCreateSyllabus = options.canCreateSyllabus ?? editable;
   },
 
   // Helper to get formatted course map
@@ -117,19 +120,23 @@ window.TrainingTabs = {
 
     if (editable) {
       document.getElementById('add-po-btn')?.addEventListener('click', () => {
+        const formArea = document.getElementById('po-form-area');
+        document.getElementById('po-list').after(formArea);
         document.getElementById('po-edit-id').value = '';
         document.getElementById('po-code').value = `PO${pos.length + 1}`;
         document.getElementById('po-desc').value = '';
-        document.getElementById('po-form-area').style.display = 'block';
+        formArea.style.display = 'block';
         document.getElementById('po-desc').focus();
       });
 
       body.querySelectorAll('[data-action="edit-po"]').forEach(btn => {
         btn.addEventListener('click', () => {
+          const formArea = document.getElementById('po-form-area');
+          btn.closest('.tree-node').after(formArea);
           document.getElementById('po-edit-id').value = btn.dataset.id;
           document.getElementById('po-code').value = btn.dataset.code;
           document.getElementById('po-desc').value = btn.dataset.desc;
-          document.getElementById('po-form-area').style.display = 'block';
+          formArea.style.display = 'block';
         });
       });
 
@@ -243,23 +250,29 @@ window.TrainingTabs = {
 
       body.querySelectorAll('[data-action="add-pi"]').forEach(btn => {
         btn.addEventListener('click', () => {
+          const formArea = document.getElementById('pi-form-area');
+          btn.closest('div[style*="margin-bottom:20px;"]').append(formArea);
           document.getElementById('pi-edit-id').value = '';
           document.getElementById('pi-plo-id').value = btn.dataset.plo;
           document.getElementById('pi-code').value = `PI.${btn.dataset.code.replace('PLO', '')}.${parseInt(btn.dataset.count) + 1}`;
           document.getElementById('pi-desc').value = '';
-          renderCoursesForm(parseInt(btn.dataset.plo), []);
-          document.getElementById('pi-form-area').style.display = 'block';
+          const pId = isNaN(btn.dataset.plo) ? btn.dataset.plo : parseInt(btn.dataset.plo);
+          renderCoursesForm(pId, []);
+          formArea.style.display = 'block';
         });
       });
 
       body.querySelectorAll('[data-action="edit-pi"]').forEach(btn => {
         btn.addEventListener('click', () => {
+          const formArea = document.getElementById('pi-form-area');
+          btn.closest('.tree-node').after(formArea);
           document.getElementById('pi-edit-id').value = btn.dataset.id;
           document.getElementById('pi-plo-id').value = btn.dataset.plo;
           document.getElementById('pi-code').value = btn.dataset.code;
           document.getElementById('pi-desc').value = btn.dataset.desc;
-          renderCoursesForm(parseInt(btn.dataset.plo), JSON.parse(btn.dataset.courses || '[]'));
-          document.getElementById('pi-form-area').style.display = 'block';
+          const pId = isNaN(btn.dataset.plo) ? btn.dataset.plo : parseInt(btn.dataset.plo);
+          renderCoursesForm(pId, JSON.parse(btn.dataset.courses || '[]'));
+          formArea.style.display = 'block';
         });
       });
 
@@ -279,7 +292,7 @@ window.TrainingTabs = {
         const ploId = document.getElementById('pi-plo-id').value;
         const pi_code = document.getElementById('pi-code').value.trim();
         const description = document.getElementById('pi-desc').value.trim();
-        const course_ids = Array.from(document.querySelectorAll('.pi-course-cb:checked')).map(cb => parseInt(cb.value));
+        const course_ids = Array.from(document.querySelectorAll('.pi-course-cb:checked')).map(cb => isNaN(cb.value) ? cb.value : parseInt(cb.value));
 
         if (!pi_code) { window.toast.warning('Nhập mã PI'); return; }
         try {
@@ -410,8 +423,8 @@ window.TrainingTabs = {
     document.getElementById('save-c-pi-btn')?.addEventListener('click', async () => {
       const piSelects = document.querySelectorAll('#c-pi-table select.pi-select');
       const pi_mappings = Array.from(piSelects).filter(s => !s.disabled).map(s => ({ 
-        course_id: parseInt(s.dataset.vc), 
-        pi_id: parseInt(s.dataset.pi), 
+        course_id: isNaN(s.dataset.vc) ? s.dataset.vc : parseInt(s.dataset.vc), 
+        pi_id: isNaN(s.dataset.pi) ? s.dataset.pi : parseInt(s.dataset.pi), 
         contribution_level: parseInt(s.value) 
       }));
       try {
@@ -483,7 +496,7 @@ window.TrainingTabs = {
 
       document.getElementById('save-assess-btn')?.addEventListener('click', async () => {
         const payload = {
-          plo_id: parseInt(document.getElementById('a-plo').value),
+          plo_id: isNaN(document.getElementById('a-plo').value) ? document.getElementById('a-plo').value : parseInt(document.getElementById('a-plo').value),
           sample_course_id: document.getElementById('a-course').value || null,
           assessment_tool: document.getElementById('a-tool').value.trim(),
           criteria: document.getElementById('a-criteria').value.trim(),
@@ -518,7 +531,7 @@ window.TrainingTabs = {
 
   // ===== TAB: Syllabi =====
   async renderSyllabiTab(body) {
-    const { versionId, editable, handlers, onRefresh } = this.context;
+    const { versionId, editable, handlers, onRefresh, canCreateSyllabus } = this.context;
     const [syllabi, vCourses] = await Promise.all([
       handlers.getSyllabi(versionId),
       handlers.getVCourses(versionId)
@@ -550,7 +563,7 @@ window.TrainingTabs = {
                 <td style="white-space:nowrap;">
                   ${syl
                     ? '<span style="color:var(--text-muted);font-size:12px;">Lưu tạm trong phiên import</span>'
-                    : (editable ? `<button class="btn btn-primary btn-sm" data-action="create-syllabus" data-course-id="${courseRef}">Tạo ĐC</button>` : '')}
+                    : (canCreateSyllabus ? `<button class="btn btn-primary btn-sm" data-action="create-syllabus" data-course-id="${courseRef}">Tạo ĐC</button>` : '')}
                 </td>
               </tr>`;
             }).join('')}
@@ -559,7 +572,7 @@ window.TrainingTabs = {
       `}
     `;
 
-    if (editable) {
+    if (canCreateSyllabus) {
       body.querySelectorAll('[data-action="create-syllabus"]').forEach(btn => {
         btn.addEventListener('click', async () => {
           try {
@@ -586,7 +599,7 @@ window.TrainingTabs = {
       </div>
       <table class="data-table">
         <thead><tr><th>Mã</th><th>Bloom</th><th>Mô tả</th>${editable ? '<th style="width:100px;"></th>' : ''}</tr></thead>
-        <tbody>
+        <tbody id="plo-tbody">
           ${plos.length === 0 ? `<tr><td colspan="${!editable ? 3 : 4}" style="color:var(--text-muted);text-align:center;">Chưa có PLO</td></tr>` : plos.map(p => `
             <tr>
               <td><strong style="color:var(--primary);">${p.code}</strong></td>
@@ -598,38 +611,48 @@ window.TrainingTabs = {
               </td>` : ''}
             </tr>
           `).join('')}
+          ${editable ? `
+          <tr id="plo-form-row" style="display:none;background:var(--bg-secondary);">
+            <td colspan="4" style="padding:0;">
+              <div id="plo-form-area" style="padding:16px;">
+                <input type="hidden" id="plo-edit-id">
+                <div style="display:grid;grid-template-columns:100px 140px 1fr auto auto;gap:10px;align-items:end;">
+                  <div class="input-group" style="margin:0;"><label>Mã</label><input type="text" id="plo-code" placeholder="PLO1"></div>
+                  <div class="input-group" style="margin:0;"><label>Bloom</label>
+                    <select id="plo-bloom">${bloomLabels.slice(1).map((l, i) => `<option value="${i + 1}">${l}</option>`).join('')}</select>
+                  </div>
+                  <div class="input-group" style="margin:0;"><label>Mô tả</label><input type="text" id="plo-pdesc" placeholder="Mô tả chuẩn đầu ra"></div>
+                  <button class="btn btn-primary btn-sm" id="save-plo-btn">Lưu</button>
+                  <button class="btn btn-secondary btn-sm" id="cancel-plo-btn">Hủy</button>
+                </div>
+              </div>
+            </td>
+          </tr>
+          ` : ''}
         </tbody>
       </table>
-      <div id="plo-form-area" style="display:none;margin-top:16px;padding:16px;background:var(--bg-secondary);border-radius:var(--radius-lg);">
-        <input type="hidden" id="plo-edit-id">
-        <div style="display:grid;grid-template-columns:100px 140px 1fr auto auto;gap:10px;align-items:end;">
-          <div class="input-group" style="margin:0;"><label>Mã</label><input type="text" id="plo-code" placeholder="PLO1"></div>
-          <div class="input-group" style="margin:0;"><label>Bloom</label>
-            <select id="plo-bloom">${bloomLabels.slice(1).map((l, i) => `<option value="${i + 1}">${l}</option>`).join('')}</select>
-          </div>
-          <div class="input-group" style="margin:0;"><label>Mô tả</label><input type="text" id="plo-pdesc" placeholder="Mô tả chuẩn đầu ra"></div>
-          <button class="btn btn-primary btn-sm" id="save-plo-btn">Lưu</button>
-          <button class="btn btn-secondary btn-sm" id="cancel-plo-btn">Hủy</button>
-        </div>
-      </div>
     `;
 
     if (editable) {
       document.getElementById('add-plo-btn')?.addEventListener('click', () => {
+        const formRow = document.getElementById('plo-form-row');
+        document.getElementById('plo-tbody').append(formRow);
         document.getElementById('plo-edit-id').value = '';
         document.getElementById('plo-code').value = `PLO${plos.length + 1}`;
         document.getElementById('plo-bloom').value = '3';
         document.getElementById('plo-pdesc').value = '';
-        document.getElementById('plo-form-area').style.display = 'block';
+        formRow.style.display = 'table-row';
       });
 
       body.querySelectorAll('[data-action="edit-plo"]').forEach(btn => {
         btn.addEventListener('click', () => {
+          const formRow = document.getElementById('plo-form-row');
+          btn.closest('tr').after(formRow);
           document.getElementById('plo-edit-id').value = btn.dataset.id;
           document.getElementById('plo-code').value = btn.dataset.code;
           document.getElementById('plo-bloom').value = btn.dataset.bloom;
           document.getElementById('plo-pdesc').value = btn.dataset.desc;
-          document.getElementById('plo-form-area').style.display = 'block';
+          formRow.style.display = 'table-row';
         });
       });
 
@@ -659,7 +682,7 @@ window.TrainingTabs = {
       });
 
       document.getElementById('cancel-plo-btn')?.addEventListener('click', () => {
-        document.getElementById('plo-form-area').style.display = 'none';
+        document.getElementById('plo-form-row').style.display = 'none';
       });
     }
   },
@@ -695,7 +718,7 @@ window.TrainingTabs = {
       ` : ''}
       <table class="data-table">
         <thead><tr><th>Mã</th><th>Tên HP</th><th>TC</th><th>HK</th><th>Loại</th><th>Đơn vị</th>${editable ? '<th></th>' : ''}</tr></thead>
-        <tbody>
+        <tbody id="vc-tbody">
           ${vCourses.length === 0 ? `<tr><td colspan="${!editable ? 6 : 7}" style="color:var(--text-muted);text-align:center;">Chưa gán HP</td></tr>` : vCourses.map(c => `
             <tr data-course-code="${c.course_code}">
               <td><strong>${c.course_code}</strong></td>
@@ -704,9 +727,32 @@ window.TrainingTabs = {
               <td><span class="badge badge-info">HK ${c.semester}</span></td>
               <td><span class="badge ${c.course_type === 'required' ? 'badge-success' : 'badge-warning'}">${c.course_type === 'required' ? 'Bắt buộc' : 'Tự chọn'}</span></td>
               <td style="color:var(--text-muted);">${c.dept_name || ''}</td>
-              ${editable ? `<td><button class="btn btn-secondary btn-sm" style="color:var(--danger);" data-action="remove-course" data-id="${c.id}">Xóa</button></td>` : ''}
+              ${editable ? `<td style="white-space:nowrap;">
+                <button class="btn btn-secondary btn-sm" data-action="edit-course" data-id="${c.id}" data-name="${c.course_name}" data-sem="${c.semester}" data-type="${c.course_type}">Sửa</button>
+                <button class="btn btn-secondary btn-sm" style="color:var(--danger);" data-action="remove-course" data-id="${c.id}">Xóa</button>
+              </td>` : ''}
             </tr>
           `).join('')}
+          ${editable ? `
+          <tr id="vc-form-row" style="display:none;background:var(--bg-secondary);">
+            <td colspan="7" style="padding:0;">
+              <div id="vc-form-area" style="padding:16px;">
+                <input type="hidden" id="edit-vc-id">
+                <div style="display:flex;gap:10px;align-items:end;">
+                  <div class="input-group" style="flex:1;margin:0;"><label>Học phần</label><input type="text" id="edit-vc-name" disabled style="background:#e9ecef;"></div>
+                  <div class="input-group" style="width:90px;margin:0;"><label>HK</label>
+                    <select id="edit-vc-sem">${[1, 2, 3, 4, 5, 6, 7, 8].map(s => `<option value="${s}">HK ${s}</option>`).join('')}</select>
+                  </div>
+                  <div class="input-group" style="width:120px;margin:0;"><label>Loại</label>
+                    <select id="edit-vc-type"><option value="required">Bắt buộc</option><option value="elective">Tự chọn</option></select>
+                  </div>
+                  <button class="btn btn-primary btn-sm" id="save-vc-btn">Lưu</button>
+                  <button class="btn btn-secondary btn-sm" id="cancel-vc-btn">Hủy</button>
+                </div>
+              </div>
+            </td>
+          </tr>
+          ` : ''}
         </tbody>
       </table>
     `;
@@ -733,6 +779,34 @@ window.TrainingTabs = {
             if (onRefresh) onRefresh();
           } catch (e) { window.toast.error(e.message); }
         });
+      });
+
+      body.querySelectorAll('[data-action="edit-course"]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const formRow = document.getElementById('vc-form-row');
+          btn.closest('tr').after(formRow);
+          document.getElementById('edit-vc-id').value = btn.dataset.id;
+          document.getElementById('edit-vc-name').value = btn.dataset.name;
+          document.getElementById('edit-vc-sem').value = btn.dataset.sem;
+          document.getElementById('edit-vc-type').value = btn.dataset.type;
+          formRow.style.display = 'table-row';
+        });
+      });
+
+      document.getElementById('save-vc-btn')?.addEventListener('click', async () => {
+        const vcId = document.getElementById('edit-vc-id').value;
+        const semester = parseInt(document.getElementById('edit-vc-sem').value);
+        const course_type = document.getElementById('edit-vc-type').value;
+        try {
+          const res = await handlers.updateCourse(vcId, { semester, course_type });
+          if (!res.ok) throw new Error((await res.json()).error);
+          window.toast.success('Đã cập nhật học phần');
+          if (onRefresh) onRefresh();
+        } catch (e) { window.toast.error(e.message); }
+      });
+
+      document.getElementById('cancel-vc-btn')?.addEventListener('click', () => {
+        document.getElementById('vc-form-row').style.display = 'none';
       });
     }
   },
@@ -778,7 +852,7 @@ window.TrainingTabs = {
 
     document.getElementById('save-po-plo-btn')?.addEventListener('click', async () => {
       const checkboxes = document.querySelectorAll('#po-plo-table input[type="checkbox"]:checked');
-      const mappings = Array.from(checkboxes).map(cb => ({ po_id: parseInt(cb.dataset.po), plo_id: parseInt(cb.dataset.plo) }));
+      const mappings = Array.from(checkboxes).map(cb => ({ po_id: isNaN(cb.dataset.po) ? cb.dataset.po : parseInt(cb.dataset.po), plo_id: isNaN(cb.dataset.plo) ? cb.dataset.plo : parseInt(cb.dataset.plo) }));
       try {
         const res = await handlers.savePOPLOMappings(versionId, { mappings });
         if (!res.ok) throw new Error((await res.json()).error);

@@ -130,6 +130,17 @@ window.SyllabusImportPage = {
       import_metadata: source.import_metadata && typeof source.import_metadata === 'object' ? source.import_metadata : {}
     };
 
+    if (data.course_pi_map && data.course_pi_map.length > 0) {
+      data.course_pi_map.forEach(mapping => {
+        if (mapping.contribution_level > 0) {
+          const pi = data.pis.find(p => `${p.id}` === `${mapping.pi_id}`);
+          if (pi && !pi.course_ids.includes(mapping.course_id)) {
+            pi.course_ids.push(mapping.course_id);
+          }
+        }
+      });
+    }
+
     return data;
   },
 
@@ -161,8 +172,20 @@ window.SyllabusImportPage = {
   },
 
   async render(container, params = {}) {
-    this.sessionId = params.sessionId || null;
-    this.currentStep = this.sessionId ? 2 : 1;
+    let savedSessionId = localStorage.getItem('docx_import_session_id');
+    let savedStep = localStorage.getItem('docx_import_current_step');
+
+    if (params.sessionId) {
+      this.sessionId = params.sessionId;
+      this.currentStep = parseInt(params.step) || 2;
+    } else if (savedSessionId) {
+      this.sessionId = savedSessionId;
+      this.currentStep = parseInt(savedStep) || 2;
+    } else {
+      this.sessionId = null;
+      this.currentStep = 1;
+    }
+
     this.activePreviewTab = 'info';
     this.touchedInfoFields = {};
     this.pendingStep2Focus = null;
@@ -195,6 +218,7 @@ window.SyllabusImportPage = {
       <div class="wizard-actions-top" style="display:flex;justify-content:flex-start;gap:12px;margin-bottom:16px;">
         <button class="btn btn-secondary wizard-prev-btn" style="visibility:hidden;">Quay lại</button>
         <button class="btn btn-primary wizard-next-btn">Tiếp tục</button>
+        <button class="btn btn-secondary wizard-cancel-btn" style="margin-left:auto;color:var(--danger);display:none;">Hủy quá trình</button>
       </div>
 
       <div id="step-container" style="background:var(--bg-primary);border:1px solid var(--border);border-radius:var(--radius-lg);padding:28px 24px;min-height:400px;box-shadow:var(--shadow-sm);">
@@ -204,6 +228,7 @@ window.SyllabusImportPage = {
 
     container.querySelectorAll('.wizard-prev-btn').forEach(btn => btn.addEventListener('click', () => this.prevStep()));
     container.querySelectorAll('.wizard-next-btn').forEach(btn => btn.addEventListener('click', () => this.nextStep()));
+    container.querySelectorAll('.wizard-cancel-btn').forEach(btn => btn.addEventListener('click', () => this.cancelImport()));
     this.updateStepper();
   },
 
@@ -252,6 +277,10 @@ window.SyllabusImportPage = {
         nextBtn.textContent = 'Tiếp tục';
         nextBtn.className = 'btn btn-primary wizard-next-btn';
       }
+    });
+    
+    document.querySelectorAll('.wizard-cancel-btn').forEach(cancelBtn => {
+      cancelBtn.style.display = this.sessionId ? 'block' : 'none';
     });
   },
 
@@ -364,24 +393,44 @@ window.SyllabusImportPage = {
 
         <div id="drop-zone" style="border:2px dashed var(--border);border-radius:var(--radius-lg);padding:40px;background:var(--bg-secondary);cursor:pointer;transition:all 0.2s ease;">
           <input type="file" id="docx-file-input" accept=".docx" style="display:none;">
-          <div style="font-size:14px;color:var(--text-muted);">
+          <div id="drop-zone-text" style="font-size:14px;color:var(--text-muted);">
             Kéo thả file vào đây hoặc <span style="color:var(--primary);font-weight:600;">nhấn để chọn file</span>
           </div>
-          <div id="file-name" style="margin-top:12px;font-weight:600;color:var(--primary);display:none;"></div>
+          <div id="file-name-container" style="margin-top:12px;display:none;align-items:center;justify-content:center;gap:12px;">
+            <div id="file-name" style="font-weight:600;color:var(--primary);"></div>
+            <button id="remove-file-btn" class="btn btn-secondary btn-sm" style="padding:2px 8px;font-size:12px;color:var(--danger);border-radius:var(--radius);">Gỡ file</button>
+          </div>
         </div>
       </div>
     `;
 
     const dropZone = document.getElementById('drop-zone');
     const fileInput = document.getElementById('docx-file-input');
+    const fileNameContainer = document.getElementById('file-name-container');
     const fileNameDisplay = document.getElementById('file-name');
+    const dropZoneText = document.getElementById('drop-zone-text');
+    const removeBtn = document.getElementById('remove-file-btn');
 
-    dropZone.onclick = () => fileInput.click();
+    dropZone.onclick = (e) => {
+      if (e.target.closest('#file-name-container')) return;
+      fileInput.click();
+    };
+
+    removeBtn.onclick = (e) => {
+      e.stopPropagation();
+      fileInput.value = '';
+      fileNameContainer.style.display = 'none';
+      dropZoneText.style.display = 'block';
+      dropZone.style.borderColor = 'var(--border)';
+      dropZone.style.background = 'var(--bg-secondary)';
+    };
+
     fileInput.onchange = e => {
       const file = e.target.files[0];
       if (!file) return;
       fileNameDisplay.textContent = file.name;
-      fileNameDisplay.style.display = 'block';
+      fileNameContainer.style.display = 'flex';
+      dropZoneText.style.display = 'none';
       dropZone.style.borderColor = 'var(--primary)';
       dropZone.style.background = 'rgba(0, 102, 204, 0.05)';
     };
@@ -389,14 +438,25 @@ window.SyllabusImportPage = {
 
   async loadSession() {
     if (!this.sessionId) return null;
-    const res = await fetch(`/api/import/docx/session/${this.sessionId}`);
-    const data = await this.parseApiResponse(res, 'Không tải được phiên import');
-    if (!res.ok) throw new Error(data.error);
-    this.sessionData = {
-      ...data,
-      raw_data: this.normalizeSessionData(data.raw_data)
-    };
-    return this.sessionData;
+    try {
+      const res = await fetch(`/api/import/docx/session/${this.sessionId}`);
+      const data = await this.parseApiResponse(res, 'Không tải được phiên import');
+      if (!res.ok) throw new Error(data.error);
+      this.sessionData = {
+        ...data,
+        raw_data: this.normalizeSessionData(data.raw_data)
+      };
+      return this.sessionData;
+    } catch (e) {
+      localStorage.removeItem('docx_import_session_id');
+      localStorage.removeItem('docx_import_current_step');
+      this.sessionId = null;
+      this.currentStep = 1;
+      this.updateStepper();
+      await this.renderStepContent();
+      window.toast.warning('Phiên thao tác đã hết hạn hoặc không tồn tại.');
+      return null;
+    }
   },
 
   scheduleSessionSave(delay = 350) {
@@ -530,6 +590,15 @@ window.SyllabusImportPage = {
           dept_code: selected.dept_code || ''
         });
         await page.saveSession();
+        return { ok: true, json: async () => ({}) };
+      },
+      updateCourse: async (vcId, payload) => {
+        const data = getData();
+        const idx = data.courses.findIndex(course => `${course.id}` === `${vcId}`);
+        if (idx !== -1) {
+          data.courses[idx] = { ...data.courses[idx], ...payload };
+          await page.saveSession();
+        }
         return { ok: true, json: async () => ({}) };
       },
       removeCourse: async id => {
@@ -988,11 +1057,13 @@ window.SyllabusImportPage = {
         if (!res.ok) throw new Error(data.error);
 
         this.sessionId = data.id;
+        localStorage.setItem('docx_import_session_id', data.id);
         this.sessionData = { id: data.id, raw_data: this.normalizeSessionData(data.rawData) };
         this.activePreviewTab = 'info';
         window.toast.success('Đã tải lên và phân tích file thành công');
 
         this.currentStep++;
+        localStorage.setItem('docx_import_current_step', this.currentStep);
         this.updateStepper();
         await this.renderStepContent();
       } catch (e) {
@@ -1005,6 +1076,7 @@ window.SyllabusImportPage = {
 
     if (this.currentStep < this.steps.length) {
       this.currentStep++;
+      localStorage.setItem('docx_import_current_step', this.currentStep);
       this.updateStepper();
       await this.renderStepContent();
       return;
@@ -1019,6 +1091,8 @@ window.SyllabusImportPage = {
       if (!res.ok) throw new Error(data.error);
 
       window.toast.success('Đã nhập dữ liệu thành công vào hệ thống');
+      localStorage.removeItem('docx_import_session_id');
+      localStorage.removeItem('docx_import_current_step');
       window.App.navigate('version-editor', { versionId: data.versionId });
     } catch (e) {
       window.toast.error(e.message);
@@ -1027,9 +1101,24 @@ window.SyllabusImportPage = {
     }
   },
 
+  async cancelImport() {
+    if (!confirm('Hủy quá trình Import? Mọi dữ liệu đang chuẩn bị sẽ bị xóa bỏ.')) return;
+    if (this.sessionId) {
+      try { await fetch(`/api/import/docx/session/${this.sessionId}`, { method: 'DELETE' }); } catch (e) {}
+    }
+    localStorage.removeItem('docx_import_session_id');
+    localStorage.removeItem('docx_import_current_step');
+    this.sessionId = null;
+    this.sessionData = null;
+    this.currentStep = 1;
+    this.updateStepper();
+    await this.renderStepContent();
+  },
+
   prevStep() {
     if (this.currentStep <= 1) return;
     this.currentStep--;
+    localStorage.setItem('docx_import_current_step', this.currentStep);
     this.updateStepper();
     this.renderStepContent();
   },

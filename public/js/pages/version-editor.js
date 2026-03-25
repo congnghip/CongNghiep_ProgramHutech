@@ -60,11 +60,10 @@ window.VersionEditorPage = {
             <div style="display:flex;gap:8px;align-items:center;margin-top:4px;">
               ${locked ? '<span class="badge badge-danger">Đã khóa</span>' : `<span class="badge badge-warning">${this.version.status}</span>`}
               ${isRejected ? '<span class="badge badge-danger">Bị từ chối</span>' : ''}
-              <span style="color:var(--text-muted);font-size:12px;">Hoàn thành ${this.version.completion_pct || 0}%</span>
             </div>
           </div>
           <div style="display:flex;gap:6px;">
-            <button class="btn btn-secondary btn-sm" onclick="window.VersionEditorPage.exportVersion()">Xuất JSON</button>
+            ${window.App.hasPerm('programs.export') ? '<button class="btn btn-secondary btn-sm" onclick="window.VersionEditorPage.exportVersion()">Xuất JSON</button>' : ''}
             ${(isDraft && !locked && window.App.hasPerm('programs.submit')) ? '<button class="btn btn-primary btn-sm" onclick="window.VersionEditorPage.submitVersion()">Nộp duyệt</button>' : ''}
           </div>
         </div>
@@ -139,7 +138,6 @@ window.VersionEditorPage = {
         }
       });
     }
-    items.push({ label: 'Soạn thảo' });
     items.push({ label: this.getActiveTabLabel() });
     return items;
   },
@@ -167,22 +165,46 @@ window.VersionEditorPage = {
     
     const tabEditable = !locked && canEditStatus && (!tab.editPerm || window.App.hasPerm(tab.editPerm));
 
-    window.TrainingTabs.init(this.versionId, tabEditable, null, () => this.renderTab());
-
     try {
       switch (tabKey) {
-        case 'info': await this.renderInfoTab(body, false); break;
-        case 'po': await window.TrainingTabs.renderPOTab(body); break;
-        case 'plo': await window.TrainingTabs.renderPLOTab(body); break;
-        case 'pi': await this.renderPITab(body, tabEditable); break;
-        case 'po_plo': await window.TrainingTabs.renderPOPLOMatrix(body); break;
-        case 'courses': await window.TrainingTabs.renderCoursesTab(body); break;
-        case 'plan': await this.renderPlanTab(body, tabEditable); break;
-        case 'course_plo': await this.renderCoursePLOMatrix(body, tabEditable); break;
-        case 'assessment': await this.renderAssessmentTab(body, tabEditable); break;
+        case 'info':
+          await this.renderInfoTab(body, false);
+          break;
+        case 'po':
+          window.TrainingTabs.init(this.versionId, tabEditable, null, () => this.renderTab());
+          await window.TrainingTabs.renderPOTab(body);
+          break;
+        case 'plo':
+          window.TrainingTabs.init(this.versionId, tabEditable, null, () => this.renderTab());
+          await window.TrainingTabs.renderPLOTab(body);
+          break;
+        case 'pi':
+          await this.renderPITab(body, tabEditable);
+          break;
+        case 'po_plo':
+          window.TrainingTabs.init(this.versionId, tabEditable, null, () => this.renderTab());
+          await window.TrainingTabs.renderPOPLOMatrix(body);
+          break;
+        case 'courses':
+          window.TrainingTabs.init(this.versionId, tabEditable, null, () => this.renderTab());
+          await window.TrainingTabs.renderCoursesTab(body);
+          break;
+        case 'plan':
+          await this.renderPlanTab(body, tabEditable);
+          break;
+        case 'course_plo':
+          await this.renderCoursePLOMatrix(body, tabEditable);
+          break;
+        case 'assessment':
+          await this.renderAssessmentTab(body, tabEditable);
+          break;
         case 'syllabi': {
           const canAssign = !locked && window.App.hasPerm('syllabus.assign');
-          await this.renderSyllabiTab(body, tabEditable, canAssign);
+          const canCreate = !locked && canEditStatus && window.App.hasPerm('syllabus.create');
+          window.TrainingTabs.init(this.versionId, tabEditable, null, () => this.renderTab(), {
+            canCreateSyllabus: canCreate
+          });
+          await this.renderSyllabiTab(body, tabEditable, canAssign, canCreate);
           break;
         }
       }
@@ -381,7 +403,7 @@ window.VersionEditorPage = {
         <div style="margin-bottom:20px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
             <strong style="color:var(--primary);">${plo.code}: ${(plo.description || '').substring(0, 60)}...</strong>
-            ${editable ? `<button class="btn btn-secondary btn-sm" onclick="window.VersionEditorPage.addPI(${plo.id},'${plo.code}',${(plo.pis || []).length})">+ PI</button>` : ''}
+            ${editable ? `<button class="btn btn-secondary btn-sm" onclick="window.VersionEditorPage.addPI(event, ${plo.id},'${plo.code}',${(plo.pis || []).length})">+ PI</button>` : ''}
           </div>
           ${(plo.pis || []).length === 0 ? '<p style="color:var(--text-muted);font-size:12px;margin-left:16px;">Chưa có PI</p>' : `
             <div style="margin-left:16px;">${plo.pis.map(pi => {
@@ -393,7 +415,7 @@ window.VersionEditorPage = {
                   ${mappedCourses ? `<div style="font-size:12px;color:var(--text-muted);margin-top:2px;">Áp dụng cho: ${mappedCourses}</div>` : ''}
                 </div>
                 ${editable ? `<div style="display:flex;gap:4px;">
-                  <button class="btn btn-secondary btn-sm" onclick='window.VersionEditorPage.editPI(${pi.id},${plo.id},"${pi.pi_code}",\`${(pi.description || '').replace(/`/g, "'")}\`, ${JSON.stringify(pi.course_ids || [])})'>Sửa</button>
+                  <button class="btn btn-secondary btn-sm" onclick='window.VersionEditorPage.editPI(event, ${pi.id},${plo.id},"${pi.pi_code}",\`${(pi.description || '').replace(/`/g, "'")}\`, ${JSON.stringify(pi.course_ids || [])})'>Sửa</button>
                   <button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="window.VersionEditorPage.deletePI(${pi.id})">Xóa</button>
                 </div>` : ''}
               </div>
@@ -436,22 +458,26 @@ window.VersionEditorPage = {
     `;
   },
 
-  addPI(ploId, ploCode, count) {
+  addPI(event, ploId, ploCode, count) {
+    const formArea = document.getElementById('pi-form-area');
+    event.target.closest('div[style*="margin-bottom:20px;"]').append(formArea);
     document.getElementById('pi-edit-id').value = '';
     document.getElementById('pi-plo-id').value = ploId;
     document.getElementById('pi-code').value = `PI.${ploCode.replace('PLO', '')}.${count + 1}`;
     document.getElementById('pi-desc').value = '';
     this.renderPICoursesForm(ploId, []);
-    document.getElementById('pi-form-area').style.display = 'block';
+    formArea.style.display = 'block';
   },
 
-  editPI(id, ploId, code, desc, courseIdsArr) {
+  editPI(event, id, ploId, code, desc, courseIdsArr) {
+    const formArea = document.getElementById('pi-form-area');
+    event.target.closest('.tree-node').after(formArea);
     document.getElementById('pi-edit-id').value = id;
     document.getElementById('pi-plo-id').value = ploId;
     document.getElementById('pi-code').value = code;
     document.getElementById('pi-desc').value = desc;
-    this.renderPICoursesForm(ploId, courseIdsArr || []);
-    document.getElementById('pi-form-area').style.display = 'block';
+    this.renderPICoursesForm(ploId, courseIdsArr);
+    formArea.style.display = 'block';
   },
 
   async savePI() {
@@ -813,7 +839,7 @@ window.VersionEditorPage = {
   },
 
   // ===== TAB 10: Syllabi =====
-  async renderSyllabiTab(body, editable, canAssign = false) {
+  async renderSyllabiTab(body, editable, canAssign = false, canCreate = false) {
     const [syllabi, vCourses] = await Promise.all([
       fetch(`/api/versions/${this.versionId}/syllabi`).then(r => r.json()),
       fetch(`/api/versions/${this.versionId}/courses`).then(r => r.json()),
@@ -846,7 +872,7 @@ window.VersionEditorPage = {
                 <td style="white-space:nowrap;">
                   ${syl
           ? `<button class="btn btn-secondary btn-sm" onclick="window.App.navigate('syllabus-editor',{syllabusId:${syl.id}, versionId:${this.versionId}, programId:${this.version.program_id}, programName:'${(this.version.program_name || '').replace(/'/g, "\\'")}', tabKey:'syllabi'})">${(editable && syl.status === 'draft') ? 'Soạn' : 'Xem'}</button>`
-          : (editable ? `<button class="btn btn-primary btn-sm" onclick="window.VersionEditorPage.createSyllabus(${c.course_id})">Tạo ĐC</button>` : '')}
+          : (canCreate ? `<button class="btn btn-primary btn-sm" onclick="window.VersionEditorPage.createSyllabus(${c.course_id})">Tạo ĐC</button>` : '')}
                 </td>
               </tr>`;
     }).join('')}
@@ -940,7 +966,9 @@ window.VersionEditorPage = {
 
   async exportVersion() {
     try {
-      const data = await fetch(`/api/export/version/${this.versionId}`).then(r => r.json());
+      const response = await fetch(`/api/export/version/${this.versionId}`);
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Không thể xuất dữ liệu');
       if (data.error) throw new Error(data.error);
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);

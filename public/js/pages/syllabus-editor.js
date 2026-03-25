@@ -71,16 +71,6 @@ window.SyllabusEditorPage = {
             programName: this.routeContext.programName
           }
         },
-        {
-          label: 'Soạn thảo',
-          page: 'version-editor',
-          params: {
-            versionId: this.routeContext.versionId || this.syllabus.version_id,
-            programId: this.routeContext.programId,
-            programName: this.routeContext.programName,
-            tabKey: this.routeContext.tabKey || 'syllabi'
-          }
-        },
         { label: 'Đề cương' }
       ];
     }

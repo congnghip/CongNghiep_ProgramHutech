@@ -544,7 +544,11 @@ async function hasPermission(userId, permCode, deptId = null) {
       JOIN role_permissions rp ON ur.role_id = rp.role_id
       JOIN permissions p ON rp.permission_id = p.id
       JOIN roles r ON ur.role_id = r.id
-      WHERE ur.user_id = $1 AND p.code = $2
+      WHERE ur.user_id = $1
+        AND (
+          p.code = $2
+          OR ($2 LIKE 'programs.%' AND p.code = 'programs.manage_all')
+        )
         AND (r.level >= 4
              OR ur.department_id = $3
              OR ur.department_id = (SELECT parent_id FROM departments WHERE id = $3))

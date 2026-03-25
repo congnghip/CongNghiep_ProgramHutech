@@ -1,0 +1,3977 @@
+{
+  "program_name": "Ngôn ngữ Trung Quốc",
+  "program_code": "7220204",
+  "degree": "Đại học",
+  "total_credits": 125,
+  "academic_year": "",
+  "version_name": "Phiên bản Import",
+  "pos": [
+    {
+      "id": "po1_1774427950339_wi6vwe",
+      "code": "PO1",
+      "description": "Ứng dụng kiến thức: Vận dụng kiến thức về văn hóa, xã hội, chính trị, luật pháp, ngôn ngữ, và công nghệ thông tin vào thực tiễn công việc và cuộc sống. Có khả năng tự nghiên cứu, cập nhật kiến thức mới."
+    },
+    {
+      "id": "po2_1774427950339_a0v0xf",
+      "code": "PO2",
+      "description": "Năng lực tiếng Trung: Sử dụng thành thạo 4 kỹ năng Nghe, Nói, Đọc, Viết tiếng Trung ở trình độ cao."
+    },
+    {
+      "id": "po3_1774427950339_m0mvny",
+      "code": "PO3",
+      "description": "Kỹ năng chuyên ngành: Vận dụng kiến thức và kỹ năng chuyên ngành (biên phiên dịch/ thương mại/ phương pháp giảng dạy/ Khoá luận tốt nghiệp) để giải quyết các vấn đề thực tiễn trong công việc."
+    },
+    {
+      "id": "po4_1774427950339_el67t1",
+      "code": "PO4",
+      "description": "Kỹ năng mềm và thái độ: Làm việc độc lập, làm việc nhóm, giao tiếp hiệu quả, có trách nhiệm, sáng tạo, chủ động thích nghi với môi trường làm việc, tuân thủ chuẩn mực đạo đức nghề nghiệp."
+    }
+  ],
+  "plos": [
+    {
+      "id": "plo1_1774427950338_k3y3w4",
+      "code": "PLO1",
+      "bloom_level": 3,
+      "description": "Vận dụng kiến thức cơ bản về chính trị và pháp luật, khoa học xã hội và nhân văn phù hợp với chuyên ngành Ngôn ngữ Trung Quốc để đóng góp tích cực vào sự phát triển bền vững của xã hội, cộng đồng ."
+    },
+    {
+      "id": "plo2_1774427950338_y41awv",
+      "code": "PLO2",
+      "bloom_level": 5,
+      "description": "Phân biệt chức năng của các thành phần cấu thành nên ngôn ngữ Trung Quốc đồng thời sử dụng thành thạo 4 kỹ năng tiếng Trung ."
+    },
+    {
+      "id": "plo3_1774427950338_2srv6v",
+      "code": "PLO3",
+      "bloom_level": 3,
+      "description": "Sử dụng ngoại ngữ 2 tiếng Anh trong các tình huống quen thuộc để nâng cao cơ hội việc làm và hiểu biết thêm về các nền văn hóa khác."
+    },
+    {
+      "id": "plo4_1774427950338_qwrbja",
+      "code": "PLO4",
+      "bloom_level": 5,
+      "description": "Áp dụng thành thạo tiếng Trung vào công việc, nhận biết chữ Hán phồn thể và thành thạo chữ Hán giản thể trong công việc; sử dụng có hiệu quả kiến thức và kỹ năng chuyên ngành tiếng Trung thuộc lĩnh vực (a) thương mại, hoặc (b) biên phiên dịch, hoặc (c) phương pháp giảng dạy, hoặc (d) khóa luận tốt nghiệp."
+    },
+    {
+      "id": "plo5_1774427950338_99dl3c",
+      "code": "PLO5",
+      "bloom_level": 5,
+      "description": "Thể hiện kỹ năng nhận thức liên quan đến tư duy phản biện, phân tích, tổng hợp vào công việc."
+    },
+    {
+      "id": "plo6_1774427950338_i6tyoq",
+      "code": "PLO6",
+      "bloom_level": 3,
+      "description": "Vận dụng kỹ năng giao tiếp và công nghệ thông tin cần thiết để thực hiện các nhiệm vụ phức tạp trong môi trường làm việc liên ngành, đa văn hóa, đa quốc gia."
+    },
+    {
+      "id": "plo7_1774427950338_lw71ss",
+      "code": "PLO7",
+      "bloom_level": 4,
+      "description": "Làm việc độc lập và làm việc theo nhóm trong điều kiện làm việc thay đổi; nhận thức và tuân thủ chuẩn mực đạo đức và trách nhiệm xã hội và nghề nghiệp trong bối cảnh toàn cầu hóa."
+    }
+  ],
+  "pis": [
+    {
+      "id": "pi1_1774427950344_t2d6mm",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "pi_code": "PI1.01",
+      "description": "Nhận biết các vấn đề cần giải quyết về chính trị và pháp luật, khoa học xã hội và nhân văn phù hợp với chuyên ngành Ngôn ngữ Trung Quốc.",
+      "course_ids": []
+    },
+    {
+      "id": "pi2_1774427950344_ynclh9",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "pi_code": "PI1.02",
+      "description": "Xây dựng phương án để giải quyết các vấn đề về chính trị và pháp luật, khoa học xã hội và nhân văn phù hợp với chuyên ngành Ngôn ngữ Trung Quốc.",
+      "course_ids": []
+    },
+    {
+      "id": "pi3_1774427950345_ji3yu0",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "pi_code": "PI1.03",
+      "description": "Kết hợp các kiến thức cơ bản, kiến thức chuyên ngành để đóng góp hữu hiệu vào sự phát triển bền vững của xã hội, cộng đồng.",
+      "course_ids": []
+    },
+    {
+      "id": "pi4_1774427950345_z8q4u5",
+      "plo_id": "plo2_1774427950338_y41awv",
+      "pi_code": "PI2.01",
+      "description": "Nhận biết các thành phần cấu tạo nên ngôn ngữ Trung Quốc.",
+      "course_ids": []
+    },
+    {
+      "id": "pi5_1774427950345_lq2655",
+      "plo_id": "plo2_1774427950338_y41awv",
+      "pi_code": "PI2.02",
+      "description": "Phân biệt chức năng của các thành phần cấu thành nên ngôn ngữ Trung Quốc.",
+      "course_ids": []
+    },
+    {
+      "id": "pi6_1774427950345_zzu1ok",
+      "plo_id": "plo2_1774427950338_y41awv",
+      "pi_code": "PI2.03",
+      "description": "Sử dụng thành thạo 4 kỹ năng tiếng Trung tương đương bậc 5 theo Khung năng lực ngoại ngữ Việt Nam.",
+      "course_ids": []
+    },
+    {
+      "id": "pi7_1774427950345_5szwyh",
+      "plo_id": "plo3_1774427950338_2srv6v",
+      "pi_code": "PI3.01",
+      "description": "Sử dụng ngoại ngữ 2 tiếng Anh để nâng cao cơ hội việc làm và hiểu biết thêm về các nền văn hóa khác.",
+      "course_ids": []
+    },
+    {
+      "id": "pi8_1774427950345_b9ceep",
+      "plo_id": "plo4_1774427950338_qwrbja",
+      "pi_code": "PI4.01",
+      "description": "Áp dụng thành thạo tiếng Trung vào công việc.",
+      "course_ids": []
+    },
+    {
+      "id": "pi9_1774427950345_dxr6ne",
+      "plo_id": "plo4_1774427950338_qwrbja",
+      "pi_code": "PI4.02",
+      "description": "Nhận biết chữ Hán phồn thể và thành thạo chữ Hán giản thể trong công việc.",
+      "course_ids": []
+    },
+    {
+      "id": "pi10_1774427950345_oi0y7e",
+      "plo_id": "plo4_1774427950338_qwrbja",
+      "pi_code": "PI4.03",
+      "description": "Khai thác thông tin và cập nhật kiến thức chuyên ngành thuộc lĩnh vực (a) thương mại, hoặc (b) biên phiên dịch, hoặc (c) phương pháp giảng dạy, hoặc (d) khóa luận tốt nghiệp.",
+      "course_ids": []
+    },
+    {
+      "id": "pi11_1774427950345_0ogbp9",
+      "plo_id": "plo5_1774427950338_99dl3c",
+      "pi_code": "PI5.01",
+      "description": "Phân tích thông tin, đưa ra luận điểm có căn cứ.",
+      "course_ids": []
+    },
+    {
+      "id": "pi12_1774427950345_lnjk4c",
+      "plo_id": "plo5_1774427950338_99dl3c",
+      "pi_code": "PI5.02",
+      "description": "Hệ thống lại vấn đề, đưa ra kết luận về cách thức vận hành của vấn đề hệ thống.",
+      "course_ids": []
+    },
+    {
+      "id": "pi13_1774427950345_kc6qo3",
+      "plo_id": "plo5_1774427950338_99dl3c",
+      "pi_code": "PI5.03",
+      "description": "Lập kế hoạch, thực hiện và đánh giá công việc chuyên môn.",
+      "course_ids": []
+    },
+    {
+      "id": "pi14_1774427950345_aufer4",
+      "plo_id": "plo6_1774427950338_i6tyoq",
+      "pi_code": "PI6.01",
+      "description": "Sử dụng tốt các chiến lược giao tiếp bằng văn bản và bằng lời như thuyết trình, thương lượng, truyền đạt thông tin.",
+      "course_ids": []
+    },
+    {
+      "id": "pi15_1774427950345_l8jmtd",
+      "plo_id": "plo6_1774427950338_i6tyoq",
+      "pi_code": "PI6.02",
+      "description": "Áp dụng thành thạo kỹ năng giao tiếp ứng xử cần thiết để thực hiện các nhiệm vụ phức tạp.",
+      "course_ids": []
+    },
+    {
+      "id": "pi16_1774427950345_ypzmkw",
+      "plo_id": "plo6_1774427950338_i6tyoq",
+      "pi_code": "PI6.03",
+      "description": "Sử dụng Word, Excel, Powerpoint ….soạn thảo, trình bày các loại văn bản trong học tập, nghiên cứu và công việc có hiệu quả.",
+      "course_ids": []
+    },
+    {
+      "id": "pi17_1774427950345_xtirss",
+      "plo_id": "plo6_1774427950338_i6tyoq",
+      "pi_code": "PI6.04",
+      "description": "Sử dụng có hiệu quả các phần mềm chuyên dụng để phục vụ học tập và công việc chuyên môn liên quan đến tiếng Trung.",
+      "course_ids": []
+    },
+    {
+      "id": "pi18_1774427950345_i1tqko",
+      "plo_id": "plo7_1774427950338_lw71ss",
+      "pi_code": "PI7.01",
+      "description": "Đưa ra các nhận định cá nhân trong điều kiện làm việc thay đổi",
+      "course_ids": []
+    },
+    {
+      "id": "pi19_1774427950345_yqk5vu",
+      "plo_id": "plo7_1774427950338_lw71ss",
+      "pi_code": "PI7.02",
+      "description": "Xác định được đầy đủ mục tiêu của nhóm, vai trò, trách nhiệm của các thành viên",
+      "course_ids": []
+    },
+    {
+      "id": "pi20_1774427950345_vla4pr",
+      "plo_id": "plo7_1774427950338_lw71ss",
+      "pi_code": "PI7.03",
+      "description": "Tham gia hoạch định, lên chương trình và phối hợp trong thực hiện hoạt động nhóm đạt được mục tiêu đã đề ra.",
+      "course_ids": []
+    },
+    {
+      "id": "pi21_1774427950345_ujx5y4",
+      "plo_id": "plo7_1774427950338_lw71ss",
+      "pi_code": "PI7.04",
+      "description": "Nhận thức và tuân thủ chuẩn mực đạo đức và trách nhiệm xã hội và nghề nghiệp trong bối cảnh toàn cầu hóa.",
+      "course_ids": []
+    }
+  ],
+  "courses": [
+    {
+      "id": "course1_1774427950342_dwtgol",
+      "course_id": null,
+      "course_code": "ENC120",
+      "course_name": "Anh ngữ 1",
+      "credits": 3,
+      "semester": 1,
+      "course_type": "required",
+      "dept_name": "K.TA",
+      "dept_code": ""
+    },
+    {
+      "id": "course2_1774427950342_l4eb9o",
+      "course_id": null,
+      "course_code": "CHN107",
+      "course_name": "Tiếng Trung – Nghe 1",
+      "credits": 3,
+      "semester": 1,
+      "course_type": "required",
+      "dept_name": "K.TQH",
+      "dept_code": ""
+    },
+    {
+      "id": "course3_1774427950342_nxgi3b",
+      "course_id": null,
+      "course_code": "CHN112",
+      "course_name": "Tiếng Trung – Nói 1",
+      "credits": 3,
+      "semester": 1,
+      "course_type": "required",
+      "dept_name": "K.TQH",
+      "dept_code": ""
+    },
+    {
+      "id": "course4_1774427950342_jhij60",
+      "course_id": null,
+      "course_code": "CHN117",
+      "course_name": "Tiếng Trung – Đọc 1",
+      "credits": 3,
+      "semester": 1,
+      "course_type": "required",
+      "dept_name": "K.TQH",
+      "dept_code": ""
+    },
+    {
+      "id": "course5_1774427950342_pq0doy",
+      "course_id": null,
+      "course_code": "CHN122",
+      "course_name": "Tiếng Trung – Viết 1",
+      "credits": 3,
+      "semester": 1,
+      "course_type": "required",
+      "dept_name": "K.TQH",
+      "dept_code": ""
+    },
+    {
+      "id": "course6_1774427950342_wcfpuz",
+      "course_id": null,
+      "course_code": "AIT129",
+      "course_name": "Trí tuệ nhân tạo ứng dụng",
+      "credits": 3,
+      "semester": 1,
+      "course_type": "required",
+      "dept_name": "K.CNTT",
+      "dept_code": ""
+    },
+    {
+      "id": "course7_1774427950342_znnxpd",
+      "course_id": null,
+      "course_code": "NDF108",
+      "course_name": "Quốc phòng, an ninh 1",
+      "credits": 0,
+      "semester": 1,
+      "course_type": "non_credit",
+      "dept_name": "TT.GDCT-QP",
+      "dept_code": ""
+    },
+    {
+      "id": "course8_1774427950342_esiz3k",
+      "course_id": null,
+      "course_code": "NDF109",
+      "course_name": "Quốc phòng, an ninh 2",
+      "credits": 0,
+      "semester": 1,
+      "course_type": "non_credit",
+      "dept_name": "TT.GDCT-QP",
+      "dept_code": ""
+    },
+    {
+      "id": "course9_1774427950342_jttifi",
+      "course_id": null,
+      "course_code": "ENC121",
+      "course_name": "Anh ngữ 2",
+      "credits": 3,
+      "semester": 2,
+      "course_type": "required",
+      "dept_name": "K.TA",
+      "dept_code": ""
+    },
+    {
+      "id": "course10_1774427950342_sgdrls",
+      "course_id": null,
+      "course_code": "SKL115",
+      "course_name": "Tư duy thiết kế dự án",
+      "credits": 3,
+      "semester": 2,
+      "course_type": "required",
+      "dept_name": "VJIT",
+      "dept_code": ""
+    },
+    {
+      "id": "course11_1774427950342_slwkjt",
+      "course_id": null,
+      "course_code": "CHN108",
+      "course_name": "Tiếng Trung – Nghe 2",
+      "credits": 3,
+      "semester": 2,
+      "course_type": "required",
+      "dept_name": "K.TQH",
+      "dept_code": ""
+    },
+    {
+      "id": "course12_1774427950342_ez45xa",
+      "course_id": null,
+      "course_code": "CHN113",
+      "course_name": "Tiếng Trung – Nói 2",
+      "credits": 3,
+      "semester": 2,
+      "course_type": "required",
+      "dept_name": "K.TQH",
+      "dept_code": ""
+    },
+    {
+      "id": "course13_1774427950343_m14zef",
+      "course_id": null,
+      "course_code": "CHN118",
+      "course_name": "Tiếng Trung – Đọc 2",
+      "credits": 3,
+      "semester": 2,
+      "course_type": "required",
+      "dept_name": "K.TQH",
+      "dept_code": ""
+    },
+    {
+      "id": "course14_1774427950343_qe7clm",
+      "course_id": null,
+      "course_code": "CHN123",
+      "course_name": "Tiếng Trung – Viết 2",
+      "credits": 3,
+      "semester": 2,
+      "course_type": "required",
+      "dept_name": "K.TQH",
+      "dept_code": ""
+    },
+    {
+      "id": "course15_1774427950343_mwri32",
+      "course_id": null,
+      "course_code": "NDF210",
+      "course_name": "Quốc phòng, an ninh 3",
+      "credits": 0,
+      "semester": 2,
+      "course_type": "non_credit",
+      "dept_name": "TT.GDCT-QP",
+      "dept_code": ""
+    },
+    {
+      "id": "course16_1774427950343_v2hka2",
+      "course_id": null,
+      "course_code": "NDF211",
+      "course_name": "Quốc phòng, an ninh 4",
+      "credits": 0,
+      "semester": 2,
+      "course_type": "non_credit",
+      "dept_name": "TT.GDCT-QP",
+      "dept_code": ""
+    },
+    {
+      "id": "course17_1774427950343_75h30n",
+      "course_id": null,
+      "course_code": "PHT304",
+      "course_name": "Bóng chuyền 1",
+      "credits": 2,
+      "semester": 2,
+      "course_type": "non_credit",
+      "dept_name": "TT.GDTC",
+      "dept_code": ""
+    },
+    {
+      "id": "course18_1774427950343_ketaea",
+      "course_id": null,
+      "course_code": "PHT307",
+      "course_name": "Bóng rổ 1",
+      "credits": 2,
+      "semester": 2,
+      "course_type": "non_credit",
+      "dept_name": "TT.GDTC",
+      "dept_code": ""
+    },
+    {
+      "id": "course19_1774427950343_nelw9o",
+      "course_id": null,
+      "course_code": "PHT310",
+      "course_name": "Thể hình - Thẩm mỹ 1",
+      "credits": 2,
+      "semester": 2,
+      "course_type": "non_credit",
+      "dept_name": "TT.GDTC",
+      "dept_code": ""
+    },
+    {
+      "id": "course20_1774427950343_21jhcb",
+      "course_id": null,
+      "course_code": "PHT313",
+      "course_name": "Vovinam 1",
+      "credits": 2,
+      "semester": 2,
+      "course_type": "non_credit",
+      "dept_name": "TT.GDTC",
+      "dept_code": ""
+    },
+    {
+      "id": "course21_1774427950343_toaqgi",
+      "course_id": null,
+      "course_code": "PHT316",
+      "course_name": "Bóng đá 1",
+      "credits": 2,
+      "semester": 2,
+      "course_type": "non_credit",
+      "dept_name": "TT.GDTC",
+      "dept_code": ""
+    },
+    {
+      "id": "course22_1774427950343_ox1f42",
+      "course_id": null,
+      "course_code": "ENC122",
+      "course_name": "Anh ngữ 3",
+      "credits": 3,
+      "semester": 3,
+      "course_type": "required",
+      "dept_name": "K.TA",
+      "dept_code": ""
+    },
+    {
+      "id": "course23_1774427950343_q1tceh",
+      "course_id": null,
+      "course_code": "CHN109",
+      "course_name": "Tiếng Trung – Nghe 3",
+      "credits": 3,
+      "semester": 3,
+      "course_type": "required",
+      "dept_name": "K.TQH",
+      "dept_code": ""
+    },
+    {
+      "id": "course24_1774427950343_3c8o6m",
+      "course_id": null,
+      "course_code": "CHN114",
+      "course_name": "Tiếng Trung – Nói 3",
+      "credits": 3,
+      "semester": 3,
+      "course_type": "required",
+      "dept_name": "K.TQH",
+      "dept_code": ""
+    },
+    {
+      "id": "course25_1774427950343_0r74w2",
+      "course_id": null,
+      "course_code": "CHN119",
+      "course_name": "Tiếng Trung – Đọc 3",
+      "credits": 3,
+      "semester": 3,
+      "course_type": "required",
+      "dept_name": "K.TQH",
+      "dept_code": ""
+    },
+    {
+      "id": "course26_1774427950343_3v3gbt",
+      "course_id": null,
+      "course_code": "CHN124",
+      "course_name": "Tiếng Trung – Viết 3",
+      "credits": 3,
+      "semester": 3,
+      "course_type": "required",
+      "dept_name": "K.TQH",
+      "dept_code": ""
+    },
+    {
+      "id": "course27_1774427950343_hj0ygs",
+      "course_id": null,
+      "course_code": "POS104",
+      "course_name": "Triết học Mác - Lênin",
+      "credits": 3,
+      "semester": 3,
+      "course_type": "required",
+      "dept_name": "TT.GDCT-QP",
+      "dept_code": ""
+    },
+    {
+      "id": "course28_1774427950343_baf4x4",
+      "course_id": null,
+      "course_code": "PHT305",
+      "course_name": "Bóng chuyền 2",
+      "credits": 2,
+      "semester": 3,
+      "course_type": "non_credit",
+      "dept_name": "TT.GDTC",
+      "dept_code": ""
+    },
+    {
+      "id": "course29_1774427950343_048q8h",
+      "course_id": null,
+      "course_code": "PHT308",
+      "course_name": "Bóng rổ 2",
+      "credits": 2,
+      "semester": 3,
+      "course_type": "non_credit",
+      "dept_name": "TT.GDTC",
+      "dept_code": ""
+    },
+    {
+      "id": "course30_1774427950343_zvd4ym",
+      "course_id": null,
+      "course_code": "PHT311",
+      "course_name": "Thể hình - Thẩm mỹ 2",
+      "credits": 2,
+      "semester": 3,
+      "course_type": "non_credit",
+      "dept_name": "TT.GDTC",
+      "dept_code": ""
+    },
+    {
+      "id": "course31_1774427950343_qx1dpy",
+      "course_id": null,
+      "course_code": "PHT314",
+      "course_name": "Vovinam 2",
+      "credits": 2,
+      "semester": 3,
+      "course_type": "non_credit",
+      "dept_name": "TT.GDTC",
+      "dept_code": ""
+    },
+    {
+      "id": "course32_1774427950343_3tfnka",
+      "course_id": null,
+      "course_code": "PHT317",
+      "course_name": "Bóng đá 2",
+      "credits": 2,
+      "semester": 3,
+      "course_type": "non_credit",
+      "dept_name": "TT.GDTC",
+      "dept_code": ""
+    },
+    {
+      "id": "course33_1774427950343_an1for",
+      "course_id": null,
+      "course_code": "ENC123",
+      "course_name": "Anh ngữ 4",
+      "credits": 3,
+      "semester": 4,
+      "course_type": "required",
+      "dept_name": "K.TA",
+      "dept_code": ""
+    },
+    {
+      "id": "course34_1774427950343_hwz7tj",
+      "course_id": null,
+      "course_code": "ENS192",
+      "course_name": "Phát triển bền vững",
+      "credits": 3,
+      "semester": 4,
+      "course_type": "required",
+      "dept_name": "V.KHUD",
+      "dept_code": ""
+    },
+    {
+      "id": "course35_1774427950343_nyjqj9",
+      "course_id": null,
+      "course_code": "CHN110",
+      "course_name": "Tiếng Trung – Nghe 4",
+      "credits": 3,
+      "semester": 4,
+      "course_type": "required",
+      "dept_name": "K.TQH",
+      "dept_code": ""
+    },
+    {
+      "id": "course36_1774427950343_kpcwyt",
+      "course_id": null,
+      "course_code": "CHN115",
+      "course_name": "Tiếng Trung – Nói 4",
+      "credits": 3,
+      "semester": 4,
+      "course_type": "required",
+      "dept_name": "K.TQH",
+      "dept_code": ""
+    },
+    {
+      "id": "course37_1774427950343_uc7jwf",
+      "course_id": null,
+      "course_code": "CHN120",
+      "course_name": "Tiếng Trung – Đọc 4",
+      "credits": 3,
+      "semester": 4,
+      "course_type": "required",
+      "dept_name": "K.TQH",
+      "dept_code": ""
+    },
+    {
+      "id": "course38_1774427950343_sv2bc5",
+      "course_id": null,
+      "course_code": "CHN125",
+      "course_name": "Tiếng Trung – Viết 4",
+      "credits": 3,
+      "semester": 4,
+      "course_type": "required",
+      "dept_name": "K.TQH",
+      "dept_code": ""
+    },
+    {
+      "id": "course39_1774427950343_uthdih",
+      "course_id": null,
+      "course_code": "PHT306",
+      "course_name": "Bóng chuyền 3",
+      "credits": 1,
+      "semester": 4,
+      "course_type": "non_credit",
+      "dept_name": "TT.GDTC",
+      "dept_code": ""
+    },
+    {
+      "id": "course40_1774427950343_7v1z6c",
+      "course_id": null,
+      "course_code": "PHT309",
+      "course_name": "Bóng rổ 3",
+      "credits": 1,
+      "semester": 4,
+      "course_type": "non_credit",
+      "dept_name": "TT.GDTC",
+      "dept_code": ""
+    },
+    {
+      "id": "course41_1774427950343_4nftpj",
+      "course_id": null,
+      "course_code": "PHT312",
+      "course_name": "Thể hình - Thẩm mỹ 3",
+      "credits": 1,
+      "semester": 4,
+      "course_type": "non_credit",
+      "dept_name": "TT.GDTC",
+      "dept_code": ""
+    },
+    {
+      "id": "course42_1774427950343_df2lhe",
+      "course_id": null,
+      "course_code": "PHT315",
+      "course_name": "Vovinam 3",
+      "credits": 1,
+      "semester": 4,
+      "course_type": "non_credit",
+      "dept_name": "TT.GDTC",
+      "dept_code": ""
+    },
+    {
+      "id": "course43_1774427950343_61p42x",
+      "course_id": null,
+      "course_code": "PHT318",
+      "course_name": "Bóng đá 3",
+      "credits": 1,
+      "semester": 4,
+      "course_type": "non_credit",
+      "dept_name": "TT.GDTC",
+      "dept_code": ""
+    },
+    {
+      "id": "course44_1774427950343_gmbulh",
+      "course_id": null,
+      "course_code": "POS107",
+      "course_name": "Lịch sử Đảng Cộng sản Việt Nam",
+      "credits": 2,
+      "semester": 5,
+      "course_type": "required",
+      "dept_name": "TT.GDCT-QP",
+      "dept_code": ""
+    },
+    {
+      "id": "course45_1774427950343_hohtt3",
+      "course_id": null,
+      "course_code": "POS105",
+      "course_name": "Kinh tế chính trị Mác - Lênin",
+      "credits": 2,
+      "semester": 5,
+      "course_type": "required",
+      "dept_name": "TT.GDCT-QP",
+      "dept_code": ""
+    },
+    {
+      "id": "course46_1774427950343_762u33",
+      "course_id": null,
+      "course_code": "ENG183",
+      "course_name": "Dẫn luận ngôn ngữ",
+      "credits": 3,
+      "semester": 5,
+      "course_type": "required",
+      "dept_name": "K.NBH",
+      "dept_code": ""
+    },
+    {
+      "id": "course47_1774427950343_n5ukug",
+      "course_id": null,
+      "course_code": "CHN111",
+      "course_name": "Tiếng Trung – Nghe 5",
+      "credits": 3,
+      "semester": 5,
+      "course_type": "required",
+      "dept_name": "K.TQH",
+      "dept_code": ""
+    },
+    {
+      "id": "course48_1774427950343_e3tfha",
+      "course_id": null,
+      "course_code": "CHN116",
+      "course_name": "Tiếng Trung – Nói 5",
+      "credits": 3,
+      "semester": 5,
+      "course_type": "required",
+      "dept_name": "K.TQH",
+      "dept_code": ""
+    },
+    {
+      "id": "course49_1774427950343_lx5o06",
+      "course_id": null,
+      "course_code": "CHN121",
+      "course_name": "Tiếng Trung – Đọc",
+      "credits": 3,
+      "semester": 5,
+      "course_type": "required",
+      "dept_name": "K.TQH",
+      "dept_code": ""
+    },
+    {
+      "id": "course50_1774427950343_pyl1yq",
+      "course_id": null,
+      "course_code": "CHN126",
+      "course_name": "Tiếng Trung – Viết 5",
+      "credits": 3,
+      "semester": 5,
+      "course_type": "required",
+      "dept_name": "K.TQH",
+      "dept_code": ""
+    },
+    {
+      "id": "course51_1774427950343_5sm7ck",
+      "course_id": null,
+      "course_code": "CHN134",
+      "course_name": "Lý thuyết tiếng Trung Quốc",
+      "credits": 3,
+      "semester": 6,
+      "course_type": "required",
+      "dept_name": "K.TQH",
+      "dept_code": ""
+    },
+    {
+      "id": "course52_1774427950343_iglka0",
+      "course_id": null,
+      "course_code": "POS103",
+      "course_name": "Tư tưởng Hồ Chí Minh",
+      "credits": 2,
+      "semester": 6,
+      "course_type": "required",
+      "dept_name": "TT.GDCT-QP",
+      "dept_code": ""
+    },
+    {
+      "id": "course53_1774427950343_s1792a",
+      "course_id": null,
+      "course_code": "POS106",
+      "course_name": "Chủ nghĩa xã hội khoa học",
+      "credits": 2,
+      "semester": 6,
+      "course_type": "required",
+      "dept_name": "TT.GDCT-QP",
+      "dept_code": ""
+    },
+    {
+      "id": "course54_1774427950343_x6zp31",
+      "course_id": null,
+      "course_code": "CHN5002",
+      "course_name": "Thực tế trải nghiệm văn hóa và ngôn ngữ Trung Quốc",
+      "credits": 3,
+      "semester": 6,
+      "course_type": "required",
+      "dept_name": "K.TQH",
+      "dept_code": ""
+    },
+    {
+      "id": "course55_1774427950343_44jjkk",
+      "course_id": null,
+      "course_code": "CHN135",
+      "course_name": "Thư tín thương mại tiếng Trung",
+      "credits": 3,
+      "semester": 6,
+      "course_type": "required",
+      "dept_name": "K.TQH",
+      "dept_code": ""
+    },
+    {
+      "id": "course56_1774427950343_47s5nd",
+      "course_id": null,
+      "course_code": "CHN128",
+      "course_name": "Tiếng Trung Thương mại",
+      "credits": 3,
+      "semester": 6,
+      "course_type": "required",
+      "dept_name": "K.TQH",
+      "dept_code": ""
+    },
+    {
+      "id": "course57_1774427950343_py1voa",
+      "course_id": null,
+      "course_code": "CHN137",
+      "course_name": "Tiếng Trung hành chính – văn phòng",
+      "credits": 3,
+      "semester": 6,
+      "course_type": "required",
+      "dept_name": "K.TQH",
+      "dept_code": ""
+    },
+    {
+      "id": "course58_1774427950343_e6ildy",
+      "course_id": null,
+      "course_code": "CHN139",
+      "course_name": "Kỹ năng dịch nói tiếng Trung",
+      "credits": 3,
+      "semester": 6,
+      "course_type": "required",
+      "dept_name": "K.TQH",
+      "dept_code": ""
+    },
+    {
+      "id": "course59_1774427950343_z1l8j4",
+      "course_id": null,
+      "course_code": "CHN144",
+      "course_name": "Kỹ năng dịch viết tiếng Trung",
+      "credits": 3,
+      "semester": 6,
+      "course_type": "required",
+      "dept_name": "K.TQH",
+      "dept_code": ""
+    },
+    {
+      "id": "course60_1774427950343_h1mc4i",
+      "course_id": null,
+      "course_code": "AIT1021",
+      "course_name": "Ứng dụng AI trong dịch thuật tiếng Trung",
+      "credits": 3,
+      "semester": 6,
+      "course_type": "required",
+      "dept_name": "K.TQH",
+      "dept_code": ""
+    },
+    {
+      "id": "course61_1774427950343_cf05rn",
+      "course_id": null,
+      "course_code": "CHN1003",
+      "course_name": "Thiết kế giáo án và thực hành giảng dạy tiếng Trung",
+      "credits": 3,
+      "semester": 6,
+      "course_type": "required",
+      "dept_name": "K.TQH",
+      "dept_code": ""
+    },
+    {
+      "id": "course62_1774427950343_fzgt8m",
+      "course_id": null,
+      "course_code": "CHN1004",
+      "course_name": "Kỹ năng giảng dạy tiếng Trung",
+      "credits": 3,
+      "semester": 6,
+      "course_type": "required",
+      "dept_name": "K.TQH",
+      "dept_code": ""
+    },
+    {
+      "id": "course63_1774427950343_uucsts",
+      "course_id": null,
+      "course_code": "AIT1022",
+      "course_name": "Ứng dụng AI trong giảng dạy tiếng Trung",
+      "credits": 3,
+      "semester": 6,
+      "course_type": "required",
+      "dept_name": "K.TQH",
+      "dept_code": ""
+    },
+    {
+      "id": "course64_1774427950343_ruljt8",
+      "course_id": null,
+      "course_code": "CHN4005",
+      "course_name": "Khóa luận tốt nghiệp Ngôn ngữ Trung Quốc",
+      "credits": 9,
+      "semester": 6,
+      "course_type": "required",
+      "dept_name": "K.TQH",
+      "dept_code": ""
+    },
+    {
+      "id": "course65_1774427950343_35bgg6",
+      "course_id": null,
+      "course_code": "MAN116",
+      "course_name": "Quản trị học",
+      "credits": 3,
+      "semester": 7,
+      "course_type": "required",
+      "dept_name": "K.QTKD",
+      "dept_code": ""
+    },
+    {
+      "id": "course66_1774427950343_jbmqoz",
+      "course_id": null,
+      "course_code": "LAW158",
+      "course_name": "Luật và Khởi nghiệp",
+      "credits": 3,
+      "semester": 7,
+      "course_type": "required",
+      "dept_name": "K.LUAT",
+      "dept_code": ""
+    },
+    {
+      "id": "course67_1774427950343_nit51s",
+      "course_id": null,
+      "course_code": "SLK122",
+      "course_name": "Kỹ năng phát triển bản thân",
+      "credits": 3,
+      "semester": 7,
+      "course_type": "required",
+      "dept_name": "TT.TH-NN-KN",
+      "dept_code": ""
+    },
+    {
+      "id": "course68_1774427950343_zj73ei",
+      "course_id": null,
+      "course_code": "SOS118",
+      "course_name": "Văn hoá, xã hội Trung Quốc",
+      "credits": 3,
+      "semester": 7,
+      "course_type": "required",
+      "dept_name": "K.TQH",
+      "dept_code": ""
+    },
+    {
+      "id": "course69_1774427950343_v6mww7",
+      "course_id": null,
+      "course_code": "CHN546",
+      "course_name": "Thực tập tốt nghiệp ngành Ngôn ngữ Trung Quốc",
+      "credits": 3,
+      "semester": 7,
+      "course_type": "required",
+      "dept_name": "K.TQH",
+      "dept_code": ""
+    }
+  ],
+  "po_plo_map": [
+    {
+      "po_id": "po1_1774427950339_wi6vwe",
+      "plo_id": "plo1_1774427950338_k3y3w4"
+    },
+    {
+      "po_id": "po4_1774427950339_el67t1",
+      "plo_id": "plo1_1774427950338_k3y3w4"
+    },
+    {
+      "po_id": "po2_1774427950339_a0v0xf",
+      "plo_id": "plo2_1774427950338_y41awv"
+    },
+    {
+      "po_id": "po3_1774427950339_m0mvny",
+      "plo_id": "plo2_1774427950338_y41awv"
+    },
+    {
+      "po_id": "po1_1774427950339_wi6vwe",
+      "plo_id": "plo3_1774427950338_2srv6v"
+    },
+    {
+      "po_id": "po4_1774427950339_el67t1",
+      "plo_id": "plo3_1774427950338_2srv6v"
+    },
+    {
+      "po_id": "po2_1774427950339_a0v0xf",
+      "plo_id": "plo4_1774427950338_qwrbja"
+    },
+    {
+      "po_id": "po3_1774427950339_m0mvny",
+      "plo_id": "plo4_1774427950338_qwrbja"
+    },
+    {
+      "po_id": "po1_1774427950339_wi6vwe",
+      "plo_id": "plo5_1774427950338_99dl3c"
+    },
+    {
+      "po_id": "po4_1774427950339_el67t1",
+      "plo_id": "plo5_1774427950338_99dl3c"
+    },
+    {
+      "po_id": "po2_1774427950339_a0v0xf",
+      "plo_id": "plo6_1774427950338_i6tyoq"
+    },
+    {
+      "po_id": "po3_1774427950339_m0mvny",
+      "plo_id": "plo6_1774427950338_i6tyoq"
+    },
+    {
+      "po_id": "po1_1774427950339_wi6vwe",
+      "plo_id": "plo7_1774427950338_lw71ss"
+    },
+    {
+      "po_id": "po4_1774427950339_el67t1",
+      "plo_id": "plo7_1774427950338_lw71ss"
+    }
+  ],
+  "course_plo_map": [
+    {
+      "course_id": "course27_1774427950343_hj0ygs",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course27_1774427950343_hj0ygs",
+      "plo_id": "plo5_1774427950338_99dl3c",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course27_1774427950343_hj0ygs",
+      "plo_id": "plo7_1774427950338_lw71ss",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course45_1774427950343_hohtt3",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course45_1774427950343_hohtt3",
+      "plo_id": "plo5_1774427950338_99dl3c",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course45_1774427950343_hohtt3",
+      "plo_id": "plo7_1774427950338_lw71ss",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course53_1774427950343_s1792a",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course53_1774427950343_s1792a",
+      "plo_id": "plo5_1774427950338_99dl3c",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course53_1774427950343_s1792a",
+      "plo_id": "plo7_1774427950338_lw71ss",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course44_1774427950343_gmbulh",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course44_1774427950343_gmbulh",
+      "plo_id": "plo5_1774427950338_99dl3c",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course44_1774427950343_gmbulh",
+      "plo_id": "plo7_1774427950338_lw71ss",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course52_1774427950343_iglka0",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course52_1774427950343_iglka0",
+      "plo_id": "plo5_1774427950338_99dl3c",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course52_1774427950343_iglka0",
+      "plo_id": "plo7_1774427950338_lw71ss",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course1_1774427950342_dwtgol",
+      "plo_id": "plo3_1774427950338_2srv6v",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course9_1774427950342_jttifi",
+      "plo_id": "plo3_1774427950338_2srv6v",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course22_1774427950343_ox1f42",
+      "plo_id": "plo3_1774427950338_2srv6v",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course33_1774427950343_an1for",
+      "plo_id": "plo3_1774427950338_2srv6v",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course6_1774427950342_wcfpuz",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course6_1774427950342_wcfpuz",
+      "plo_id": "plo6_1774427950338_i6tyoq",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course34_1774427950343_hwz7tj",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course34_1774427950343_hwz7tj",
+      "plo_id": "plo5_1774427950338_99dl3c",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course34_1774427950343_hwz7tj",
+      "plo_id": "plo7_1774427950338_lw71ss",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course66_1774427950343_jbmqoz",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course66_1774427950343_jbmqoz",
+      "plo_id": "plo5_1774427950338_99dl3c",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course66_1774427950343_jbmqoz",
+      "plo_id": "plo7_1774427950338_lw71ss",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course10_1774427950342_sgdrls",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course10_1774427950342_sgdrls",
+      "plo_id": "plo7_1774427950338_lw71ss",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course65_1774427950343_35bgg6",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course65_1774427950343_35bgg6",
+      "plo_id": "plo6_1774427950338_i6tyoq",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course65_1774427950343_35bgg6",
+      "plo_id": "plo7_1774427950338_lw71ss",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course46_1774427950343_762u33",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course46_1774427950343_762u33",
+      "plo_id": "plo7_1774427950338_lw71ss",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course67_1774427950343_nit51s",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course67_1774427950343_nit51s",
+      "plo_id": "plo7_1774427950338_lw71ss",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course2_1774427950342_l4eb9o",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course2_1774427950342_l4eb9o",
+      "plo_id": "plo2_1774427950338_y41awv",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course11_1774427950342_slwkjt",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course11_1774427950342_slwkjt",
+      "plo_id": "plo2_1774427950338_y41awv",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course23_1774427950343_q1tceh",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course23_1774427950343_q1tceh",
+      "plo_id": "plo2_1774427950338_y41awv",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course35_1774427950343_nyjqj9",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course35_1774427950343_nyjqj9",
+      "plo_id": "plo2_1774427950338_y41awv",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course47_1774427950343_n5ukug",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course47_1774427950343_n5ukug",
+      "plo_id": "plo2_1774427950338_y41awv",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course3_1774427950342_nxgi3b",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course3_1774427950342_nxgi3b",
+      "plo_id": "plo2_1774427950338_y41awv",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course3_1774427950342_nxgi3b",
+      "plo_id": "plo4_1774427950338_qwrbja",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course12_1774427950342_ez45xa",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course12_1774427950342_ez45xa",
+      "plo_id": "plo2_1774427950338_y41awv",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course12_1774427950342_ez45xa",
+      "plo_id": "plo4_1774427950338_qwrbja",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course24_1774427950343_3c8o6m",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course24_1774427950343_3c8o6m",
+      "plo_id": "plo2_1774427950338_y41awv",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course24_1774427950343_3c8o6m",
+      "plo_id": "plo4_1774427950338_qwrbja",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course36_1774427950343_kpcwyt",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course36_1774427950343_kpcwyt",
+      "plo_id": "plo2_1774427950338_y41awv",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course36_1774427950343_kpcwyt",
+      "plo_id": "plo4_1774427950338_qwrbja",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course48_1774427950343_e3tfha",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course48_1774427950343_e3tfha",
+      "plo_id": "plo2_1774427950338_y41awv",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course48_1774427950343_e3tfha",
+      "plo_id": "plo4_1774427950338_qwrbja",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course4_1774427950342_jhij60",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course4_1774427950342_jhij60",
+      "plo_id": "plo2_1774427950338_y41awv",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course13_1774427950343_m14zef",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course13_1774427950343_m14zef",
+      "plo_id": "plo2_1774427950338_y41awv",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course25_1774427950343_0r74w2",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course25_1774427950343_0r74w2",
+      "plo_id": "plo2_1774427950338_y41awv",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course25_1774427950343_0r74w2",
+      "plo_id": "plo5_1774427950338_99dl3c",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course37_1774427950343_uc7jwf",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course37_1774427950343_uc7jwf",
+      "plo_id": "plo2_1774427950338_y41awv",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course37_1774427950343_uc7jwf",
+      "plo_id": "plo4_1774427950338_qwrbja",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course37_1774427950343_uc7jwf",
+      "plo_id": "plo5_1774427950338_99dl3c",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course49_1774427950343_lx5o06",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course49_1774427950343_lx5o06",
+      "plo_id": "plo2_1774427950338_y41awv",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course49_1774427950343_lx5o06",
+      "plo_id": "plo4_1774427950338_qwrbja",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course49_1774427950343_lx5o06",
+      "plo_id": "plo5_1774427950338_99dl3c",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course5_1774427950342_pq0doy",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course5_1774427950342_pq0doy",
+      "plo_id": "plo2_1774427950338_y41awv",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course5_1774427950342_pq0doy",
+      "plo_id": "plo4_1774427950338_qwrbja",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course14_1774427950343_qe7clm",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course14_1774427950343_qe7clm",
+      "plo_id": "plo2_1774427950338_y41awv",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course14_1774427950343_qe7clm",
+      "plo_id": "plo4_1774427950338_qwrbja",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course26_1774427950343_3v3gbt",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course26_1774427950343_3v3gbt",
+      "plo_id": "plo2_1774427950338_y41awv",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course26_1774427950343_3v3gbt",
+      "plo_id": "plo4_1774427950338_qwrbja",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course38_1774427950343_sv2bc5",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course38_1774427950343_sv2bc5",
+      "plo_id": "plo2_1774427950338_y41awv",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course38_1774427950343_sv2bc5",
+      "plo_id": "plo4_1774427950338_qwrbja",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course50_1774427950343_pyl1yq",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course50_1774427950343_pyl1yq",
+      "plo_id": "plo2_1774427950338_y41awv",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course50_1774427950343_pyl1yq",
+      "plo_id": "plo4_1774427950338_qwrbja",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course51_1774427950343_5sm7ck",
+      "plo_id": "plo2_1774427950338_y41awv",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course51_1774427950343_5sm7ck",
+      "plo_id": "plo5_1774427950338_99dl3c",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course51_1774427950343_5sm7ck",
+      "plo_id": "plo6_1774427950338_i6tyoq",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course51_1774427950343_5sm7ck",
+      "plo_id": "plo7_1774427950338_lw71ss",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course68_1774427950343_zj73ei",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course68_1774427950343_zj73ei",
+      "plo_id": "plo4_1774427950338_qwrbja",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course68_1774427950343_zj73ei",
+      "plo_id": "plo5_1774427950338_99dl3c",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course68_1774427950343_zj73ei",
+      "plo_id": "plo6_1774427950338_i6tyoq",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course68_1774427950343_zj73ei",
+      "plo_id": "plo7_1774427950338_lw71ss",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course54_1774427950343_x6zp31",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course54_1774427950343_x6zp31",
+      "plo_id": "plo4_1774427950338_qwrbja",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course54_1774427950343_x6zp31",
+      "plo_id": "plo5_1774427950338_99dl3c",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course54_1774427950343_x6zp31",
+      "plo_id": "plo6_1774427950338_i6tyoq",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course54_1774427950343_x6zp31",
+      "plo_id": "plo7_1774427950338_lw71ss",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course69_1774427950343_v6mww7",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course69_1774427950343_v6mww7",
+      "plo_id": "plo4_1774427950338_qwrbja",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course69_1774427950343_v6mww7",
+      "plo_id": "plo5_1774427950338_99dl3c",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course69_1774427950343_v6mww7",
+      "plo_id": "plo6_1774427950338_i6tyoq",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course69_1774427950343_v6mww7",
+      "plo_id": "plo7_1774427950338_lw71ss",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course55_1774427950343_44jjkk",
+      "plo_id": "plo2_1774427950338_y41awv",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course55_1774427950343_44jjkk",
+      "plo_id": "plo4_1774427950338_qwrbja",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course55_1774427950343_44jjkk",
+      "plo_id": "plo7_1774427950338_lw71ss",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course56_1774427950343_47s5nd",
+      "plo_id": "plo4_1774427950338_qwrbja",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course56_1774427950343_47s5nd",
+      "plo_id": "plo6_1774427950338_i6tyoq",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course56_1774427950343_47s5nd",
+      "plo_id": "plo7_1774427950338_lw71ss",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course57_1774427950343_py1voa",
+      "plo_id": "plo5_1774427950338_99dl3c",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course57_1774427950343_py1voa",
+      "plo_id": "plo6_1774427950338_i6tyoq",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course57_1774427950343_py1voa",
+      "plo_id": "plo7_1774427950338_lw71ss",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course58_1774427950343_e6ildy",
+      "plo_id": "plo5_1774427950338_99dl3c",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course58_1774427950343_e6ildy",
+      "plo_id": "plo6_1774427950338_i6tyoq",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course58_1774427950343_e6ildy",
+      "plo_id": "plo7_1774427950338_lw71ss",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course59_1774427950343_z1l8j4",
+      "plo_id": "plo4_1774427950338_qwrbja",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course59_1774427950343_z1l8j4",
+      "plo_id": "plo7_1774427950338_lw71ss",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course60_1774427950343_h1mc4i",
+      "plo_id": "plo2_1774427950338_y41awv",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course60_1774427950343_h1mc4i",
+      "plo_id": "plo4_1774427950338_qwrbja",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course60_1774427950343_h1mc4i",
+      "plo_id": "plo7_1774427950338_lw71ss",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course61_1774427950343_cf05rn",
+      "plo_id": "plo2_1774427950338_y41awv",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course61_1774427950343_cf05rn",
+      "plo_id": "plo5_1774427950338_99dl3c",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course61_1774427950343_cf05rn",
+      "plo_id": "plo6_1774427950338_i6tyoq",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course61_1774427950343_cf05rn",
+      "plo_id": "plo7_1774427950338_lw71ss",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course62_1774427950343_fzgt8m",
+      "plo_id": "plo4_1774427950338_qwrbja",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course62_1774427950343_fzgt8m",
+      "plo_id": "plo6_1774427950338_i6tyoq",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course62_1774427950343_fzgt8m",
+      "plo_id": "plo7_1774427950338_lw71ss",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course63_1774427950343_uucsts",
+      "plo_id": "plo4_1774427950338_qwrbja",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course63_1774427950343_uucsts",
+      "plo_id": "plo5_1774427950338_99dl3c",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course63_1774427950343_uucsts",
+      "plo_id": "plo6_1774427950338_i6tyoq",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course63_1774427950343_uucsts",
+      "plo_id": "plo7_1774427950338_lw71ss",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course64_1774427950343_ruljt8",
+      "plo_id": "plo2_1774427950338_y41awv",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course64_1774427950343_ruljt8",
+      "plo_id": "plo4_1774427950338_qwrbja",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course64_1774427950343_ruljt8",
+      "plo_id": "plo5_1774427950338_99dl3c",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course64_1774427950343_ruljt8",
+      "plo_id": "plo6_1774427950338_i6tyoq",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course64_1774427950343_ruljt8",
+      "plo_id": "plo7_1774427950338_lw71ss",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course17_1774427950343_75h30n",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course28_1774427950343_baf4x4",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course39_1774427950343_uthdih",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course18_1774427950343_ketaea",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course29_1774427950343_048q8h",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course40_1774427950343_7v1z6c",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course19_1774427950343_nelw9o",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course30_1774427950343_zvd4ym",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course41_1774427950343_4nftpj",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course20_1774427950343_21jhcb",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course31_1774427950343_qx1dpy",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course42_1774427950343_df2lhe",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course21_1774427950343_toaqgi",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course32_1774427950343_3tfnka",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course43_1774427950343_61p42x",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course7_1774427950342_znnxpd",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course7_1774427950342_znnxpd",
+      "plo_id": "plo7_1774427950338_lw71ss",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course8_1774427950342_esiz3k",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course8_1774427950342_esiz3k",
+      "plo_id": "plo7_1774427950338_lw71ss",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course15_1774427950343_mwri32",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course15_1774427950343_mwri32",
+      "plo_id": "plo7_1774427950338_lw71ss",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course16_1774427950343_v2hka2",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course16_1774427950343_v2hka2",
+      "plo_id": "plo7_1774427950338_lw71ss",
+      "contribution_level": 2
+    }
+  ],
+  "course_pi_map": [
+    {
+      "course_id": "course27_1774427950343_hj0ygs",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course27_1774427950343_hj0ygs",
+      "pi_id": "pi12_1774427950345_lnjk4c",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course27_1774427950343_hj0ygs",
+      "pi_id": "pi20_1774427950345_vla4pr",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course45_1774427950343_hohtt3",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course45_1774427950343_hohtt3",
+      "pi_id": "pi12_1774427950345_lnjk4c",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course45_1774427950343_hohtt3",
+      "pi_id": "pi21_1774427950345_ujx5y4",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course53_1774427950343_s1792a",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course53_1774427950343_s1792a",
+      "pi_id": "pi12_1774427950345_lnjk4c",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course53_1774427950343_s1792a",
+      "pi_id": "pi20_1774427950345_vla4pr",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course44_1774427950343_gmbulh",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course44_1774427950343_gmbulh",
+      "pi_id": "pi12_1774427950345_lnjk4c",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course44_1774427950343_gmbulh",
+      "pi_id": "pi20_1774427950345_vla4pr",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course52_1774427950343_iglka0",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course52_1774427950343_iglka0",
+      "pi_id": "pi12_1774427950345_lnjk4c",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course52_1774427950343_iglka0",
+      "pi_id": "pi18_1774427950345_i1tqko",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course1_1774427950342_dwtgol",
+      "pi_id": "pi7_1774427950345_5szwyh",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course9_1774427950342_jttifi",
+      "pi_id": "pi7_1774427950345_5szwyh",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course22_1774427950343_ox1f42",
+      "pi_id": "pi7_1774427950345_5szwyh",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course33_1774427950343_an1for",
+      "pi_id": "pi7_1774427950345_5szwyh",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course6_1774427950342_wcfpuz",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course6_1774427950342_wcfpuz",
+      "pi_id": "pi17_1774427950345_xtirss",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course34_1774427950343_hwz7tj",
+      "pi_id": "pi3_1774427950345_ji3yu0",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course34_1774427950343_hwz7tj",
+      "pi_id": "pi13_1774427950345_kc6qo3",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course34_1774427950343_hwz7tj",
+      "pi_id": "pi20_1774427950345_vla4pr",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course66_1774427950343_jbmqoz",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course66_1774427950343_jbmqoz",
+      "pi_id": "pi2_1774427950344_ynclh9",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course66_1774427950343_jbmqoz",
+      "pi_id": "pi13_1774427950345_kc6qo3",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course66_1774427950343_jbmqoz",
+      "pi_id": "pi21_1774427950345_ujx5y4",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course10_1774427950342_sgdrls",
+      "pi_id": "pi2_1774427950344_ynclh9",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course10_1774427950342_sgdrls",
+      "pi_id": "pi20_1774427950345_vla4pr",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course10_1774427950342_sgdrls",
+      "pi_id": "pi21_1774427950345_ujx5y4",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course65_1774427950343_35bgg6",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course65_1774427950343_35bgg6",
+      "pi_id": "pi16_1774427950345_ypzmkw",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course65_1774427950343_35bgg6",
+      "pi_id": "pi20_1774427950345_vla4pr",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course65_1774427950343_35bgg6",
+      "pi_id": "pi21_1774427950345_ujx5y4",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course46_1774427950343_762u33",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course46_1774427950343_762u33",
+      "pi_id": "pi2_1774427950344_ynclh9",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course46_1774427950343_762u33",
+      "pi_id": "pi18_1774427950345_i1tqko",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course67_1774427950343_nit51s",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course67_1774427950343_nit51s",
+      "pi_id": "pi18_1774427950345_i1tqko",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course67_1774427950343_nit51s",
+      "pi_id": "pi20_1774427950345_vla4pr",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course67_1774427950343_nit51s",
+      "pi_id": "pi21_1774427950345_ujx5y4",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course2_1774427950342_l4eb9o",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course2_1774427950342_l4eb9o",
+      "pi_id": "pi4_1774427950345_z8q4u5",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course2_1774427950342_l4eb9o",
+      "pi_id": "pi5_1774427950345_lq2655",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course2_1774427950342_l4eb9o",
+      "pi_id": "pi6_1774427950345_zzu1ok",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course11_1774427950342_slwkjt",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course11_1774427950342_slwkjt",
+      "pi_id": "pi4_1774427950345_z8q4u5",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course11_1774427950342_slwkjt",
+      "pi_id": "pi5_1774427950345_lq2655",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course11_1774427950342_slwkjt",
+      "pi_id": "pi6_1774427950345_zzu1ok",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course23_1774427950343_q1tceh",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course23_1774427950343_q1tceh",
+      "pi_id": "pi5_1774427950345_lq2655",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course23_1774427950343_q1tceh",
+      "pi_id": "pi6_1774427950345_zzu1ok",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course35_1774427950343_nyjqj9",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course35_1774427950343_nyjqj9",
+      "pi_id": "pi5_1774427950345_lq2655",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course35_1774427950343_nyjqj9",
+      "pi_id": "pi6_1774427950345_zzu1ok",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course47_1774427950343_n5ukug",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course47_1774427950343_n5ukug",
+      "pi_id": "pi5_1774427950345_lq2655",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course47_1774427950343_n5ukug",
+      "pi_id": "pi6_1774427950345_zzu1ok",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course3_1774427950342_nxgi3b",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course3_1774427950342_nxgi3b",
+      "pi_id": "pi5_1774427950345_lq2655",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course3_1774427950342_nxgi3b",
+      "pi_id": "pi6_1774427950345_zzu1ok",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course3_1774427950342_nxgi3b",
+      "pi_id": "pi8_1774427950345_b9ceep",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course12_1774427950342_ez45xa",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course12_1774427950342_ez45xa",
+      "pi_id": "pi5_1774427950345_lq2655",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course12_1774427950342_ez45xa",
+      "pi_id": "pi6_1774427950345_zzu1ok",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course12_1774427950342_ez45xa",
+      "pi_id": "pi8_1774427950345_b9ceep",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course24_1774427950343_3c8o6m",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course24_1774427950343_3c8o6m",
+      "pi_id": "pi5_1774427950345_lq2655",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course24_1774427950343_3c8o6m",
+      "pi_id": "pi6_1774427950345_zzu1ok",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course24_1774427950343_3c8o6m",
+      "pi_id": "pi8_1774427950345_b9ceep",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course36_1774427950343_kpcwyt",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course36_1774427950343_kpcwyt",
+      "pi_id": "pi5_1774427950345_lq2655",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course36_1774427950343_kpcwyt",
+      "pi_id": "pi6_1774427950345_zzu1ok",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course36_1774427950343_kpcwyt",
+      "pi_id": "pi8_1774427950345_b9ceep",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course48_1774427950343_e3tfha",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course48_1774427950343_e3tfha",
+      "pi_id": "pi5_1774427950345_lq2655",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course48_1774427950343_e3tfha",
+      "pi_id": "pi6_1774427950345_zzu1ok",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course48_1774427950343_e3tfha",
+      "pi_id": "pi8_1774427950345_b9ceep",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course4_1774427950342_jhij60",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course4_1774427950342_jhij60",
+      "pi_id": "pi4_1774427950345_z8q4u5",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course4_1774427950342_jhij60",
+      "pi_id": "pi6_1774427950345_zzu1ok",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course13_1774427950343_m14zef",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course13_1774427950343_m14zef",
+      "pi_id": "pi4_1774427950345_z8q4u5",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course13_1774427950343_m14zef",
+      "pi_id": "pi5_1774427950345_lq2655",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course13_1774427950343_m14zef",
+      "pi_id": "pi6_1774427950345_zzu1ok",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course25_1774427950343_0r74w2",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course25_1774427950343_0r74w2",
+      "pi_id": "pi5_1774427950345_lq2655",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course25_1774427950343_0r74w2",
+      "pi_id": "pi6_1774427950345_zzu1ok",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course25_1774427950343_0r74w2",
+      "pi_id": "pi11_1774427950345_0ogbp9",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course37_1774427950343_uc7jwf",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course37_1774427950343_uc7jwf",
+      "pi_id": "pi5_1774427950345_lq2655",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course37_1774427950343_uc7jwf",
+      "pi_id": "pi8_1774427950345_b9ceep",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course37_1774427950343_uc7jwf",
+      "pi_id": "pi11_1774427950345_0ogbp9",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course49_1774427950343_lx5o06",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course49_1774427950343_lx5o06",
+      "pi_id": "pi5_1774427950345_lq2655",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course49_1774427950343_lx5o06",
+      "pi_id": "pi6_1774427950345_zzu1ok",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course49_1774427950343_lx5o06",
+      "pi_id": "pi8_1774427950345_b9ceep",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course49_1774427950343_lx5o06",
+      "pi_id": "pi9_1774427950345_dxr6ne",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course49_1774427950343_lx5o06",
+      "pi_id": "pi12_1774427950345_lnjk4c",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course5_1774427950342_pq0doy",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course5_1774427950342_pq0doy",
+      "pi_id": "pi4_1774427950345_z8q4u5",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course5_1774427950342_pq0doy",
+      "pi_id": "pi6_1774427950345_zzu1ok",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course5_1774427950342_pq0doy",
+      "pi_id": "pi9_1774427950345_dxr6ne",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course14_1774427950343_qe7clm",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course14_1774427950343_qe7clm",
+      "pi_id": "pi4_1774427950345_z8q4u5",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course14_1774427950343_qe7clm",
+      "pi_id": "pi6_1774427950345_zzu1ok",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course14_1774427950343_qe7clm",
+      "pi_id": "pi9_1774427950345_dxr6ne",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course26_1774427950343_3v3gbt",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course26_1774427950343_3v3gbt",
+      "pi_id": "pi4_1774427950345_z8q4u5",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course26_1774427950343_3v3gbt",
+      "pi_id": "pi6_1774427950345_zzu1ok",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course26_1774427950343_3v3gbt",
+      "pi_id": "pi9_1774427950345_dxr6ne",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course38_1774427950343_sv2bc5",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course38_1774427950343_sv2bc5",
+      "pi_id": "pi4_1774427950345_z8q4u5",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course38_1774427950343_sv2bc5",
+      "pi_id": "pi6_1774427950345_zzu1ok",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course38_1774427950343_sv2bc5",
+      "pi_id": "pi9_1774427950345_dxr6ne",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course50_1774427950343_pyl1yq",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course50_1774427950343_pyl1yq",
+      "pi_id": "pi4_1774427950345_z8q4u5",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course50_1774427950343_pyl1yq",
+      "pi_id": "pi6_1774427950345_zzu1ok",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course50_1774427950343_pyl1yq",
+      "pi_id": "pi9_1774427950345_dxr6ne",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course51_1774427950343_5sm7ck",
+      "pi_id": "pi4_1774427950345_z8q4u5",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course51_1774427950343_5sm7ck",
+      "pi_id": "pi5_1774427950345_lq2655",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course51_1774427950343_5sm7ck",
+      "pi_id": "pi11_1774427950345_0ogbp9",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course51_1774427950343_5sm7ck",
+      "pi_id": "pi14_1774427950345_aufer4",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course51_1774427950343_5sm7ck",
+      "pi_id": "pi21_1774427950345_ujx5y4",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course68_1774427950343_zj73ei",
+      "pi_id": "pi3_1774427950345_ji3yu0",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course68_1774427950343_zj73ei",
+      "pi_id": "pi10_1774427950345_oi0y7e",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course68_1774427950343_zj73ei",
+      "pi_id": "pi13_1774427950345_kc6qo3",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course68_1774427950343_zj73ei",
+      "pi_id": "pi15_1774427950345_l8jmtd",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course68_1774427950343_zj73ei",
+      "pi_id": "pi20_1774427950345_vla4pr",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course68_1774427950343_zj73ei",
+      "pi_id": "pi21_1774427950345_ujx5y4",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course54_1774427950343_x6zp31",
+      "pi_id": "pi3_1774427950345_ji3yu0",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course54_1774427950343_x6zp31",
+      "pi_id": "pi10_1774427950345_oi0y7e",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course54_1774427950343_x6zp31",
+      "pi_id": "pi13_1774427950345_kc6qo3",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course54_1774427950343_x6zp31",
+      "pi_id": "pi15_1774427950345_l8jmtd",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course54_1774427950343_x6zp31",
+      "pi_id": "pi20_1774427950345_vla4pr",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course54_1774427950343_x6zp31",
+      "pi_id": "pi21_1774427950345_ujx5y4",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course69_1774427950343_v6mww7",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course69_1774427950343_v6mww7",
+      "pi_id": "pi2_1774427950344_ynclh9",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course69_1774427950343_v6mww7",
+      "pi_id": "pi10_1774427950345_oi0y7e",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course69_1774427950343_v6mww7",
+      "pi_id": "pi13_1774427950345_kc6qo3",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course69_1774427950343_v6mww7",
+      "pi_id": "pi16_1774427950345_ypzmkw",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course69_1774427950343_v6mww7",
+      "pi_id": "pi19_1774427950345_yqk5vu",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course55_1774427950343_44jjkk",
+      "pi_id": "pi5_1774427950345_lq2655",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course55_1774427950343_44jjkk",
+      "pi_id": "pi8_1774427950345_b9ceep",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course55_1774427950343_44jjkk",
+      "pi_id": "pi10_1774427950345_oi0y7e",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course55_1774427950343_44jjkk",
+      "pi_id": "pi21_1774427950345_ujx5y4",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course56_1774427950343_47s5nd",
+      "pi_id": "pi10_1774427950345_oi0y7e",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course56_1774427950343_47s5nd",
+      "pi_id": "pi14_1774427950345_aufer4",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course56_1774427950343_47s5nd",
+      "pi_id": "pi17_1774427950345_xtirss",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course56_1774427950343_47s5nd",
+      "pi_id": "pi21_1774427950345_ujx5y4",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course57_1774427950343_py1voa",
+      "pi_id": "pi11_1774427950345_0ogbp9",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course57_1774427950343_py1voa",
+      "pi_id": "pi14_1774427950345_aufer4",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course57_1774427950343_py1voa",
+      "pi_id": "pi21_1774427950345_ujx5y4",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course58_1774427950343_e6ildy",
+      "pi_id": "pi11_1774427950345_0ogbp9",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course58_1774427950343_e6ildy",
+      "pi_id": "pi14_1774427950345_aufer4",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course58_1774427950343_e6ildy",
+      "pi_id": "pi17_1774427950345_xtirss",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course58_1774427950343_e6ildy",
+      "pi_id": "pi21_1774427950345_ujx5y4",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course59_1774427950343_z1l8j4",
+      "pi_id": "pi8_1774427950345_b9ceep",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course59_1774427950343_z1l8j4",
+      "pi_id": "pi10_1774427950345_oi0y7e",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course59_1774427950343_z1l8j4",
+      "pi_id": "pi21_1774427950345_ujx5y4",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course60_1774427950343_h1mc4i",
+      "pi_id": "pi5_1774427950345_lq2655",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course60_1774427950343_h1mc4i",
+      "pi_id": "pi8_1774427950345_b9ceep",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course60_1774427950343_h1mc4i",
+      "pi_id": "pi10_1774427950345_oi0y7e",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course60_1774427950343_h1mc4i",
+      "pi_id": "pi21_1774427950345_ujx5y4",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course61_1774427950343_cf05rn",
+      "pi_id": "pi5_1774427950345_lq2655",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course61_1774427950343_cf05rn",
+      "pi_id": "pi11_1774427950345_0ogbp9",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course61_1774427950343_cf05rn",
+      "pi_id": "pi14_1774427950345_aufer4",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course61_1774427950343_cf05rn",
+      "pi_id": "pi21_1774427950345_ujx5y4",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course62_1774427950343_fzgt8m",
+      "pi_id": "pi8_1774427950345_b9ceep",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course62_1774427950343_fzgt8m",
+      "pi_id": "pi14_1774427950345_aufer4",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course62_1774427950343_fzgt8m",
+      "pi_id": "pi17_1774427950345_xtirss",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course62_1774427950343_fzgt8m",
+      "pi_id": "pi21_1774427950345_ujx5y4",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course63_1774427950343_uucsts",
+      "pi_id": "pi8_1774427950345_b9ceep",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course63_1774427950343_uucsts",
+      "pi_id": "pi10_1774427950345_oi0y7e",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course63_1774427950343_uucsts",
+      "pi_id": "pi11_1774427950345_0ogbp9",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course63_1774427950343_uucsts",
+      "pi_id": "pi17_1774427950345_xtirss",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course63_1774427950343_uucsts",
+      "pi_id": "pi21_1774427950345_ujx5y4",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course64_1774427950343_ruljt8",
+      "pi_id": "pi5_1774427950345_lq2655",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course64_1774427950343_ruljt8",
+      "pi_id": "pi8_1774427950345_b9ceep",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course64_1774427950343_ruljt8",
+      "pi_id": "pi10_1774427950345_oi0y7e",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course64_1774427950343_ruljt8",
+      "pi_id": "pi11_1774427950345_0ogbp9",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course64_1774427950343_ruljt8",
+      "pi_id": "pi14_1774427950345_aufer4",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course64_1774427950343_ruljt8",
+      "pi_id": "pi17_1774427950345_xtirss",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course64_1774427950343_ruljt8",
+      "pi_id": "pi21_1774427950345_ujx5y4",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course17_1774427950343_75h30n",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course17_1774427950343_75h30n",
+      "pi_id": "pi2_1774427950344_ynclh9",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course17_1774427950343_75h30n",
+      "pi_id": "pi3_1774427950345_ji3yu0",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course28_1774427950343_baf4x4",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course28_1774427950343_baf4x4",
+      "pi_id": "pi2_1774427950344_ynclh9",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course28_1774427950343_baf4x4",
+      "pi_id": "pi3_1774427950345_ji3yu0",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course39_1774427950343_uthdih",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course39_1774427950343_uthdih",
+      "pi_id": "pi2_1774427950344_ynclh9",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course39_1774427950343_uthdih",
+      "pi_id": "pi3_1774427950345_ji3yu0",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course18_1774427950343_ketaea",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course18_1774427950343_ketaea",
+      "pi_id": "pi2_1774427950344_ynclh9",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course18_1774427950343_ketaea",
+      "pi_id": "pi3_1774427950345_ji3yu0",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course29_1774427950343_048q8h",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course29_1774427950343_048q8h",
+      "pi_id": "pi2_1774427950344_ynclh9",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course29_1774427950343_048q8h",
+      "pi_id": "pi3_1774427950345_ji3yu0",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course40_1774427950343_7v1z6c",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course40_1774427950343_7v1z6c",
+      "pi_id": "pi2_1774427950344_ynclh9",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course40_1774427950343_7v1z6c",
+      "pi_id": "pi3_1774427950345_ji3yu0",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course19_1774427950343_nelw9o",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course19_1774427950343_nelw9o",
+      "pi_id": "pi2_1774427950344_ynclh9",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course19_1774427950343_nelw9o",
+      "pi_id": "pi3_1774427950345_ji3yu0",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course30_1774427950343_zvd4ym",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course30_1774427950343_zvd4ym",
+      "pi_id": "pi2_1774427950344_ynclh9",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course30_1774427950343_zvd4ym",
+      "pi_id": "pi3_1774427950345_ji3yu0",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course41_1774427950343_4nftpj",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course41_1774427950343_4nftpj",
+      "pi_id": "pi2_1774427950344_ynclh9",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course41_1774427950343_4nftpj",
+      "pi_id": "pi3_1774427950345_ji3yu0",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course20_1774427950343_21jhcb",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course20_1774427950343_21jhcb",
+      "pi_id": "pi2_1774427950344_ynclh9",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course20_1774427950343_21jhcb",
+      "pi_id": "pi3_1774427950345_ji3yu0",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course31_1774427950343_qx1dpy",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course31_1774427950343_qx1dpy",
+      "pi_id": "pi2_1774427950344_ynclh9",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course31_1774427950343_qx1dpy",
+      "pi_id": "pi3_1774427950345_ji3yu0",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course42_1774427950343_df2lhe",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course42_1774427950343_df2lhe",
+      "pi_id": "pi2_1774427950344_ynclh9",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course42_1774427950343_df2lhe",
+      "pi_id": "pi3_1774427950345_ji3yu0",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course21_1774427950343_toaqgi",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course21_1774427950343_toaqgi",
+      "pi_id": "pi2_1774427950344_ynclh9",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course21_1774427950343_toaqgi",
+      "pi_id": "pi3_1774427950345_ji3yu0",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course32_1774427950343_3tfnka",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course32_1774427950343_3tfnka",
+      "pi_id": "pi2_1774427950344_ynclh9",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course32_1774427950343_3tfnka",
+      "pi_id": "pi3_1774427950345_ji3yu0",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course43_1774427950343_61p42x",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course43_1774427950343_61p42x",
+      "pi_id": "pi2_1774427950344_ynclh9",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course43_1774427950343_61p42x",
+      "pi_id": "pi3_1774427950345_ji3yu0",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course7_1774427950342_znnxpd",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course7_1774427950342_znnxpd",
+      "pi_id": "pi3_1774427950345_ji3yu0",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course7_1774427950342_znnxpd",
+      "pi_id": "pi21_1774427950345_ujx5y4",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course8_1774427950342_esiz3k",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course8_1774427950342_esiz3k",
+      "pi_id": "pi3_1774427950345_ji3yu0",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course8_1774427950342_esiz3k",
+      "pi_id": "pi21_1774427950345_ujx5y4",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course15_1774427950343_mwri32",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course15_1774427950343_mwri32",
+      "pi_id": "pi3_1774427950345_ji3yu0",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course15_1774427950343_mwri32",
+      "pi_id": "pi21_1774427950345_ujx5y4",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course16_1774427950343_v2hka2",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course16_1774427950343_v2hka2",
+      "pi_id": "pi3_1774427950345_ji3yu0",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course16_1774427950343_v2hka2",
+      "pi_id": "pi21_1774427950345_ujx5y4",
+      "contribution_level": 2
+    }
+  ],
+  "assessments": [
+    {
+      "id": "assessment1_1774427950345_9odq0r",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "sample_course_id": "course47_1774427950343_n5ukug",
+      "course_code": "CHN111",
+      "course_name": "",
+      "assessment_tool": "Điểm chuyên cần",
+      "criteria": "Chuyên cần",
+      "threshold": "Tối thiểu 70% người học đáp ứng",
+      "semester": "HK1 / năm 3",
+      "assessor": "Trần Phương Anh",
+      "dept_code": ""
+    },
+    {
+      "id": "assessment2_1774427950345_oocqcu",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "pi_id": "pi1_1774427950344_t2d6mm",
+      "sample_course_id": "course47_1774427950343_n5ukug",
+      "course_code": "CHN111",
+      "course_name": "",
+      "assessment_tool": "Điểm chuyên cần",
+      "criteria": "Chuyên cần",
+      "threshold": "Tối thiểu 70% người học đáp ứng",
+      "semester": "HK1 / năm 3",
+      "assessor": "Trần Phương Anh",
+      "dept_code": ""
+    },
+    {
+      "id": "assessment3_1774427950345_tn44xp",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "pi_id": "pi2_1774427950344_ynclh9",
+      "sample_course_id": "course10_1774427950342_sgdrls",
+      "course_code": "SKL115",
+      "course_name": "",
+      "assessment_tool": "Rubric",
+      "criteria": "Báo cáo cuối kỳ",
+      "threshold": "Tối thiểu 70% người học đáp ứng",
+      "semester": "HK2 / năm 1",
+      "assessor": "",
+      "dept_code": "VJIT"
+    },
+    {
+      "id": "assessment4_1774427950345_fimiu3",
+      "plo_id": "plo1_1774427950338_k3y3w4",
+      "pi_id": "pi3_1774427950345_ji3yu0",
+      "sample_course_id": "course68_1774427950343_zj73ei",
+      "course_code": "SOS118",
+      "course_name": "",
+      "assessment_tool": "Thang điểm bài thi viết",
+      "criteria": "Câu hỏi bài kiểm tra",
+      "threshold": "Tối thiểu 70% người học đáp ứng",
+      "semester": "HK1/ năm 4",
+      "assessor": "Ngô Thế Sử",
+      "dept_code": "K.TQH"
+    },
+    {
+      "id": "assessment5_1774427950345_70jro2",
+      "plo_id": "plo2_1774427950338_y41awv",
+      "pi_id": "pi4_1774427950345_z8q4u5",
+      "sample_course_id": "course50_1774427950343_pyl1yq",
+      "course_code": "CHN126",
+      "course_name": "",
+      "assessment_tool": "Thang điểm bài thi viết",
+      "criteria": "Câu hỏi bài kiểm tra",
+      "threshold": "Tối thiểu 70% người học đáp ứng",
+      "semester": "HK1/ năm 3",
+      "assessor": "Khuất Thị Tú Anh",
+      "dept_code": "K.TQH"
+    },
+    {
+      "id": "assessment6_1774427950345_y752j0",
+      "plo_id": "plo2_1774427950338_y41awv",
+      "pi_id": "pi5_1774427950345_lq2655",
+      "sample_course_id": "course47_1774427950343_n5ukug",
+      "course_code": "CHN111",
+      "course_name": "",
+      "assessment_tool": "Thang điểm bài thi viết",
+      "criteria": "Câu hỏi bài kiểm tra",
+      "threshold": "Tối thiểu 70% người học đáp ứng",
+      "semester": "HK1/ năm 3",
+      "assessor": "Trần Phương Anh",
+      "dept_code": "K.TQH"
+    },
+    {
+      "id": "assessment7_1774427950345_7wi39e",
+      "plo_id": "plo2_1774427950338_y41awv",
+      "pi_id": "pi6_1774427950345_zzu1ok",
+      "sample_course_id": "course49_1774427950343_lx5o06",
+      "course_code": "CHN121",
+      "course_name": "",
+      "assessment_tool": "Thang điểm bài thi viết",
+      "criteria": "Câu hỏi bài kiểm tra",
+      "threshold": "Tối thiểu 70% người học đáp ứng",
+      "semester": "HK1/ năm 3",
+      "assessor": "Phạm Minh Thông",
+      "dept_code": "K.TQH"
+    },
+    {
+      "id": "assessment8_1774427950345_x1010t",
+      "plo_id": "plo3_1774427950338_2srv6v",
+      "pi_id": "pi7_1774427950345_5szwyh",
+      "sample_course_id": "course33_1774427950343_an1for",
+      "course_code": "ENC123",
+      "course_name": "",
+      "assessment_tool": "Thang điểm bài thi viết",
+      "criteria": "Câu hỏi bài kiểm tra",
+      "threshold": "Tối thiểu 70% người học đáp ứng",
+      "semester": "HK2/ năm 2",
+      "assessor": "",
+      "dept_code": "K.TA"
+    },
+    {
+      "id": "assessment9_1774427950345_eylgfb",
+      "plo_id": "plo4_1774427950338_qwrbja",
+      "pi_id": "pi8_1774427950345_b9ceep",
+      "sample_course_id": "course55_1774427950343_44jjkk",
+      "course_code": "CHN135",
+      "course_name": "",
+      "assessment_tool": "Thang điểm bài thi viết",
+      "criteria": "Câu hỏi bài kiểm tra",
+      "threshold": "Tối thiểu 70% người học đáp ứng",
+      "semester": "HK2/ năm 3",
+      "assessor": "Trần Phương Anh",
+      "dept_code": "K.TQH"
+    },
+    {
+      "id": "assessment10_1774427950345_2u84ji",
+      "plo_id": "plo4_1774427950338_qwrbja",
+      "pi_id": "pi8_1774427950345_b9ceep",
+      "sample_course_id": "course59_1774427950343_z1l8j4",
+      "course_code": "CHN144",
+      "course_name": "",
+      "assessment_tool": "Thang điểm bài thi viết",
+      "criteria": "Câu hỏi bài kiểm tra",
+      "threshold": "Tối thiểu 70% người học đáp ứng",
+      "semester": "HK2/ năm 3",
+      "assessor": "Khuất Thị Tú Anh",
+      "dept_code": "K.TQH"
+    },
+    {
+      "id": "assessment11_1774427950345_tgum7n",
+      "plo_id": "plo4_1774427950338_qwrbja",
+      "pi_id": "pi8_1774427950345_b9ceep",
+      "sample_course_id": "course62_1774427950343_fzgt8m",
+      "course_code": "CHN1004",
+      "course_name": "",
+      "assessment_tool": "Rubric",
+      "criteria": "Báo cáo cuối kỳ",
+      "threshold": "Tối thiểu 70% người học đáp ứng",
+      "semester": "HK2/ năm 3",
+      "assessor": "Lê Quốc Huỳnh",
+      "dept_code": "K.TQH"
+    },
+    {
+      "id": "assessment12_1774427950345_i2fpm6",
+      "plo_id": "plo4_1774427950338_qwrbja",
+      "pi_id": "pi9_1774427950345_dxr6ne",
+      "sample_course_id": "course49_1774427950343_lx5o06",
+      "course_code": "CHN121",
+      "course_name": "",
+      "assessment_tool": "Thang điểm bài thi viết",
+      "criteria": "Câu hỏi bài kiểm tra",
+      "threshold": "Tối thiểu 70% người học đáp ứng",
+      "semester": "HK1/ năm 3",
+      "assessor": "Phạm Minh Thông",
+      "dept_code": "K.TQH"
+    },
+    {
+      "id": "assessment13_1774427950345_hatdmd",
+      "plo_id": "plo4_1774427950338_qwrbja",
+      "pi_id": "pi10_1774427950345_oi0y7e",
+      "sample_course_id": "course68_1774427950343_zj73ei",
+      "course_code": "SOS118",
+      "course_name": "",
+      "assessment_tool": "Thang điểm bài thi viết",
+      "criteria": "Câu hỏi bài kiểm tra",
+      "threshold": "Tối thiểu 70% người học đáp ứng",
+      "semester": "HK1/ năm 4",
+      "assessor": "Ngô Thế Sử",
+      "dept_code": "K.TQH"
+    },
+    {
+      "id": "assessment14_1774427950345_6jkkpi",
+      "plo_id": "plo5_1774427950338_99dl3c",
+      "pi_id": "pi11_1774427950345_0ogbp9",
+      "sample_course_id": "course51_1774427950343_5sm7ck",
+      "course_code": "CHN134",
+      "course_name": "",
+      "assessment_tool": "Thang điểm bài thi viết",
+      "criteria": "Câu hỏi bài kiểm tra",
+      "threshold": "Tối thiểu 70% người học đáp ứng",
+      "semester": "HK2/ năm 3",
+      "assessor": "Sú Xuân Thanh",
+      "dept_code": "K.TQH"
+    },
+    {
+      "id": "assessment15_1774427950345_x6n9sp",
+      "plo_id": "plo5_1774427950338_99dl3c",
+      "pi_id": "pi12_1774427950345_lnjk4c",
+      "sample_course_id": "course49_1774427950343_lx5o06",
+      "course_code": "CHN121",
+      "course_name": "",
+      "assessment_tool": "Thang điểm bài thi viết",
+      "criteria": "Câu hỏi bài kiểm tra",
+      "threshold": "Tối thiểu 70% người học đáp ứng",
+      "semester": "HK1/ năm 3",
+      "assessor": "Phạm Minh Thông",
+      "dept_code": "K.TQH"
+    },
+    {
+      "id": "assessment16_1774427950345_0q5e69",
+      "plo_id": "plo6_1774427950338_i6tyoq",
+      "pi_id": "pi13_1774427950345_kc6qo3",
+      "sample_course_id": "course34_1774427950343_hwz7tj",
+      "course_code": "ENS192",
+      "course_name": "",
+      "assessment_tool": "Rubric",
+      "criteria": "Báo cáo cuối kỳ",
+      "threshold": "Tối thiểu 70% người học đáp ứng",
+      "semester": "HK2/ năm 2",
+      "assessor": "",
+      "dept_code": "K.TA"
+    },
+    {
+      "id": "assessment17_1774427950345_8liksk",
+      "plo_id": "plo6_1774427950338_i6tyoq",
+      "pi_id": "pi14_1774427950345_aufer4",
+      "sample_course_id": "course57_1774427950343_py1voa",
+      "course_code": "CHN137",
+      "course_name": "",
+      "assessment_tool": "Thang điểm bài thi viết",
+      "criteria": "Câu hỏi bài kiểm tra",
+      "threshold": "Tối thiểu 70% người học đáp ứng",
+      "semester": "HK2/ năm 3",
+      "assessor": "Lê Quốc Huỳnh",
+      "dept_code": "K.TQH"
+    },
+    {
+      "id": "assessment18_1774427950345_h1s78h",
+      "plo_id": "plo6_1774427950338_i6tyoq",
+      "pi_id": "pi14_1774427950345_aufer4",
+      "sample_course_id": "course58_1774427950343_e6ildy",
+      "course_code": "CHN139",
+      "course_name": "",
+      "assessment_tool": "Thang điểm bài thi viết",
+      "criteria": "Câu hỏi bài kiểm tra",
+      "threshold": "Tối thiểu 70% người học đáp ứng",
+      "semester": "HK2/ năm 3",
+      "assessor": "Đào Thị Châu Giang",
+      "dept_code": "K.TQH"
+    },
+    {
+      "id": "assessment19_1774427950345_r3guz1",
+      "plo_id": "plo6_1774427950338_i6tyoq",
+      "pi_id": "pi14_1774427950345_aufer4",
+      "sample_course_id": "course61_1774427950343_cf05rn",
+      "course_code": "CHN1003",
+      "course_name": "",
+      "assessment_tool": "Rubric",
+      "criteria": "Báo cáo cuối kỳ",
+      "threshold": "Tối thiểu 70% người học đáp ứng",
+      "semester": "HK2/ năm 3",
+      "assessor": "Thái Thị Ngọc Hương",
+      "dept_code": "K.TQH"
+    },
+    {
+      "id": "assessment20_1774427950345_7jl1w5",
+      "plo_id": "plo6_1774427950338_i6tyoq",
+      "pi_id": "pi15_1774427950345_l8jmtd",
+      "sample_course_id": "course54_1774427950343_x6zp31",
+      "course_code": "CHN5002",
+      "course_name": "",
+      "assessment_tool": "Rubric",
+      "criteria": "Bài thu hoạch",
+      "threshold": "Tối thiểu 70% người học đáp ứng",
+      "semester": "HK2/ năm 3",
+      "assessor": "Ngô Thế Sử",
+      "dept_code": "K.TQH"
+    },
+    {
+      "id": "assessment21_1774427950345_5tvcy3",
+      "plo_id": "plo6_1774427950338_i6tyoq",
+      "pi_id": "pi16_1774427950345_ypzmkw",
+      "sample_course_id": "course69_1774427950343_v6mww7",
+      "course_code": "CHN546",
+      "course_name": "",
+      "assessment_tool": "Rubric",
+      "criteria": "Báo cáo cuối kỳ",
+      "threshold": "Tối thiểu 70% người học đáp ứng",
+      "semester": "HK1/ năm 4",
+      "assessor": "Đào Thị Châu Giang",
+      "dept_code": "K.TQH"
+    },
+    {
+      "id": "assessment22_1774427950345_9ynawy",
+      "plo_id": "plo6_1774427950338_i6tyoq",
+      "pi_id": "pi17_1774427950345_xtirss",
+      "sample_course_id": "course6_1774427950342_wcfpuz",
+      "course_code": "AIT129",
+      "course_name": "",
+      "assessment_tool": "Rubric",
+      "criteria": "Đồ án",
+      "threshold": "Tối thiểu 70% người học đáp ứng",
+      "semester": "HK1/ năm 1",
+      "assessor": "",
+      "dept_code": "K.CNTT"
+    },
+    {
+      "id": "assessment23_1774427950345_eurphq",
+      "plo_id": "plo7_1774427950338_lw71ss",
+      "pi_id": "pi18_1774427950345_i1tqko",
+      "sample_course_id": null,
+      "course_code": "SKL122",
+      "course_name": "",
+      "assessment_tool": "Rubric",
+      "criteria": "Báo cáo cuối kỳ",
+      "threshold": "Tối thiểu 70% người học đáp ứng",
+      "semester": "HK2 / năm 1",
+      "assessor": "",
+      "dept_code": "VJIT"
+    },
+    {
+      "id": "assessment24_1774427950345_ysd2l0",
+      "plo_id": "plo7_1774427950338_lw71ss",
+      "pi_id": "pi19_1774427950345_yqk5vu",
+      "sample_course_id": "course69_1774427950343_v6mww7",
+      "course_code": "CHN546",
+      "course_name": "",
+      "assessment_tool": "Rubric",
+      "criteria": "Báo cáo cuối kỳ",
+      "threshold": "Tối thiểu 70% người học đáp ứng",
+      "semester": "HK1/ năm 4",
+      "assessor": "Đào Thị Châu Giang",
+      "dept_code": "K.TQH"
+    },
+    {
+      "id": "assessment25_1774427950345_683px1",
+      "plo_id": "plo7_1774427950338_lw71ss",
+      "pi_id": "pi20_1774427950345_vla4pr",
+      "sample_course_id": "course68_1774427950343_zj73ei",
+      "course_code": "SOS118",
+      "course_name": "",
+      "assessment_tool": "Thang điểm bài thi viết",
+      "criteria": "Câu hỏi bài kiểm tra",
+      "threshold": "Tối thiểu 70% người học đáp ứng",
+      "semester": "HK1/ năm 4",
+      "assessor": "Ngô Thế Sử",
+      "dept_code": "K.TQH"
+    },
+    {
+      "id": "assessment26_1774427950345_k37l06",
+      "plo_id": "plo7_1774427950338_lw71ss",
+      "pi_id": "pi21_1774427950345_ujx5y4",
+      "sample_course_id": "course51_1774427950343_5sm7ck",
+      "course_code": "CHN134",
+      "course_name": "",
+      "assessment_tool": "Điểm chuyên cần",
+      "criteria": "Chuyên cần",
+      "threshold": "Tối thiểu 70% người học đáp ứng",
+      "semester": "HK2/ năm 3",
+      "assessor": "Sú Xuân Thanh",
+      "dept_code": "K.TQH"
+    }
+  ],
+  "syllabi": [],
+  "plan_rows": [
+    {
+      "type": "semester",
+      "semester": 1,
+      "label": "Học kỳ 1"
+    },
+    {
+      "type": "course",
+      "semester": 1,
+      "course_code": "ENC120",
+      "course_name": "Anh ngữ 1",
+      "credits": 3
+    },
+    {
+      "type": "course",
+      "semester": 1,
+      "course_code": "CHN107",
+      "course_name": "Tiếng Trung – Nghe 1",
+      "credits": 3
+    },
+    {
+      "type": "course",
+      "semester": 1,
+      "course_code": "CHN112",
+      "course_name": "Tiếng Trung – Nói 1",
+      "credits": 3
+    },
+    {
+      "type": "course",
+      "semester": 1,
+      "course_code": "CHN117",
+      "course_name": "Tiếng Trung – Đọc 1",
+      "credits": 3
+    },
+    {
+      "type": "course",
+      "semester": 1,
+      "course_code": "CHN122",
+      "course_name": "Tiếng Trung – Viết 1",
+      "credits": 3
+    },
+    {
+      "type": "course",
+      "semester": 1,
+      "course_code": "AIT129",
+      "course_name": "Trí tuệ nhân tạo ứng dụng",
+      "credits": 3
+    },
+    {
+      "type": "course",
+      "semester": 1,
+      "course_code": "NDF108",
+      "course_name": "Quốc phòng, an ninh 1",
+      "credits": 0
+    },
+    {
+      "type": "course",
+      "semester": 1,
+      "course_code": "NDF109",
+      "course_name": "Quốc phòng, an ninh 2",
+      "credits": 0
+    },
+    {
+      "type": "semester",
+      "semester": 2,
+      "label": "Học kỳ 2"
+    },
+    {
+      "type": "course",
+      "semester": 2,
+      "course_code": "ENC121",
+      "course_name": "Anh ngữ 2",
+      "credits": 3
+    },
+    {
+      "type": "course",
+      "semester": 2,
+      "course_code": "SKL115",
+      "course_name": "Tư duy thiết kế dự án",
+      "credits": 3
+    },
+    {
+      "type": "course",
+      "semester": 2,
+      "course_code": "CHN108",
+      "course_name": "Tiếng Trung – Nghe 2",
+      "credits": 3
+    },
+    {
+      "type": "course",
+      "semester": 2,
+      "course_code": "CHN113",
+      "course_name": "Tiếng Trung – Nói 2",
+      "credits": 3
+    },
+    {
+      "type": "course",
+      "semester": 2,
+      "course_code": "CHN118",
+      "course_name": "Tiếng Trung – Đọc 2",
+      "credits": 3
+    },
+    {
+      "type": "course",
+      "semester": 2,
+      "course_code": "CHN123",
+      "course_name": "Tiếng Trung – Viết 2",
+      "credits": 3
+    },
+    {
+      "type": "course",
+      "semester": 2,
+      "course_code": "NDF210",
+      "course_name": "Quốc phòng, an ninh 3",
+      "credits": 0
+    },
+    {
+      "type": "course",
+      "semester": 2,
+      "course_code": "NDF211",
+      "course_name": "Quốc phòng, an ninh 4",
+      "credits": 0
+    },
+    {
+      "type": "course",
+      "semester": 2,
+      "course_code": "PHT304",
+      "course_name": "Bóng chuyền 1",
+      "credits": 2
+    },
+    {
+      "type": "course",
+      "semester": 2,
+      "course_code": "PHT307",
+      "course_name": "Bóng rổ 1",
+      "credits": 2
+    },
+    {
+      "type": "course",
+      "semester": 2,
+      "course_code": "PHT310",
+      "course_name": "Thể hình - Thẩm mỹ 1",
+      "credits": 2
+    },
+    {
+      "type": "course",
+      "semester": 2,
+      "course_code": "PHT313",
+      "course_name": "Vovinam 1",
+      "credits": 2
+    },
+    {
+      "type": "course",
+      "semester": 2,
+      "course_code": "PHT316",
+      "course_name": "Bóng đá 1",
+      "credits": 2
+    },
+    {
+      "type": "semester",
+      "semester": 3,
+      "label": "Học kỳ 3"
+    },
+    {
+      "type": "course",
+      "semester": 3,
+      "course_code": "ENC122",
+      "course_name": "Anh ngữ 3",
+      "credits": 3
+    },
+    {
+      "type": "course",
+      "semester": 3,
+      "course_code": "CHN109",
+      "course_name": "Tiếng Trung – Nghe 3",
+      "credits": 3
+    },
+    {
+      "type": "course",
+      "semester": 3,
+      "course_code": "CHN114",
+      "course_name": "Tiếng Trung – Nói 3",
+      "credits": 3
+    },
+    {
+      "type": "course",
+      "semester": 3,
+      "course_code": "CHN119",
+      "course_name": "Tiếng Trung – Đọc 3",
+      "credits": 3
+    },
+    {
+      "type": "course",
+      "semester": 3,
+      "course_code": "CHN124",
+      "course_name": "Tiếng Trung – Viết 3",
+      "credits": 3
+    },
+    {
+      "type": "course",
+      "semester": 3,
+      "course_code": "POS104",
+      "course_name": "Triết học Mác - Lênin",
+      "credits": 3
+    },
+    {
+      "type": "course",
+      "semester": 3,
+      "course_code": "PHT305",
+      "course_name": "Bóng chuyền 2",
+      "credits": 2
+    },
+    {
+      "type": "course",
+      "semester": 3,
+      "course_code": "PHT308",
+      "course_name": "Bóng rổ 2",
+      "credits": 2
+    },
+    {
+      "type": "course",
+      "semester": 3,
+      "course_code": "PHT311",
+      "course_name": "Thể hình - Thẩm mỹ 2",
+      "credits": 2
+    },
+    {
+      "type": "course",
+      "semester": 3,
+      "course_code": "PHT314",
+      "course_name": "Vovinam 2",
+      "credits": 2
+    },
+    {
+      "type": "course",
+      "semester": 3,
+      "course_code": "PHT317",
+      "course_name": "Bóng đá 2",
+      "credits": 2
+    },
+    {
+      "type": "semester",
+      "semester": 4,
+      "label": "Học kỳ 4"
+    },
+    {
+      "type": "course",
+      "semester": 4,
+      "course_code": "ENC123",
+      "course_name": "Anh ngữ 4",
+      "credits": 3
+    },
+    {
+      "type": "course",
+      "semester": 4,
+      "course_code": "ENS192",
+      "course_name": "Phát triển bền vững",
+      "credits": 3
+    },
+    {
+      "type": "course",
+      "semester": 4,
+      "course_code": "CHN110",
+      "course_name": "Tiếng Trung – Nghe 4",
+      "credits": 3
+    },
+    {
+      "type": "course",
+      "semester": 4,
+      "course_code": "CHN115",
+      "course_name": "Tiếng Trung – Nói 4",
+      "credits": 3
+    },
+    {
+      "type": "course",
+      "semester": 4,
+      "course_code": "CHN120",
+      "course_name": "Tiếng Trung – Đọc 4",
+      "credits": 3
+    },
+    {
+      "type": "course",
+      "semester": 4,
+      "course_code": "CHN125",
+      "course_name": "Tiếng Trung – Viết 4",
+      "credits": 3
+    },
+    {
+      "type": "course",
+      "semester": 4,
+      "course_code": "PHT306",
+      "course_name": "Bóng chuyền 3",
+      "credits": 1
+    },
+    {
+      "type": "course",
+      "semester": 4,
+      "course_code": "PHT309",
+      "course_name": "Bóng rổ 3",
+      "credits": 1
+    },
+    {
+      "type": "course",
+      "semester": 4,
+      "course_code": "PHT312",
+      "course_name": "Thể hình - Thẩm mỹ 3",
+      "credits": 1
+    },
+    {
+      "type": "course",
+      "semester": 4,
+      "course_code": "PHT315",
+      "course_name": "Vovinam 3",
+      "credits": 1
+    },
+    {
+      "type": "course",
+      "semester": 4,
+      "course_code": "PHT318",
+      "course_name": "Bóng đá 3",
+      "credits": 1
+    },
+    {
+      "type": "semester",
+      "semester": 5,
+      "label": "Học kỳ 5"
+    },
+    {
+      "type": "course",
+      "semester": 5,
+      "course_code": "POS107",
+      "course_name": "Lịch sử Đảng Cộng sản Việt Nam",
+      "credits": 2
+    },
+    {
+      "type": "course",
+      "semester": 5,
+      "course_code": "POS105",
+      "course_name": "Kinh tế chính trị Mác - Lênin",
+      "credits": 2
+    },
+    {
+      "type": "course",
+      "semester": 5,
+      "course_code": "ENG183",
+      "course_name": "Dẫn luận ngôn ngữ",
+      "credits": 3
+    },
+    {
+      "type": "course",
+      "semester": 5,
+      "course_code": "CHN111",
+      "course_name": "Tiếng Trung – Nghe 5",
+      "credits": 3
+    },
+    {
+      "type": "course",
+      "semester": 5,
+      "course_code": "CHN116",
+      "course_name": "Tiếng Trung – Nói 5",
+      "credits": 3
+    },
+    {
+      "type": "course",
+      "semester": 5,
+      "course_code": "CHN121",
+      "course_name": "Tiếng Trung – Đọc",
+      "credits": 3
+    },
+    {
+      "type": "course",
+      "semester": 5,
+      "course_code": "CHN126",
+      "course_name": "Tiếng Trung – Viết 5",
+      "credits": 3
+    },
+    {
+      "type": "semester",
+      "semester": 6,
+      "label": "Học kỳ 6"
+    },
+    {
+      "type": "course",
+      "semester": 6,
+      "course_code": "CHN134",
+      "course_name": "Lý thuyết tiếng Trung Quốc",
+      "credits": 3
+    },
+    {
+      "type": "course",
+      "semester": 6,
+      "course_code": "POS103",
+      "course_name": "Tư tưởng Hồ Chí Minh",
+      "credits": 2
+    },
+    {
+      "type": "course",
+      "semester": 6,
+      "course_code": "POS106",
+      "course_name": "Chủ nghĩa xã hội khoa học",
+      "credits": 2
+    },
+    {
+      "type": "course",
+      "semester": 6,
+      "course_code": "CHN5002",
+      "course_name": "Thực tế trải nghiệm văn hóa và ngôn ngữ Trung Quốc",
+      "credits": 3
+    },
+    {
+      "type": "course",
+      "semester": 6,
+      "course_code": "CHN135",
+      "course_name": "Thư tín thương mại tiếng Trung",
+      "credits": 3
+    },
+    {
+      "type": "course",
+      "semester": 6,
+      "course_code": "CHN128",
+      "course_name": "Tiếng Trung Thương mại",
+      "credits": 3
+    },
+    {
+      "type": "course",
+      "semester": 6,
+      "course_code": "CHN137",
+      "course_name": "Tiếng Trung hành chính – văn phòng",
+      "credits": 3
+    },
+    {
+      "type": "course",
+      "semester": 6,
+      "course_code": "CHN139",
+      "course_name": "Kỹ năng dịch nói tiếng Trung",
+      "credits": 3
+    },
+    {
+      "type": "course",
+      "semester": 6,
+      "course_code": "CHN144",
+      "course_name": "Kỹ năng dịch viết tiếng Trung",
+      "credits": 3
+    },
+    {
+      "type": "course",
+      "semester": 6,
+      "course_code": "AIT1021",
+      "course_name": "Ứng dụng AI trong dịch thuật tiếng Trung",
+      "credits": 3
+    },
+    {
+      "type": "course",
+      "semester": 6,
+      "course_code": "CHN1003",
+      "course_name": "Thiết kế giáo án và thực hành giảng dạy tiếng Trung",
+      "credits": 3
+    },
+    {
+      "type": "course",
+      "semester": 6,
+      "course_code": "CHN1004",
+      "course_name": "Kỹ năng giảng dạy tiếng Trung",
+      "credits": 3
+    },
+    {
+      "type": "course",
+      "semester": 6,
+      "course_code": "AIT1022",
+      "course_name": "Ứng dụng AI trong giảng dạy tiếng Trung",
+      "credits": 3
+    },
+    {
+      "type": "course",
+      "semester": 6,
+      "course_code": "CHN4005",
+      "course_name": "Khóa luận tốt nghiệp Ngôn ngữ Trung Quốc",
+      "credits": 9
+    },
+    {
+      "type": "semester",
+      "semester": 7,
+      "label": "Học kỳ 7"
+    },
+    {
+      "type": "course",
+      "semester": 7,
+      "course_code": "MAN116",
+      "course_name": "Quản trị học",
+      "credits": 3
+    },
+    {
+      "type": "course",
+      "semester": 7,
+      "course_code": "LAW158",
+      "course_name": "Luật và Khởi nghiệp",
+      "credits": 3
+    },
+    {
+      "type": "course",
+      "semester": 7,
+      "course_code": "SLK122",
+      "course_name": "Kỹ năng phát triển bản thân",
+      "credits": 3
+    },
+    {
+      "type": "course",
+      "semester": 7,
+      "course_code": "SOS118",
+      "course_name": "Văn hoá, xã hội Trung Quốc",
+      "credits": 3
+    },
+    {
+      "type": "course",
+      "semester": 7,
+      "course_code": "CHN546",
+      "course_name": "Thực tập tốt nghiệp ngành Ngôn ngữ Trung Quốc",
+      "credits": 3
+    }
+  ],
+  "import_metadata": {
+    "paragraph_count": 48,
+    "table_count": 14
+  }
+}

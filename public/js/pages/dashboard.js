@@ -39,6 +39,7 @@ window.DashboardPage = {
           </div>
         </div>
 
+        ${window.App.hasPerm('rbac.view_audit_logs') ? `
         <div>
           <h3 style="font-size:14px;font-weight:600;margin-bottom:12px;">Hoạt động gần đây</h3>
           ${(stats.recentActivity || []).length === 0
@@ -55,7 +56,7 @@ window.DashboardPage = {
               `).join('')}
             </div>`
           }
-        </div>
+        </div>` : ''}
       `;
     } catch (e) {
       container.innerHTML = `<div class="empty-state"><div class="icon">⚠️</div><h3>Lỗi</h3><p>${e.message}</p></div>`;

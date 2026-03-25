@@ -1,0 +1,197 @@
+{
+  "program_name": "CHƯƠNG TRÌNH ĐÀO TẠO",
+  "program_code": "7480201",
+  "degree": "Đại học",
+  "total_credits": 8,
+  "academic_year": "",
+  "version_name": "Phiên bản Import",
+  "pos": [
+    {
+      "id": "po1_1774429903317_vzmppj",
+      "code": "PO1",
+      "description": "x"
+    },
+    {
+      "id": "po2_1774429903317_exmpi5",
+      "code": "PO2",
+      "description": ""
+    }
+  ],
+  "plos": [
+    {
+      "id": "plo1_1774429903316_hyrl2l",
+      "code": "PLO1",
+      "bloom_level": 3,
+      "description": "Vận dụng kiến thức cơ bản về khoa học máy tính."
+    },
+    {
+      "id": "plo2_1774429903317_xkakdy",
+      "code": "PLO2",
+      "bloom_level": 4,
+      "description": "Phân tích thuật toán và tối ưu hóa mã nguồn."
+    },
+    {
+      "id": "plo3_1774429903317_msttv9",
+      "code": "PLO3",
+      "bloom_level": 3,
+      "description": "Nhận thức đạo đức nghề nghiệp IT."
+    }
+  ],
+  "pis": [
+    {
+      "id": "pi1_1774429903319_9fkeuv",
+      "plo_id": "plo1_1774429903316_hyrl2l",
+      "pi_code": "PI1.01",
+      "description": "Áp dụng thuật toán sắp xếp cơ bản.",
+      "course_ids": []
+    },
+    {
+      "id": "pi2_1774429903319_29y68l",
+      "plo_id": "plo1_1774429903316_hyrl2l",
+      "pi_code": "PI1.02",
+      "description": "Áp dụng kỹ thuật cây nghị phân.",
+      "course_ids": []
+    },
+    {
+      "id": "pi3_1774429903319_8bkkkn",
+      "plo_id": "plo2_1774429903317_xkakdy",
+      "pi_code": "PI2.01",
+      "description": "Tối ưu hóa độ phức tạp thời gian.",
+      "course_ids": []
+    },
+    {
+      "id": "pi4_1774429903319_y6mom6",
+      "plo_id": "plo2_1774429903317_xkakdy",
+      "pi_code": "PI2.02",
+      "description": "Viết mã nguồn chuẩn Clean Code.",
+      "course_ids": []
+    },
+    {
+      "id": "pi5_1774429903319_2c63sv",
+      "plo_id": "plo3_1774429903317_msttv9",
+      "pi_code": "PI3.01",
+      "description": "Tuân thủ bản quyền phần mềm mã nguồn mở.",
+      "course_ids": []
+    }
+  ],
+  "courses": [
+    {
+      "id": "course1_1774429903322_diu6bx",
+      "course_id": null,
+      "course_code": "IT101",
+      "course_name": "Nhập môn Lập trình",
+      "credits": 3,
+      "semester": 1,
+      "course_type": "required",
+      "dept_name": "",
+      "dept_code": ""
+    },
+    {
+      "id": "course2_1774429903322_zj2ep3",
+      "course_id": null,
+      "course_code": "IT102",
+      "course_name": "Cơ sở dữ liệu",
+      "credits": 3,
+      "semester": 1,
+      "course_type": "required",
+      "dept_name": "",
+      "dept_code": ""
+    },
+    {
+      "id": "course3_1774429903322_5n522s",
+      "course_id": null,
+      "course_code": "IT201",
+      "course_name": "Cấu trúc dữ liệu và giải thuật",
+      "credits": 2,
+      "semester": 2,
+      "course_type": "required",
+      "dept_name": "",
+      "dept_code": ""
+    }
+  ],
+  "po_plo_map": [
+    {
+      "po_id": "po1_1774429903317_vzmppj",
+      "plo_id": "plo2_1774429903317_xkakdy"
+    },
+    {
+      "po_id": "po2_1774429903317_exmpi5",
+      "plo_id": "plo2_1774429903317_xkakdy"
+    },
+    {
+      "po_id": "po2_1774429903317_exmpi5",
+      "plo_id": "plo3_1774429903317_msttv9"
+    }
+  ],
+  "course_plo_map": [
+    {
+      "course_id": "course1_1774429903322_diu6bx",
+      "plo_id": "plo1_1774429903316_hyrl2l",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course2_1774429903322_zj2ep3",
+      "plo_id": "plo1_1774429903316_hyrl2l",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course2_1774429903322_zj2ep3",
+      "plo_id": "plo2_1774429903317_xkakdy",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course3_1774429903322_5n522s",
+      "plo_id": "plo1_1774429903316_hyrl2l",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course3_1774429903322_5n522s",
+      "plo_id": "plo2_1774429903317_xkakdy",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course3_1774429903322_5n522s",
+      "plo_id": "plo3_1774429903317_msttv9",
+      "contribution_level": 1
+    }
+  ],
+  "course_pi_map": [
+    {
+      "course_id": "course1_1774429903322_diu6bx",
+      "pi_id": "pi1_1774429903319_9fkeuv",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course2_1774429903322_zj2ep3",
+      "pi_id": "pi1_1774429903319_9fkeuv",
+      "contribution_level": 2
+    },
+    {
+      "course_id": "course2_1774429903322_zj2ep3",
+      "pi_id": "pi3_1774429903319_8bkkkn",
+      "contribution_level": 1
+    },
+    {
+      "course_id": "course3_1774429903322_5n522s",
+      "pi_id": "pi1_1774429903319_9fkeuv",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course3_1774429903322_5n522s",
+      "pi_id": "pi3_1774429903319_8bkkkn",
+      "contribution_level": 3
+    },
+    {
+      "course_id": "course3_1774429903322_5n522s",
+      "pi_id": "pi5_1774429903319_2c63sv",
+      "contribution_level": 1
+    }
+  ],
+  "assessments": [],
+  "syllabi": [],
+  "plan_rows": [],
+  "import_metadata": {
+    "paragraph_count": 11,
+    "table_count": 6
+  }
+}
