@@ -102,6 +102,14 @@ window.ImportWordPage = {
       if (!res.ok) throw new Error(json.error || 'Lỗi phân tích file');
       this.parsedData = json.data || json;
       await this._loadDepartments();
+      // Check if program code already exists
+      this.existingProgram = null;
+      const code = this.parsedData?.program?.code;
+      if (code) {
+        const programs = await fetch('/api/programs').then(r => r.json());
+        const found = programs.find(p => p.code === code);
+        if (found) this.existingProgram = found;
+      }
       this._renderSummary();
     } catch (e) {
       document.getElementById('iw-spinner').style.display = 'none';
@@ -192,10 +200,18 @@ window.ImportWordPage = {
         `).join('')}
       </div>
 
+      <!-- Existing program notice -->
+      ${this.existingProgram ? `
+      <div style="padding:12px 16px;border-radius:var(--radius-lg);background:var(--info-bg, #e8f4fd);border:1px solid var(--info, #2196F3);color:var(--info, #1976D2);margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+        <strong>CTĐT đã tồn tại:</strong>
+        <span style="font-size:13px;">"${this._esc(this.existingProgram.name)}" (Mã: ${this._esc(this.existingProgram.code)}) — sẽ tạo phiên bản mới cho CTĐT này.</span>
+      </div>` : ''}
+
       <!-- Save area -->
-      <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;">Tạo bản nháp CTĐT</h3>
+      <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;">${this.existingProgram ? 'Tạo phiên bản mới' : 'Tạo bản nháp CTĐT'}</h3>
       <div style="padding:16px;background:var(--bg-secondary);border-radius:var(--radius-lg);">
         <div style="display:flex;gap:10px;align-items:end;flex-wrap:wrap;">
+          ${this.existingProgram ? '' : `
           <div class="input-group" style="min-width:180px;flex:1;margin:0;">
             <label>Khoa quản lý <span style="color:var(--danger);">*</span></label>
             <select id="iw-dept-select">${deptOptions}</select>
@@ -204,6 +220,7 @@ window.ImportWordPage = {
             <label>Ngành <span style="color:var(--danger);">*</span></label>
             <select id="iw-nganh-select"><option value="">— Chọn ngành —</option></select>
           </div>
+          `}
           <div class="input-group" style="width:140px;margin:0;">
             <label>Năm học <span style="color:var(--danger);">*</span></label>
             <input type="text" id="iw-year-input" placeholder="2024-2025" value="${this._escAttr(ver.academic_year || d.academic_year || '')}">
@@ -212,14 +229,14 @@ window.ImportWordPage = {
         <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">
           <button class="btn btn-secondary btn-sm" onclick="window.ImportWordPage._backToUpload()">← Chọn lại file</button>
           <button class="btn btn-primary btn-sm" id="iw-save-btn" ${errCount > 0 ? 'disabled' : ''} onclick="window.ImportWordPage._confirmSave()">
-            Tạo bản nháp & Chỉnh sửa
+            ${this.existingProgram ? 'Tạo phiên bản & Chỉnh sửa' : 'Tạo bản nháp & Chỉnh sửa'}
           </button>
         </div>
         ${errCount > 0 ? `<div style="color:var(--danger);font-size:13px;margin-top:8px;">Có ${errCount} lỗi — không thể tạo bản nháp. Sửa file Word và upload lại.</div>` : ''}
       </div>
     `;
 
-    this._bindDeptNganh();
+    if (!this.existingProgram) this._bindDeptNganh();
   },
 
   _bindDeptNganh() {
@@ -240,7 +257,7 @@ window.ImportWordPage = {
     const nganhSelect = document.getElementById('iw-nganh-select');
     const yearInput = document.getElementById('iw-year-input');
 
-    if (!nganhSelect || !nganhSelect.value) {
+    if (!this.existingProgram && (!nganhSelect || !nganhSelect.value)) {
       window.toast?.error('Vui lòng chọn ngành.');
       return;
     }
@@ -248,19 +265,25 @@ window.ImportWordPage = {
       window.toast?.error('Vui lòng nhập năm học.');
       return;
     }
+    // Auto-fix single year → YYYY-YYYY+1
+    let yearVal = yearInput.value.trim();
+    if (/^\d{4}$/.test(yearVal)) {
+      yearVal = `${yearVal}-${parseInt(yearVal) + 1}`;
+      yearInput.value = yearVal;
+    }
+    if (!/^\d{4}-\d{4}$/.test(yearVal)) {
+      window.toast?.error('Năm học phải có dạng YYYY-YYYY (VD: 2025-2026).');
+      return;
+    }
 
     const progName = this.parsedData?.program?.name || 'CTĐT';
     const poCount = (this.parsedData?.objectives || []).length;
     const ploCount = (this.parsedData?.plos || []).length;
     const courseCount = (this.parsedData?.courses || []).length;
-    const confirmed = confirm(
-      `Xác nhận tạo bản nháp CTĐT?\n\n` +
-      `Ngành: ${nganhSelect.options[nganhSelect.selectedIndex]?.text}\n` +
-      `Năm học: ${yearInput.value.trim()}\n` +
-      `Nội dung: ${poCount} PO, ${ploCount} PLO, ${courseCount} học phần\n\n` +
-      `Sau khi tạo, bạn sẽ được chuyển đến trang chỉnh sửa phiên bản.`
-    );
-    if (!confirmed) return;
+    const confirmMsg = this.existingProgram
+      ? `Xác nhận tạo phiên bản mới cho CTĐT "${this.existingProgram.name}"?\n\nNăm học: ${yearVal}\nNội dung: ${poCount} PO, ${ploCount} PLO, ${courseCount} học phần\n\nSau khi tạo, bạn sẽ được chuyển đến trang chỉnh sửa phiên bản.`
+      : `Xác nhận tạo bản nháp CTĐT?\n\nNgành: ${nganhSelect.options[nganhSelect.selectedIndex]?.text}\nNăm học: ${yearVal}\nNội dung: ${poCount} PO, ${ploCount} PLO, ${courseCount} học phần\n\nSau khi tạo, bạn sẽ được chuyển đến trang chỉnh sửa phiên bản.`;
+    if (!confirm(confirmMsg)) return;
 
     const saveBtn = document.getElementById('iw-save-btn');
     saveBtn.disabled = true;
@@ -268,10 +291,11 @@ window.ImportWordPage = {
 
     try {
       const data = this.parsedData;
-      if (data.version) data.version.academic_year = yearInput.value.trim();
+      if (data.version) data.version.academic_year = yearVal;
       const payload = {
         ...data,
-        department_id: parseInt(nganhSelect.value || deptSelect.value, 10),
+        department_id: this.existingProgram ? this.existingProgram.department_id : parseInt(nganhSelect.value || deptSelect.value, 10),
+        existing_program_id: this.existingProgram ? this.existingProgram.id : null,
       };
       const res = await fetch('/api/import/save', {
         method: 'POST',

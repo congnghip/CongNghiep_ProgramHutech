@@ -66,11 +66,11 @@ window.SyllabusEditorPage = {
 
     container.innerHTML = `
       <div style="margin-bottom:24px;">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-          <button class="btn btn-secondary btn-sm" onclick="window.App.navigate('programs')">← Quay lại</button>
-          <span style="color:var(--text-muted);">/ Đề cương /</span>
-          <span style="font-weight:500;">${s.course_code} — ${s.course_name}</span>
-        </div>
+        <nav style="display:flex;align-items:center;gap:6px;font-size:13px;margin-bottom:12px;flex-wrap:wrap;">
+          <a href="#" onclick="event.preventDefault();window.App.navigate('my-assignments')" style="color:var(--text-muted);text-decoration:none;cursor:pointer;" onmouseenter="this.style.textDecoration='underline'" onmouseleave="this.style.textDecoration='none'">Đề cương của tôi</a>
+          <span style="color:var(--text-muted);">›</span>
+          <span style="color:var(--text);font-weight:600;">${s.course_code} — ${s.course_name}</span>
+        </nav>
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <div>
             <h1 style="font-size:22px;font-weight:700;letter-spacing:-0.3px;">${s.course_name}</h1>

@@ -1983,39 +1983,52 @@ app.post('/api/import/save', authMiddleware, requirePerm('programs.import_word')
     teachingPlan, assessmentPlan,
     courseDescriptions,
     department_id,
+    existing_program_id,
   } = req.body;
 
   if (!program || !program.code) return res.status(400).json({ success: false, error: 'Missing program.code' });
-  if (!department_id) return res.status(400).json({ success: false, error: 'Missing department_id' });
+  if (!existing_program_id && !department_id) return res.status(400).json({ success: false, error: 'Missing department_id' });
 
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
 
-    // ── Step 1: Check duplicate program code ──────────────────────────────
-    const dupCheck = await client.query('SELECT id FROM programs WHERE code=$1', [program.code]);
-    if (dupCheck.rows.length) {
-      await client.query('ROLLBACK');
-      return res.status(409).json({ success: false, error: `Program with code "${program.code}" already exists` });
-    }
+    let program_id;
 
-    // ── Step 2: INSERT programs ───────────────────────────────────────────
-    const progRes = await client.query(
-      `INSERT INTO programs (department_id, name, name_en, code, degree, total_credits, institution, degree_name, training_mode)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`,
-      [
-        department_id,
-        program.name || '',
-        program.name_en || null,
-        program.code,
-        program.degree || 'Đại học',
-        program.total_credits || null,
-        program.institution || null,
-        program.degree_name || null,
-        program.training_mode || null,
-      ]
-    );
-    const program_id = progRes.rows[0].id;
+    if (existing_program_id) {
+      // ── Use existing program — just add a new version ─────────────────
+      const existCheck = await client.query('SELECT id FROM programs WHERE id=$1', [existing_program_id]);
+      if (!existCheck.rows.length) {
+        await client.query('ROLLBACK');
+        return res.status(404).json({ success: false, error: 'CTĐT không tồn tại' });
+      }
+      program_id = existing_program_id;
+    } else {
+      // ── Step 1: Check duplicate program code ──────────────────────────
+      const dupCheck = await client.query('SELECT id FROM programs WHERE code=$1', [program.code]);
+      if (dupCheck.rows.length) {
+        await client.query('ROLLBACK');
+        return res.status(409).json({ success: false, error: `CTĐT mã "${program.code}" đã tồn tại. Hãy chọn lại file để hệ thống phát hiện và tạo phiên bản mới.` });
+      }
+
+      // ── Step 2: INSERT programs ─────────────────────────────────────────
+      const progRes = await client.query(
+        `INSERT INTO programs (department_id, name, name_en, code, degree, total_credits, institution, degree_name, training_mode)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id`,
+        [
+          department_id,
+          program.name || '',
+          program.name_en || null,
+          program.code,
+          program.degree || 'Đại học',
+          program.total_credits || null,
+          program.institution || null,
+          program.degree_name || null,
+          program.training_mode || null,
+        ]
+      );
+      program_id = progRes.rows[0].id;
+    }
 
     // ── Step 3: INSERT program_versions ──────────────────────────────────
     const verRes = await client.query(
@@ -2026,7 +2039,7 @@ app.post('/api/import/save', authMiddleware, requirePerm('programs.import_word')
        VALUES ($1,$2,$3,'draft',$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id`,
       [
         program_id,
-        (version && version.academic_year) ? version.academic_year : new Date().getFullYear().toString(),
+        (version && version.academic_year) ? version.academic_year : `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`,
         (version && version.version_name) ? version.version_name : null,
         program.total_credits || null,
         (version && version.training_duration) ? version.training_duration : (program.duration || null),

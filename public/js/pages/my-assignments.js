@@ -21,11 +21,10 @@ window.MyAssignmentsPage = {
                 <th>Hạn nộp</th>
                 <th>Còn lại</th>
                 <th>Trạng thái</th>
-                <th></th>
               </tr>
             </thead>
             <tbody id="my-assignments-tbody">
-              <tr><td colspan="10"><div class="spinner"></div></td></tr>
+              <tr><td colspan="9"><div class="spinner"></div></td></tr>
             </tbody>
           </table>
         </div>
@@ -42,7 +41,7 @@ window.MyAssignmentsPage = {
       this.renderTable();
     } catch (e) {
       document.getElementById('my-assignments-tbody').innerHTML =
-        `<tr><td colspan="10" style="color:var(--danger);text-align:center;">${e.message}</td></tr>`;
+        `<tr><td colspan="9" style="color:var(--danger);text-align:center;">${e.message}</td></tr>`;
     }
   },
 
@@ -54,7 +53,7 @@ window.MyAssignmentsPage = {
     };
 
     if (!this.assignments.length) {
-      tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;color:var(--text-muted);">Chưa có phân công nào.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text-muted);">Chưa có phân công nào.</td></tr>';
       return;
     }
 
@@ -87,17 +86,15 @@ window.MyAssignmentsPage = {
       const deadlineStr = a.deadline ? new Date(a.deadline).toLocaleDateString('vi-VN') : '—';
       const ctdt = `${a.program_code || a.program_name} (${a.academic_year})`;
 
-      // Action button
-      let actionBtn = '';
-      if (!a.syllabus_id) {
-        actionBtn = `<button class="btn btn-primary btn-sm" onclick="window.MyAssignmentsPage.createAndOpen(${a.assignment_id})">Tạo ĐC</button>`;
-      } else if (a.syllabus_status === 'draft') {
-        actionBtn = `<button class="btn btn-primary btn-sm" onclick="window.App.navigate('syllabus-editor',{syllabusId:${a.syllabus_id}})">Soạn</button>`;
-      } else {
-        actionBtn = `<button class="btn btn-secondary btn-sm" onclick="window.App.navigate('syllabus-editor',{syllabusId:${a.syllabus_id}})">Xem</button>`;
-      }
+      // Row click handler
+      const rowClick = a.syllabus_id
+        ? `window.App.navigate('syllabus-editor',{syllabusId:${a.syllabus_id}})`
+        : `window.MyAssignmentsPage.createAndOpen(${a.assignment_id})`;
 
-      return `<tr>
+      return `<tr style="cursor:pointer;transition:background .15s;"
+                  onmouseenter="this.style.background='var(--bg-hover, #f5f5f5)'"
+                  onmouseleave="this.style.background=''"
+                  onclick="${rowClick}">
         <td><strong>${a.course_code}</strong></td>
         <td>${a.course_name}</td>
         <td style="text-align:center;">${a.credits}</td>
@@ -107,7 +104,6 @@ window.MyAssignmentsPage = {
         <td style="font-size:12px;">${deadlineStr}</td>
         <td style="font-size:12px;${daysClass}">${daysLeft}</td>
         <td><span class="badge ${statusClass}">${sylStatus}</span></td>
-        <td style="white-space:nowrap;">${actionBtn}</td>
       </tr>`;
     }).join('');
   },

@@ -228,6 +228,19 @@ window.ProgramsPage = {
       await this.saveVersionEdit();
     });
     document.getElementById('prog-notes').addEventListener('input', () => this.updateNotesCount());
+
+    // Click overlay → auto-save & close
+    document.getElementById('prog-modal').addEventListener('click', async (e) => {
+      if (e.target.classList.contains('modal-overlay')) {
+        await this.saveProgram();
+      }
+    });
+    document.getElementById('ver-edit-modal').addEventListener('click', async (e) => {
+      if (e.target.classList.contains('modal-overlay')) {
+        await this.saveVersionEdit();
+      }
+    });
+
     await this.loadData();
   },
 
@@ -283,19 +296,20 @@ window.ProgramsPage = {
     });
 
     const renderProg = (p) => `
-      <div class="tree-node" style="display:flex;justify-content:space-between;align-items:center;">
-        <div>
+      <div class="tree-node" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;padding:10px 12px;border-radius:8px;transition:background .15s;"
+           onmouseenter="this.style.background='var(--bg-hover, #f5f5f5)'"
+           onmouseleave="this.style.background=''"
+           onclick="window.ProgramsPage.viewVersions(${p.id},'${p.name.replace(/'/g,"\\'")}')">
+        <div style="flex:1;min-width:0;">
           <div style="font-weight:600;font-size:14px;">${p.name}</div>
           <div style="font-size:11px;color:var(--text-muted);">
             Mã: ${p.code || '—'} · ${p.degree} · ${p.total_credits || '?'} TC ·
             <span class="badge badge-neutral">${p.version_count} phiên bản</span>
           </div>
         </div>
-        <div style="display:flex;gap:4px;">
-          <button class="btn btn-secondary btn-sm" onclick="window.ProgramsPage.viewVersions(${p.id},'${p.name.replace(/'/g,"\\'")}')">Phiên bản</button>
-          ${window.App.hasPerm('programs.create_version') ? `<button class="btn btn-secondary btn-sm" onclick="window.ProgramsPage.openVersionModal(${p.id})">+ Phiên bản</button>` : ''}
-          ${window.App.hasPerm('programs.edit') ? `<button class="btn btn-secondary btn-sm" onclick="window.ProgramsPage.openEditModal(${p.id})">✏️</button>` : ''}
-          ${window.App.hasPerm('programs.delete_draft') ? `<button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="window.ProgramsPage.deleteProgram(${p.id}, '${p.name.replace(/'/g, "\\'")}')">🗑️</button>` : ''}
+        <div style="display:flex;gap:6px;flex-shrink:0;" onclick="event.stopPropagation()">
+          ${window.App.hasPerm('programs.edit') ? `<button class="btn btn-sm" style="background:none;border:1px solid var(--border);color:var(--text);font-size:12px;" onclick="window.ProgramsPage.openEditModal(${p.id})">Chỉnh sửa</button>` : ''}
+          ${window.App.hasPerm('programs.delete_draft') ? `<button class="btn btn-sm" style="background:none;border:none;color:var(--danger);font-size:12px;font-weight:500;" onclick="window.ProgramsPage.deleteProgram(${p.id}, '${p.name.replace(/'/g, "\\'")}')">Xóa</button>` : ''}
         </div>
       </div>
     `;
@@ -507,8 +521,11 @@ window.ProgramsPage = {
           ? '<div class="empty-state"><div class="icon">📭</div><p>Chưa có phiên bản nào</p></div>'
           : `<div style="display:grid;gap:10px;">
             ${versions.map(v => `
-              <div class="tree-node" style="display:flex;justify-content:space-between;align-items:center;${v.is_locked ? 'opacity:0.7;' : ''}">
-                <div>
+              <div class="tree-node" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;padding:10px 12px;border-radius:8px;transition:background .15s;${v.is_locked ? 'opacity:0.7;' : ''}"
+                   onmouseenter="this.style.background='var(--bg-hover, #f5f5f5)'"
+                   onmouseleave="this.style.background=''"
+                   onclick="window.App.navigate('version-editor',{versionId:${v.id}})">
+                <div style="flex:1;min-width:0;">
                   <div style="font-weight:600;font-size:15px;">
                     ${v.academic_year}
                     ${v.is_locked ? '<span class="badge badge-danger" style="margin-left:6px;">🔒 Khóa</span>' : ''}
@@ -521,13 +538,10 @@ window.ProgramsPage = {
                     ${v.copied_from_id ? ' · Copy từ phiên bản trước' : ''}
                   </div>
                 </div>
-                <div style="display:flex;gap:4px;">
+                <div style="display:flex;gap:6px;flex-shrink:0;" onclick="event.stopPropagation()">
                   ${window.App.hasPerm('programs.create_version') ? `<button class="btn btn-secondary btn-sm" title="Nhân bản phiên bản này" onclick="window.ProgramsPage.cloneVersion(${programId}, ${v.id}, '${v.academic_year}')">📋 Nhân bản</button>` : ''}
-                  ${window.App.hasPerm('programs.edit') && v.status === 'draft' ? `<button class="btn btn-secondary btn-sm" title="Chỉnh sửa phiên bản" onclick="window.ProgramsPage.openVersionEditModal(${v.id}, ${programId}, '${programName.replace(/'/g, "\\'")}')">✏️</button>` : ''}
-                  <button class="btn btn-primary btn-sm" onclick="window.App.navigate('version-editor',{versionId:${v.id}})">${v.status === 'draft' ? 'Soạn thảo' : 'Xem'}</button>
-                  ${window.App.hasPerm('programs.delete_draft') && v.status === 'draft' ? `
-                    <button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="window.ProgramsPage.deleteVersion(${v.id}, '${v.academic_year}', ${programId}, '${programName.replace(/'/g, "\\'")}')">🗑️</button>
-                  ` : ''}
+                  ${window.App.hasPerm('programs.edit') && v.status === 'draft' ? `<button class="btn btn-sm" style="background:none;border:1px solid var(--border);color:var(--text);font-size:12px;" onclick="window.ProgramsPage.openVersionEditModal(${v.id}, ${programId}, '${programName.replace(/'/g, "\\'")}')">Chỉnh sửa</button>` : ''}
+                  ${window.App.hasPerm('programs.delete_draft') && v.status === 'draft' ? `<button class="btn btn-sm" style="background:none;border:none;color:var(--danger);font-size:12px;font-weight:500;" onclick="window.ProgramsPage.deleteVersion(${v.id}, '${v.academic_year}', ${programId}, '${programName.replace(/'/g, "\\'")}')">Xóa</button>` : ''}
                 </div>
               </div>
             `).join('')}
