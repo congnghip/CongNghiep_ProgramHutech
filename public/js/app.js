@@ -201,6 +201,7 @@
         'my-assignments': window.MyAssignmentsPage,
         'audit-logs': window.AuditLogsPage,
         'rbac-admin': window.RBACAdminPage,
+        'import-word': window.ImportWordPage,
       };
 
       const pageModule = pages[page];

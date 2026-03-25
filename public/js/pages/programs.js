@@ -9,7 +9,10 @@ window.ProgramsPage = {
       <div class="card">
         <div class="card-header">
           <div class="card-title">Chương trình Đào tạo</div>
-          ${window.App.hasPerm('programs.create') ? `<button class="btn btn-primary" onclick="window.ProgramsPage.openAddModal()">+ Tạo CTĐT</button>` : ''}
+          <div style="display:flex;gap:8px;">
+            ${window.App.hasPerm('programs.import_word') ? `<button class="btn btn-outline-primary" onclick="window.App.navigate('import-word')">Import Word</button>` : ''}
+            ${window.App.hasPerm('programs.create') ? `<button class="btn btn-primary" onclick="window.ProgramsPage.openAddModal()">+ Tạo CTĐT</button>` : ''}
+          </div>
         </div>
         <div id="programs-content" class="card-body"><div class="spinner"></div></div>
       </div>
