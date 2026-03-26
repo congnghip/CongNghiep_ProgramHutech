@@ -977,11 +977,22 @@ app.delete('/api/pis/:id', authMiddleware, async (req, res) => {
 // ============ COURSES MASTER LIST ============
 app.get('/api/courses', authMiddleware, requirePerm('courses.view'), async (req, res) => {
   try {
-    const result = await pool.query(`
-      SELECT c.*, d.name as dept_name, d.code as dept_code
-      FROM courses c LEFT JOIN departments d ON c.department_id = d.id
-      ORDER BY c.code
-    `);
+    const roles = await getUserRoles(req.user.id);
+    const highest = roles.length ? roles[0] : null;
+    const deptIds = highest ? await getDepartmentScope(highest.department_id, highest.level) : [0];
+
+    const result = deptIds
+      ? await pool.query(`
+          SELECT c.*, d.name as dept_name, d.code as dept_code
+          FROM courses c LEFT JOIN departments d ON c.department_id = d.id
+          WHERE c.department_id = ANY($1)
+          ORDER BY c.code
+        `, [deptIds])
+      : await pool.query(`
+          SELECT c.*, d.name as dept_name, d.code as dept_code
+          FROM courses c LEFT JOIN departments d ON c.department_id = d.id
+          ORDER BY c.code
+        `);
     res.json(result.rows);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
