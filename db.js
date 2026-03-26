@@ -295,7 +295,6 @@ async function initDB() {
         batch VARCHAR(10),
         notes TEXT
       );
-      CREATE UNIQUE INDEX IF NOT EXISTS teaching_plan_vc_unique ON teaching_plan (version_course_id);
 
       -- Audit Logs
       CREATE TABLE IF NOT EXISTS audit_logs (

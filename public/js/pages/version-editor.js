@@ -577,16 +577,13 @@ window.VersionEditorPage = {
               <td><strong>${c.course_code}</strong></td>
               <td>${c.course_name}${c.elective_group ? ` <span style="color:var(--text-muted);font-size:11px;">(${c.elective_group})</span>` : ''}</td>
               <td style="text-align:center;">${c.credits}</td>
-              ${editable ? `<td style="text-align:center;"><input type="number" min="0" style="width:50px;text-align:center;" value="${c.credits_theory || 0}" id="vc-lt-${c.id}"></td>` : `<td style="text-align:center;color:var(--text-muted);">${c.credits_theory || '—'}</td>`}
-              ${editable ? `<td style="text-align:center;"><input type="number" min="0" style="width:50px;text-align:center;" value="${c.credits_practice || 0}" id="vc-th-${c.id}"></td>` : `<td style="text-align:center;color:var(--text-muted);">${c.credits_practice || '—'}</td>`}
-              ${editable ? `<td style="text-align:center;"><input type="number" min="0" style="width:50px;text-align:center;" value="${c.credits_project || 0}" id="vc-da-${c.id}"></td>` : `<td style="text-align:center;color:var(--text-muted);">${c.credits_project || '—'}</td>`}
-              ${editable ? `<td style="text-align:center;"><input type="number" min="0" style="width:50px;text-align:center;" value="${c.credits_internship || 0}" id="vc-tt-${c.id}"></td>` : `<td style="text-align:center;color:var(--text-muted);">${c.credits_internship || '—'}</td>`}
-              ${editable ? `<td style="text-align:center;"><input type="number" min="1" max="8" style="width:50px;text-align:center;" value="${c.semester || 1}" id="vc-hk-${c.id}"></td>` : `<td><span class="badge badge-info">HK ${c.semester}</span></td>`}
+              <td style="text-align:center;color:var(--text-muted);">${c.credits_theory || '—'}</td>
+              <td style="text-align:center;color:var(--text-muted);">${c.credits_practice || '—'}</td>
+              <td style="text-align:center;color:var(--text-muted);">${c.credits_project || '—'}</td>
+              <td style="text-align:center;color:var(--text-muted);">${c.credits_internship || '—'}</td>
+              <td><span class="badge badge-info">HK ${c.semester}</span></td>
               <td><span class="badge ${c.course_type === 'required' ? 'badge-success' : 'badge-warning'}">${c.course_type === 'required' ? 'Bắt buộc' : 'Tự chọn'}</span></td>
-              ${editable ? `<td style="white-space:nowrap;">
-  <button class="btn btn-primary btn-sm" onclick="window.VersionEditorPage.saveCourseRow(${c.id}, ${c.semester})">Lưu</button>
-  <button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="window.VersionEditorPage.removeCourse(${c.id})">Xóa</button>
-</td>` : ''}
+              ${editable ? `<td><button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="window.VersionEditorPage.removeCourse(${c.id})">Xóa</button></td>` : ''}
             </tr>
           `).join('')}
         </tbody>
@@ -616,70 +613,6 @@ window.VersionEditorPage = {
     this.renderTab();
   },
 
-  async saveCourseRow(vcId, origSemester) {
-    const credits_theory = parseInt(document.getElementById(`vc-lt-${vcId}`).value) || 0;
-    const credits_practice = parseInt(document.getElementById(`vc-th-${vcId}`).value) || 0;
-    const credits_project = parseInt(document.getElementById(`vc-da-${vcId}`).value) || 0;
-    const credits_internship = parseInt(document.getElementById(`vc-tt-${vcId}`).value) || 0;
-    const semester = parseInt(document.getElementById(`vc-hk-${vcId}`).value) || 1;
-    try {
-      await fetch(`/api/version-courses/${vcId}/course-info`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ credits_theory, credits_practice, credits_project, credits_internship })
-      }).then(r => { if (!r.ok) throw r; });
-      if (semester !== origSemester) {
-        await fetch(`/api/version-courses/${vcId}`, {
-          method: 'PUT', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ semester })
-        }).then(r => { if (!r.ok) throw r; });
-      }
-      window.toast.success('Đã cập nhật');
-      this.renderTab();
-    } catch (e) { window.toast.error('Lỗi cập nhật'); }
-  },
-
-  async saveDescription(vcId) {
-    const description = document.getElementById(`vc-desc-${vcId}`).value.trim();
-    try {
-      const res = await fetch(`/api/version-courses/${vcId}/course-info`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description })
-      });
-      if (!res.ok) throw new Error((await res.json()).error);
-      window.toast.success('Đã cập nhật mô tả');
-      this.renderTab();
-    } catch (e) { window.toast.error(e.message); }
-  },
-
-  async saveTeachingPlan(vcId, tpId) {
-    const hours_theory = parseInt(document.getElementById(`tp-lt-${vcId}`).value) || 0;
-    const hours_practice = parseInt(document.getElementById(`tp-th-${vcId}`).value) || 0;
-    const hours_project = parseInt(document.getElementById(`tp-da-${vcId}`).value) || 0;
-    const hours_internship = parseInt(document.getElementById(`tp-tt-${vcId}`).value) || 0;
-    const software = document.getElementById(`tp-sw-${vcId}`).value.trim();
-    const managing_dept = document.getElementById(`tp-dept-${vcId}`).value.trim();
-    const batch = document.getElementById(`tp-batch-${vcId}`).value.trim();
-    const notes = document.getElementById(`tp-notes-${vcId}`).value.trim();
-    try {
-      const data = { hours_theory, hours_practice, hours_project, hours_internship, software, managing_dept, batch, notes };
-      let res;
-      if (tpId) {
-        res = await fetch(`/api/teaching-plan/${tpId}`, {
-          method: 'PUT', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        });
-      } else {
-        res = await fetch(`/api/versions/${this.versionId}/teaching-plan`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ version_course_id: vcId, ...data })
-        });
-      }
-      if (!res.ok) throw new Error((await res.json()).error);
-      window.toast.success('Đã cập nhật kế hoạch');
-      this.renderTab();
-    } catch (e) { window.toast.error(e.message); }
-  },
-
   // ===== TAB 7: Teaching Plan =====
   async renderPlanTab(body, editable) {
     const [vCourses, teachingPlan] = await Promise.all([
@@ -688,23 +621,6 @@ window.VersionEditorPage = {
     ]);
     const hasTeachingPlan = teachingPlan.length > 0;
 
-    // Build lookup map: version_course_id -> teaching_plan record
-    const tpMap = {};
-    teachingPlan.forEach(tp => { tpMap[tp.version_course_id] = tp; });
-
-    // For editable mode, always group vCourses by semester so all courses appear
-    let editSemKeys = [];
-    let editSemesters = {};
-    if (editable) {
-      vCourses.forEach(c => {
-        const sem = c.semester || 0;
-        if (!editSemesters[sem]) editSemesters[sem] = [];
-        editSemesters[sem].push(c);
-      });
-      editSemKeys = Object.keys(editSemesters).sort((a, b) => a - b);
-    }
-
-    // For read-only mode, keep existing logic
     const semesters = {};
     const source = hasTeachingPlan ? teachingPlan : vCourses;
     source.forEach(c => {
@@ -714,58 +630,9 @@ window.VersionEditorPage = {
     });
     const semKeys = Object.keys(semesters).sort((a, b) => a - b);
 
-    // Build editable table HTML
-    const editableTableHTML = editSemKeys.map(sem => {
-      const items = editSemesters[sem];
-      const totalCredits = items.reduce((s, c) => s + (c.credits || 0), 0);
-      return `
-      <div style="margin-bottom:24px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-          <strong style="font-size:14px;">Học kỳ ${sem}</strong>
-          <span style="color:var(--text-muted);font-size:12px;">${totalCredits} TC</span>
-        </div>
-        <div style="overflow-x:auto;">
-        <table class="data-table">
-          <thead><tr>
-            <th>Mã HP</th><th>Tên HP</th><th style="text-align:center;">TC</th>
-            <th style="text-align:center;font-size:11px;">Tiết LT</th>
-            <th style="text-align:center;font-size:11px;">Tiết TH</th>
-            <th style="text-align:center;font-size:11px;">Tiết ĐA</th>
-            <th style="text-align:center;font-size:11px;">Tiết TT</th>
-            <th>Phần mềm</th><th>Đơn vị QL</th><th>Đợt</th><th>Ghi chú</th><th></th>
-          </tr></thead>
-          <tbody>
-            ${items.map(c => {
-              const tp = tpMap[c.id] || {};
-              return `
-              <tr>
-                <td><strong>${c.course_code}</strong></td>
-                <td>${c.course_name}</td>
-                <td style="text-align:center;">${c.credits || ''}</td>
-                <td><input type="number" min="0" id="tp-lt-${c.id}" style="width:55px;text-align:center;" value="${tp.hours_theory || 0}"></td>
-                <td><input type="number" min="0" id="tp-th-${c.id}" style="width:55px;text-align:center;" value="${tp.hours_practice || 0}"></td>
-                <td><input type="number" min="0" id="tp-da-${c.id}" style="width:55px;text-align:center;" value="${tp.hours_project || 0}"></td>
-                <td><input type="number" min="0" id="tp-tt-${c.id}" style="width:55px;text-align:center;" value="${tp.hours_internship || 0}"></td>
-                <td><input type="text" id="tp-sw-${c.id}" style="width:120px;font-size:12px;" value="${tp.software || ''}"></td>
-                <td><input type="text" id="tp-dept-${c.id}" style="width:100px;font-size:12px;" value="${tp.managing_dept || ''}"></td>
-                <td><input type="text" id="tp-batch-${c.id}" style="width:50px;text-align:center;" value="${tp.batch || ''}"></td>
-                <td><input type="text" id="tp-notes-${c.id}" style="width:120px;font-size:12px;" value="${tp.notes || ''}"></td>
-                <td><button class="btn btn-primary btn-sm" onclick="window.VersionEditorPage.saveTeachingPlan(${c.id}, ${tp.id || 0})">Lưu</button></td>
-              </tr>`;
-            }).join('')}
-          </tbody>
-        </table>
-        </div>
-      </div>`;
-    }).join('');
-
     body.innerHTML = `
       <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;">Kế hoạch giảng dạy</h3>
-      ${editable ? (
-        editSemKeys.length === 0
-          ? '<p style="color:var(--text-muted);font-size:13px;">Hãy gán HP vào CTĐT trước.</p>'
-          : editableTableHTML
-      ) : (semKeys.length === 0 ? '<p style="color:var(--text-muted);font-size:13px;">Hãy gán HP vào CTĐT trước.</p>' : hasTeachingPlan ? `
+      ${semKeys.length === 0 ? '<p style="color:var(--text-muted);font-size:13px;">Hãy gán HP vào CTĐT trước.</p>' : hasTeachingPlan ? `
         ${semKeys.map(sem => {
           const items = semesters[sem];
           const totalCredits = items.reduce((s, c) => s + (c.credits || 0), 0);
@@ -815,7 +682,7 @@ window.VersionEditorPage = {
             </div>
           `).join('')}
         </div>
-      `)}
+      `}
     `;
   },
 
@@ -871,14 +738,13 @@ window.VersionEditorPage = {
       </div>
       ${vCourses.length === 0 ? '<p style="color:var(--text-muted);font-size:13px;">Hãy gán HP vào CTĐT trước.</p>' : `
         <table class="data-table">
-          <thead><tr><th style="width:80px;">Mã HP</th><th style="width:200px;">Tên HP</th><th>Mô tả</th>${editable ? '<th></th>' : ''}</tr></thead>
+          <thead><tr><th style="width:80px;">Mã HP</th><th style="width:200px;">Tên HP</th><th>Mô tả</th></tr></thead>
           <tbody>
             ${vCourses.map(c => `
               <tr>
                 <td><strong style="color:var(--primary);">${c.course_code}</strong></td>
                 <td>${c.course_name}</td>
-                ${editable ? `<td><textarea id="vc-desc-${c.id}" rows="2" style="width:100%;font-size:13px;resize:vertical;">${c.course_desc || ''}</textarea></td>` : `<td style="font-size:13px;color:${c.course_desc ? 'var(--text)' : 'var(--text-muted)'};">${c.course_desc || '—'}</td>`}
-                ${editable ? `<td><button class="btn btn-primary btn-sm" onclick="window.VersionEditorPage.saveDescription(${c.id})">Lưu</button></td>` : ''}
+                <td style="font-size:13px;color:${c.course_desc ? 'var(--text)' : 'var(--text-muted)'};">${c.course_desc || '—'}</td>
               </tr>
             `).join('')}
           </tbody>
