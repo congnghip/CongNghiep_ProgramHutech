@@ -85,6 +85,19 @@ window.SyllabusEditorPage = {
           </div>
         </div>
       </div>
+      ${s.is_rejected ? `
+        <div style="background:rgba(227, 179, 65, 0.12);border:1px solid #e3a008;border-radius:var(--radius-lg);padding:16px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <span class="badge badge-warning" style="padding:4px 8px;font-weight:600;">Bị từ chối</span>
+            <div style="font-size:13px;color:#92600a;font-weight:500;">Yêu cầu chỉnh sửa từ người phê duyệt</div>
+          </div>
+          <button class="btn btn-sm" style="background:#e3a008;color:#fff;border:none;" onclick="window.SyllabusEditorPage.toggleRejectionReason()">Lý do từ chối</button>
+        </div>
+        <div id="syl-rejection-panel" style="display:none;background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;margin-bottom:24px;">
+          <h4 style="font-size:13px;font-weight:600;margin-bottom:8px;">Lý do chi tiết:</h4>
+          <div style="font-size:13px;line-height:1.5;white-space:pre-wrap;">${s.rejection_reason || 'Chưa có lý do cụ thể.'}</div>
+        </div>
+      ` : ''}
       <div id="syl-import-warnings" style="display:none;margin-bottom:16px;"></div>
       <div class="tab-bar" id="syl-tabs">
         <div class="tab-item active" data-tab="0">Thông tin chung</div>
@@ -616,6 +629,11 @@ window.SyllabusEditorPage = {
       this.syllabus.status = 'submitted';
       this.render(document.getElementById('page-content'), this.syllabusId);
     } catch (e) { window.toast.error(e.message); }
+  },
+
+  toggleRejectionReason() {
+    const panel = document.getElementById('syl-rejection-panel');
+    if (panel) panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
   },
 
   destroy() {}
