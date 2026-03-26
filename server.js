@@ -742,7 +742,7 @@ app.get('/api/versions/:vId/objectives', authMiddleware, requireViewVersion, asy
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/versions/:vId/objectives', authMiddleware, requireDraft('vId', 'programs.po.edit'), async (req, res) => {
+app.post('/api/versions/:vId/objectives', authMiddleware, requireDraft('vId'), async (req, res) => {
   const { code, description } = req.body;
   try {
     const result = await pool.query(
@@ -758,7 +758,7 @@ app.put('/api/objectives/:id', authMiddleware, async (req, res) => {
   try {
     const objRes = await pool.query('SELECT version_id FROM version_objectives WHERE id=$1', [req.params.id]);
     if (!objRes.rows.length) throw new Error('Không tìm thấy PO');
-    await checkVersionEditAccess(req.user.id, objRes.rows[0].version_id, 'programs.po.edit');
+    await checkVersionEditAccess(req.user.id, objRes.rows[0].version_id);
 
     const result = await pool.query(
       'UPDATE version_objectives SET code=COALESCE($1,code), description=COALESCE($2,description) WHERE id=$3 RETURNING *',
@@ -772,7 +772,7 @@ app.delete('/api/objectives/:id', authMiddleware, async (req, res) => {
   try {
     const objRes = await pool.query('SELECT version_id FROM version_objectives WHERE id=$1', [req.params.id]);
     if (!objRes.rows.length) throw new Error('Không tìm thấy PO');
-    await checkVersionEditAccess(req.user.id, objRes.rows[0].version_id, 'programs.po.edit');
+    await checkVersionEditAccess(req.user.id, objRes.rows[0].version_id);
 
     await pool.query('DELETE FROM version_objectives WHERE id=$1', [req.params.id]);
     res.json({ success: true });
@@ -802,7 +802,7 @@ app.get('/api/versions/:vId/plos', authMiddleware, requireViewVersion, async (re
 app.post('/api/versions/:vId/plos', authMiddleware, async (req, res) => {
   const { code, bloom_level, description } = req.body;
   try {
-    await checkVersionEditAccess(req.user.id, req.params.vId, 'programs.plo.edit');
+    await checkVersionEditAccess(req.user.id, req.params.vId);
     const result = await pool.query(
       'INSERT INTO version_plos (version_id, code, bloom_level, description) VALUES ($1,$2,$3,$4) RETURNING *',
       [req.params.vId, code, bloom_level || 1, description]
@@ -816,7 +816,7 @@ app.put('/api/plos/:id', authMiddleware, async (req, res) => {
   try {
     const ploRes = await pool.query('SELECT version_id FROM version_plos WHERE id=$1', [req.params.id]);
     if (!ploRes.rows.length) throw new Error('Không tìm thấy PLO');
-    await checkVersionEditAccess(req.user.id, ploRes.rows[0].version_id, 'programs.plo.edit');
+    await checkVersionEditAccess(req.user.id, ploRes.rows[0].version_id);
 
     const result = await pool.query(
       'UPDATE version_plos SET code=COALESCE($1,code), bloom_level=COALESCE($2,bloom_level), description=COALESCE($3,description) WHERE id=$4 RETURNING *',
@@ -830,7 +830,7 @@ app.delete('/api/plos/:id', authMiddleware, async (req, res) => {
   try {
     const ploRes = await pool.query('SELECT version_id FROM version_plos WHERE id=$1', [req.params.id]);
     if (!ploRes.rows.length) throw new Error('Không tìm thấy PLO');
-    await checkVersionEditAccess(req.user.id, ploRes.rows[0].version_id, 'programs.plo.edit');
+    await checkVersionEditAccess(req.user.id, ploRes.rows[0].version_id);
 
     await pool.query('DELETE FROM version_plos WHERE id=$1', [req.params.id]);
     res.json({ success: true });
@@ -845,10 +845,10 @@ app.post('/api/plos/:ploId/pis', authMiddleware, async (req, res) => {
     const ploRes = await client.query('SELECT version_id FROM version_plos WHERE id=$1', [req.params.ploId]);
     if (!ploRes.rows.length) throw new Error('Không tìm thấy PLO');
     const versionId = ploRes.rows[0].version_id;
-    await checkVersionEditAccess(req.user.id, versionId, 'programs.plo.edit');
+    await checkVersionEditAccess(req.user.id, versionId);
 
     await client.query('BEGIN');
-    
+
     if (course_ids && course_ids.length > 0) {
       const mapRes = await client.query('SELECT course_id FROM course_plo_map WHERE plo_id=$1 AND contribution_level > 0', [req.params.ploId]);
       const validIds = new Set(mapRes.rows.map(r => r.course_id));
@@ -886,7 +886,7 @@ app.put('/api/pis/:id', authMiddleware, async (req, res) => {
     const ploId = piRes.rows[0].plo_id;
     const ploRes = await client.query('SELECT version_id FROM version_plos WHERE id=$1', [ploId]);
     const versionId = ploRes.rows[0].version_id;
-    await checkVersionEditAccess(req.user.id, versionId, 'programs.plo.edit');
+    await checkVersionEditAccess(req.user.id, versionId);
 
     await client.query('BEGIN');
     if (course_ids) {
@@ -920,7 +920,7 @@ app.delete('/api/pis/:id', authMiddleware, async (req, res) => {
     const piRes = await pool.query('SELECT plo_id FROM plo_pis WHERE id=$1', [req.params.id]);
     if (!piRes.rows.length) throw new Error('Không tìm thấy PI');
     const ploRes = await pool.query('SELECT version_id FROM version_plos WHERE id=$1', [piRes.rows[0].plo_id]);
-    await checkVersionEditAccess(req.user.id, ploRes.rows[0].version_id, 'programs.plo.edit');
+    await checkVersionEditAccess(req.user.id, ploRes.rows[0].version_id);
 
     await pool.query('DELETE FROM plo_pis WHERE id=$1', [req.params.id]);
     res.json({ success: true });
@@ -1021,7 +1021,7 @@ app.get('/api/versions/:vId/teaching-plan', authMiddleware, async (req, res) => 
   }
 });
 
-app.post('/api/versions/:vId/courses', authMiddleware, requireDraft('vId', 'programs.courses.edit'), async (req, res) => {
+app.post('/api/versions/:vId/courses', authMiddleware, requireDraft('vId'), async (req, res) => {
   const { course_id, semester, course_type } = req.body;
   try {
     const result = await pool.query(
@@ -1037,7 +1037,7 @@ app.put('/api/version-courses/:id', authMiddleware, async (req, res) => {
   try {
     const vcRes = await pool.query('SELECT version_id FROM version_courses WHERE id=$1', [req.params.id]);
     if (!vcRes.rows.length) throw new Error('Không tìm thấy HP trong phiên bản');
-    await checkVersionEditAccess(req.user.id, vcRes.rows[0].version_id, 'programs.courses.edit');
+    await checkVersionEditAccess(req.user.id, vcRes.rows[0].version_id);
 
     const result = await pool.query(
       'UPDATE version_courses SET semester=COALESCE($1,semester), course_type=COALESCE($2,course_type) WHERE id=$3 RETURNING *',
@@ -1051,7 +1051,7 @@ app.delete('/api/version-courses/:id', authMiddleware, async (req, res) => {
   try {
     const vcRes = await pool.query('SELECT version_id FROM version_courses WHERE id=$1', [req.params.id]);
     if (!vcRes.rows.length) throw new Error('Không tìm thấy HP trong phiên bản');
-    await checkVersionEditAccess(req.user.id, vcRes.rows[0].version_id, 'programs.courses.edit');
+    await checkVersionEditAccess(req.user.id, vcRes.rows[0].version_id);
 
     await pool.query('DELETE FROM version_courses WHERE id=$1', [req.params.id]);
     res.json({ success: true });
@@ -1066,7 +1066,7 @@ app.get('/api/versions/:vId/po-plo-map', authMiddleware, requireViewVersion, asy
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.put('/api/versions/:vId/po-plo-map', authMiddleware, requireDraft('vId', 'programs.matrix.edit'), async (req, res) => {
+app.put('/api/versions/:vId/po-plo-map', authMiddleware, requireDraft('vId'), async (req, res) => {
   const { mappings } = req.body; // [{ po_id, plo_id }]
   try {
     await pool.query('DELETE FROM po_plo_map WHERE version_id=$1', [req.params.vId]);
@@ -1085,7 +1085,7 @@ app.get('/api/versions/:vId/course-plo-map', authMiddleware, requireViewVersion,
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.put('/api/versions/:vId/course-plo-map', authMiddleware, requireDraft('vId', 'programs.matrix.edit'), async (req, res) => {
+app.put('/api/versions/:vId/course-plo-map', authMiddleware, requireDraft('vId'), async (req, res) => {
   const { mappings } = req.body; // [{ course_id, plo_id, contribution_level }]
   try {
     await pool.query('DELETE FROM course_plo_map WHERE version_id=$1', [req.params.vId]);
@@ -1119,7 +1119,7 @@ app.get('/api/versions/:vId/course-pi-map', authMiddleware, requireViewVersion, 
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.put('/api/versions/:vId/course-pi-map', authMiddleware, requireDraft('vId', 'programs.matrix.edit'), async (req, res) => {
+app.put('/api/versions/:vId/course-pi-map', authMiddleware, requireDraft('vId'), async (req, res) => {
   const { pi_mappings } = req.body;
   const client = await pool.connect();
   try {
@@ -1153,7 +1153,7 @@ app.get('/api/versions/:vId/assessments', authMiddleware, requireViewVersion, as
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post('/api/versions/:vId/assessments', authMiddleware, requireDraft('vId', 'programs.assessment.edit'), async (req, res) => {
+app.post('/api/versions/:vId/assessments', authMiddleware, requireDraft('vId'), async (req, res) => {
   const { plo_id, pi_id, sample_course_id, assessment_tool, criteria, threshold, semester, assessor, dept_code } = req.body;
   try {
     const result = await pool.query(
@@ -1169,7 +1169,7 @@ app.delete('/api/assessments/:id', authMiddleware, async (req, res) => {
   try {
     const aRes = await pool.query('SELECT version_id FROM assessment_plans WHERE id=$1', [req.params.id]);
     if (!aRes.rows.length) throw new Error('Không tìm thấy kế hoạch đánh giá');
-    await checkVersionEditAccess(req.user.id, aRes.rows[0].version_id, 'programs.assessment.edit');
+    await checkVersionEditAccess(req.user.id, aRes.rows[0].version_id);
 
     await pool.query('DELETE FROM assessment_plans WHERE id=$1', [req.params.id]);
     res.json({ success: true });
