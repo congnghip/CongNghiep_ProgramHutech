@@ -2126,7 +2126,7 @@ app.get('/api/dashboard/stats', authMiddleware, async (req, res) => {
     const highest = roles.length ? roles[0] : null; // already sorted by level DESC
     const level = highest ? highest.level : 0;
     const roleCode = highest ? highest.role_code : null;
-    const deptIds = highest ? await getDepartmentScope(highest.department_id, level) : null;
+    const deptIds = highest ? await getDepartmentScope(highest.department_id, level) : [0]; // no roles = empty scope (matches nothing)
 
     // Build WHERE clause for department-scoped filtering
     // deptIds = null means system-wide (no filter)
@@ -2220,11 +2220,16 @@ app.get('/api/dashboard/stats', authMiddleware, async (req, res) => {
         pool.query("SELECT COUNT(*) as c FROM version_syllabi WHERE status = 'approved_pdt'"),
       ]);
       pendingQuery = { rows: [{ c: String(parseInt(pendV.rows[0].c) + parseInt(pendS.rows[0].c)) }] };
+    } else if (roleCode === 'ADMIN') {
+      // ADMIN: all pending versions + syllabi across all statuses
+      const [pendV, pendS] = await Promise.all([
+        pool.query("SELECT COUNT(*) as c FROM program_versions WHERE status IN ('submitted','approved_khoa','approved_pdt')"),
+        pool.query("SELECT COUNT(*) as c FROM version_syllabi WHERE status IN ('submitted','approved_tbm','approved_khoa','approved_pdt')"),
+      ]);
+      pendingQuery = { rows: [{ c: String(parseInt(pendV.rows[0].c) + parseInt(pendS.rows[0].c)) }] };
     } else {
-      // ADMIN: all pending across all statuses
-      pendingQuery = await pool.query(
-        "SELECT COUNT(*) as c FROM program_versions WHERE status IN ('submitted','approved_khoa','approved_pdt')"
-      );
+      // No role — show zero
+      pendingQuery = { rows: [{ c: '0' }] };
     }
 
     // --- Departments ---
