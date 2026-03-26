@@ -452,6 +452,7 @@ window.RBACAdminPage = {
   renderDeptsTab(body) {
     const tree = this.buildDeptTree();
     const badges = { ROOT:'badge-neutral', KHOA:'badge-info', VIEN:'badge-success', TRUNG_TAM:'badge-warning', BO_MON:'badge-neutral', PHONG:'badge-neutral' };
+    const typeLabels = { ROOT:'ROOT', KHOA:'KHOA', VIEN:'VIEN', TRUNG_TAM:'TRUNG_TAM', BO_MON:'NGANH', PHONG:'PHONG' };
 
     const renderNode = (node, depth = 0) => {
       const indent = depth * 28;
@@ -460,7 +461,7 @@ window.RBACAdminPage = {
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <div>
               <div style="font-weight:500;font-size:14px;">${node.name}</div>
-              <div style="font-size:11px;color:var(--text-muted);">${node.code} · <span class="badge ${badges[node.type] || 'badge-neutral'}">${node.type}</span></div>
+              <div style="font-size:11px;color:var(--text-muted);">${node.code} · <span class="badge ${badges[node.type] || 'badge-neutral'}">${typeLabels[node.type] || node.type}</span></div>
             </div>
             <div style="display:flex;gap:4px;">
               ${node.type !== 'ROOT' ? `<button class="btn btn-secondary btn-sm" onclick="window.RBACAdminPage.openDeptModal(null, ${node.id})">Sửa</button>` : ''}
@@ -489,7 +490,7 @@ window.RBACAdminPage = {
             <div class="input-group"><label>Mã <span style="color:var(--danger);">*</span></label><input type="text" id="d-code" required placeholder="K.ABC"></div>
             <div class="input-group"><label>Tên <span style="color:var(--danger);">*</span></label><input type="text" id="d-name" required placeholder="Tên đơn vị"></div>
             <div class="input-group"><label>Loại</label>
-              <select id="d-type"><option value="KHOA">Khoa</option><option value="VIEN">Viện</option><option value="TRUNG_TAM">Trung tâm</option><option value="BO_MON">Bộ môn</option><option value="PHONG">Phòng ban</option></select>
+              <select id="d-type"><option value="KHOA">Khoa</option><option value="VIEN">Viện</option><option value="TRUNG_TAM">Trung tâm</option><option value="BO_MON">Ngành</option><option value="PHONG">Phòng ban</option></select>
             </div>
             <div class="modal-error" id="d-error"></div>
             <div class="modal-footer">

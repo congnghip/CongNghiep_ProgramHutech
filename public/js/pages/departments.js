@@ -35,7 +35,7 @@ window.DepartmentsPage = {
                   <option value="KHOA">Khoa</option>
                   <option value="VIEN">Viện</option>
                   <option value="TRUNG_TAM">Trung tâm</option>
-                  <option value="BO_MON">Bộ môn</option>
+                  <option value="BO_MON">Ngành</option>
                   <option value="PHONG">Phòng ban</option>
                 </select>
               </div>
@@ -69,6 +69,7 @@ window.DepartmentsPage = {
   renderTree() {
     const tree = this.buildTree();
     const badges = { ROOT:'badge-neutral', KHOA:'badge-info', VIEN:'badge-success', TRUNG_TAM:'badge-warning', BO_MON:'badge-neutral', PHONG:'badge-neutral' };
+    const typeLabels = { ROOT:'ROOT', KHOA:'KHOA', VIEN:'VIEN', TRUNG_TAM:'TRUNG_TAM', BO_MON:'NGANH', PHONG:'PHONG' };
 
     const renderNode = (node, depth = 0) => {
       const indent = depth * 28;
@@ -77,7 +78,7 @@ window.DepartmentsPage = {
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <div>
               <div style="font-weight:500;font-size:14px;">${node.name}</div>
-              <div style="font-size:11px;color:var(--text-muted);">${node.code} · <span class="badge ${badges[node.type] || 'badge-neutral'}">${node.type}</span></div>
+              <div style="font-size:11px;color:var(--text-muted);">${node.code} · <span class="badge ${badges[node.type] || 'badge-neutral'}">${typeLabels[node.type] || node.type}</span></div>
             </div>
             </div>
             <div style="display:flex;gap:4px;">
