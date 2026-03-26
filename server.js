@@ -1082,6 +1082,10 @@ app.put('/api/version-courses/:id/course-info', authMiddleware, async (req, res)
 app.post('/api/versions/:vId/teaching-plan', authMiddleware, requireDraft('vId'), async (req, res) => {
   const { version_course_id, hours_theory, hours_practice, hours_project, hours_internship, software, managing_dept, batch, notes } = req.body;
   try {
+    // Verify version_course_id belongs to this version
+    const vcCheck = await pool.query('SELECT id FROM version_courses WHERE id=$1 AND version_id=$2', [version_course_id, req.params.vId]);
+    if (!vcCheck.rows.length) throw new Error('Học phần không thuộc phiên bản này');
+
     const total_hours = (hours_theory || 0) + (hours_practice || 0) + (hours_project || 0) + (hours_internship || 0);
     const result = await pool.query(
       `INSERT INTO teaching_plan (version_course_id, total_hours, hours_theory, hours_practice, hours_project, hours_internship, software, managing_dept, batch, notes)

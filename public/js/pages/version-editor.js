@@ -584,7 +584,7 @@ window.VersionEditorPage = {
               ${editable ? `<td style="text-align:center;"><input type="number" min="1" max="8" style="width:50px;text-align:center;" value="${c.semester || 1}" id="vc-hk-${c.id}"></td>` : `<td><span class="badge badge-info">HK ${c.semester}</span></td>`}
               <td><span class="badge ${c.course_type === 'required' ? 'badge-success' : 'badge-warning'}">${c.course_type === 'required' ? 'Bắt buộc' : 'Tự chọn'}</span></td>
               ${editable ? `<td style="white-space:nowrap;">
-  <button class="btn btn-primary btn-sm" onclick="window.VersionEditorPage.saveCourseRow(${c.id}, ${c.course_id})">Lưu</button>
+  <button class="btn btn-primary btn-sm" onclick="window.VersionEditorPage.saveCourseRow(${c.id}, ${c.semester})">Lưu</button>
   <button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="window.VersionEditorPage.removeCourse(${c.id})">Xóa</button>
 </td>` : ''}
             </tr>
@@ -616,7 +616,7 @@ window.VersionEditorPage = {
     this.renderTab();
   },
 
-  async saveCourseRow(vcId, courseId) {
+  async saveCourseRow(vcId, origSemester) {
     const credits_theory = parseInt(document.getElementById(`vc-lt-${vcId}`).value) || 0;
     const credits_practice = parseInt(document.getElementById(`vc-th-${vcId}`).value) || 0;
     const credits_project = parseInt(document.getElementById(`vc-da-${vcId}`).value) || 0;
@@ -627,10 +627,12 @@ window.VersionEditorPage = {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ credits_theory, credits_practice, credits_project, credits_internship })
       }).then(r => { if (!r.ok) throw r; });
-      await fetch(`/api/version-courses/${vcId}`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ semester })
-      }).then(r => { if (!r.ok) throw r; });
+      if (semester !== origSemester) {
+        await fetch(`/api/version-courses/${vcId}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ semester })
+        }).then(r => { if (!r.ok) throw r; });
+      }
       window.toast.success('Đã cập nhật');
       this.renderTab();
     } catch (e) { window.toast.error('Lỗi cập nhật'); }
