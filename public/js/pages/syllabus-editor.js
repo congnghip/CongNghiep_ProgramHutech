@@ -67,7 +67,10 @@ window.SyllabusEditorPage = {
     container.innerHTML = `
       <div style="margin-bottom:24px;">
         <nav style="display:flex;align-items:center;gap:6px;font-size:13px;margin-bottom:12px;flex-wrap:wrap;">
-          <a href="#" onclick="event.preventDefault();window.App.navigate('my-assignments')" style="color:var(--text-muted);text-decoration:none;cursor:pointer;" onmouseenter="this.style.textDecoration='underline'" onmouseleave="this.style.textDecoration='none'">Đề cương của tôi</a>
+          ${s.author_id === window.App.currentUser?.id
+            ? `<a href="#" onclick="event.preventDefault();window.App.navigate('my-assignments')" style="color:var(--text-muted);text-decoration:none;cursor:pointer;" onmouseenter="this.style.textDecoration='underline'" onmouseleave="this.style.textDecoration='none'">Đề cương của tôi</a>`
+            : `<a href="#" onclick="event.preventDefault();window.App.navigate('approval')" style="color:var(--text-muted);text-decoration:none;cursor:pointer;" onmouseenter="this.style.textDecoration='underline'" onmouseleave="this.style.textDecoration='none'">Phê duyệt</a>`
+          }
           <span style="color:var(--text-muted);">›</span>
           <span style="color:var(--text);font-weight:600;">${s.course_code} — ${s.course_name}</span>
         </nav>
