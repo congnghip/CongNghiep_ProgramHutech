@@ -1044,14 +1044,155 @@ app.get('/api/versions/:vId/courses', authMiddleware, requireViewVersion, async 
 
 app.get('/api/versions/:vId/knowledge-blocks', authMiddleware, async (req, res) => {
   try {
-    const { rows } = await pool.query(
+    // Get all blocks for this version
+    const { rows: blocks } = await pool.query(
       `SELECT * FROM knowledge_blocks WHERE version_id = $1 ORDER BY sort_order, id`,
       [req.params.vId]
     );
-    res.json(rows);
+
+    // Get all version_courses with their knowledge_block_id and course info
+    const { rows: courses } = await pool.query(
+      `SELECT vc.id, vc.knowledge_block_id, vc.semester, vc.course_type,
+              c.code as course_code, c.name as course_name, c.credits
+       FROM version_courses vc
+       JOIN courses c ON vc.course_id = c.id
+       WHERE vc.version_id = $1
+       ORDER BY c.code`,
+      [req.params.vId]
+    );
+
+    // Attach courses to their blocks and compute credits
+    const blockCourses = {};
+    for (const c of courses) {
+      if (c.knowledge_block_id) {
+        if (!blockCourses[c.knowledge_block_id]) blockCourses[c.knowledge_block_id] = [];
+        blockCourses[c.knowledge_block_id].push(c);
+      }
+    }
+
+    // Build block map for parent lookups
+    const blockMap = {};
+    for (const b of blocks) blockMap[b.id] = b;
+
+    // Calculate credits bottom-up: leaf blocks sum from courses, parents sum from children
+    const calcCredits = (blockId) => {
+      const children = blocks.filter(b => b.parent_id === blockId);
+      if (children.length > 0) {
+        return children.reduce((sum, child) => sum + calcCredits(child.id), 0);
+      }
+      const bc = blockCourses[blockId] || [];
+      return bc.reduce((sum, c) => sum + (c.credits || 0), 0);
+    };
+
+    // Enrich blocks with courses and auto credits
+    const enriched = blocks.map(b => ({
+      ...b,
+      courses: blockCourses[b.id] || [],
+      auto_total_credits: calcCredits(b.id),
+    }));
+
+    // Also return unassigned courses (not in any block)
+    const unassigned = courses.filter(c => !c.knowledge_block_id);
+
+    res.json({ blocks: enriched, unassigned });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
+});
+
+app.post('/api/versions/:vId/knowledge-blocks', authMiddleware, requireDraft('vId'), async (req, res) => {
+  const { name, parent_id } = req.body;
+  try {
+    if (!name || !name.trim()) return res.status(400).json({ error: 'Tên khối kiến thức không được để trống' });
+
+    let level = 1;
+    if (parent_id) {
+      const parent = await pool.query('SELECT level FROM knowledge_blocks WHERE id=$1 AND version_id=$2', [parent_id, req.params.vId]);
+      if (!parent.rows.length) return res.status(404).json({ error: 'Khối cha không tồn tại' });
+      level = parent.rows[0].level + 1;
+      if (level > 3) return res.status(400).json({ error: 'Không thể tạo quá 3 cấp' });
+    }
+
+    // Get next sort_order
+    const maxOrder = await pool.query('SELECT COALESCE(MAX(sort_order),0)+1 as next FROM knowledge_blocks WHERE version_id=$1', [req.params.vId]);
+
+    const result = await pool.query(
+      `INSERT INTO knowledge_blocks (version_id, name, parent_id, level, sort_order) VALUES ($1,$2,$3,$4,$5) RETURNING *`,
+      [req.params.vId, name.trim(), parent_id || null, level, maxOrder.rows[0].next]
+    );
+    res.json(result.rows[0]);
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+app.put('/api/knowledge-blocks/:id', authMiddleware, async (req, res) => {
+  const { name, sort_order } = req.body;
+  try {
+    const block = await pool.query('SELECT version_id FROM knowledge_blocks WHERE id=$1', [req.params.id]);
+    if (!block.rows.length) return res.status(404).json({ error: 'Không tìm thấy khối kiến thức' });
+    await checkVersionEditAccess(req.user.id, block.rows[0].version_id);
+
+    const result = await pool.query(
+      `UPDATE knowledge_blocks SET name=COALESCE($1,name), sort_order=COALESCE($2,sort_order) WHERE id=$3 RETURNING *`,
+      [name?.trim() || null, sort_order, req.params.id]
+    );
+    res.json(result.rows[0]);
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+app.delete('/api/knowledge-blocks/:id', authMiddleware, async (req, res) => {
+  try {
+    const block = await pool.query('SELECT version_id, level FROM knowledge_blocks WHERE id=$1', [req.params.id]);
+    if (!block.rows.length) return res.status(404).json({ error: 'Không tìm thấy khối kiến thức' });
+    await checkVersionEditAccess(req.user.id, block.rows[0].version_id);
+
+    if (block.rows[0].level < 3) {
+      return res.status(400).json({ error: 'Chỉ được xóa khối level 3 (do người dùng tạo)' });
+    }
+
+    // SET NULL for any courses assigned to this block (handled by ON DELETE SET NULL FK)
+    await pool.query('DELETE FROM knowledge_blocks WHERE id=$1', [req.params.id]);
+    res.json({ success: true });
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+app.put('/api/knowledge-blocks/:id/assign-courses', authMiddleware, async (req, res) => {
+  const { courseIds } = req.body; // array of version_course ids
+  try {
+    const block = await pool.query('SELECT id, version_id, level FROM knowledge_blocks WHERE id=$1', [req.params.id]);
+    if (!block.rows.length) return res.status(404).json({ error: 'Không tìm thấy khối kiến thức' });
+    const versionId = block.rows[0].version_id;
+    await checkVersionEditAccess(req.user.id, versionId);
+
+    // Validate: block must be a leaf (no children)
+    const children = await pool.query('SELECT id FROM knowledge_blocks WHERE parent_id=$1', [req.params.id]);
+    if (children.rows.length > 0) {
+      return res.status(400).json({ error: 'Chỉ được gán HP vào khối lá (không có khối con)' });
+    }
+
+    if (!Array.isArray(courseIds)) return res.status(400).json({ error: 'courseIds phải là mảng' });
+
+    // Clear old assignments for this block
+    await pool.query(
+      `UPDATE version_courses SET knowledge_block_id = NULL WHERE knowledge_block_id = $1`,
+      [req.params.id]
+    );
+
+    // Assign new courses (auto-remove from other blocks)
+    if (courseIds.length > 0) {
+      // First clear these courses from any other block
+      await pool.query(
+        `UPDATE version_courses SET knowledge_block_id = NULL WHERE id = ANY($1) AND version_id = $2`,
+        [courseIds, versionId]
+      );
+      // Then assign to this block
+      await pool.query(
+        `UPDATE version_courses SET knowledge_block_id = $1 WHERE id = ANY($2) AND version_id = $3`,
+        [req.params.id, courseIds, versionId]
+      );
+    }
+
+    res.json({ success: true });
+  } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
 app.get('/api/versions/:vId/teaching-plan', authMiddleware, async (req, res) => {
