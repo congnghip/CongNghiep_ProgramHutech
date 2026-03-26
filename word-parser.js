@@ -697,12 +697,19 @@ function extractKnowledgeBlocks(table) {
  * Extract courses from the detailed curriculum table.
  */
 function extractCourses(table) {
-  if (!table || table.length < 3) return [];
+  if (!table || table.length < 3) return { courses: [], knowledgeBlocks: [] };
 
   const courses = [];
-  let currentSection = '';
+  const knowledgeBlocks = [];
+  let blockSortOrder = 0;
+
+  // Track current position in knowledge block hierarchy
+  let currentLevel1 = null; // e.g. "Kiến thức giáo dục đại cương"
+  let currentLevel2 = null; // e.g. "Kiến thức bắt buộc"
+  let currentLevel3 = null; // e.g. "Nhóm 1: Tiếng Trung thương mại"
+
+  let currentCourseType = 'required';
   let currentElectiveGroup = '';
-  let currentCourseType = 'required'; // required | elective | non_accumulative
 
   for (let i = 0; i < table.length; i++) {
     const row = table[i];
@@ -720,23 +727,37 @@ function extractCourses(table) {
 
     // Section header detection (merged cells)
     const rowText = row.join(' ').trim();
+    const isMerged = cell0 === cell1 || cell0 === cell2;
 
+    // ── Level 1: ALL CAPS, merged cells, no course code ──
     if (cell0.match(/^KIẾN THỨC GIÁO DỤC ĐẠI CƯƠNG/i) || rowText.match(/^KIẾN THỨC GIÁO DỤC ĐẠI CƯƠNG/i)) {
-      currentSection = 'GDDC';
+      const credits = parseInt(row[3], 10) || 0;
+      currentLevel1 = 'Kiến thức giáo dục đại cương';
+      currentLevel2 = null;
+      currentLevel3 = null;
       currentCourseType = 'required';
       currentElectiveGroup = '';
+      knowledgeBlocks.push({ name: currentLevel1, parent_name: null, level: 1, total_credits: credits, sort_order: ++blockSortOrder });
       continue;
     }
     if (cell0.match(/^KIẾN THỨC GIÁO DỤC CHUYÊN NGHIỆP/i) || rowText.match(/^KIẾN THỨC GIÁO DỤC CHUYÊN NGHIỆP/i)) {
-      currentSection = 'GDCN';
+      const credits = parseInt(row[3], 10) || 0;
+      currentLevel1 = 'Kiến thức giáo dục chuyên nghiệp';
+      currentLevel2 = null;
+      currentLevel3 = null;
       currentCourseType = 'required';
       currentElectiveGroup = '';
+      knowledgeBlocks.push({ name: currentLevel1, parent_name: null, level: 1, total_credits: credits, sort_order: ++blockSortOrder });
       continue;
     }
     if (cell0.match(/^KIẾN THỨC KHÔNG TÍCH LŨY/i) || rowText.match(/^KIẾN THỨC KHÔNG TÍCH LŨY/i)) {
-      currentSection = 'KKTL';
+      const credits = parseInt(row[3], 10) || 0;
+      currentLevel1 = 'Kiến thức không tích lũy';
+      currentLevel2 = null;
+      currentLevel3 = null;
       currentCourseType = 'non_accumulative';
       currentElectiveGroup = '';
+      knowledgeBlocks.push({ name: currentLevel1, parent_name: null, level: 1, total_credits: credits, sort_order: ++blockSortOrder });
       continue;
     }
 
@@ -775,6 +796,9 @@ function extractCourses(table) {
         }
       }
 
+      // Determine knowledge_block_name: deepest level in current stack
+      const knowledge_block_name = currentLevel3 || currentLevel2 || currentLevel1 || null;
+
       courses.push({
         code,
         name,
@@ -788,43 +812,66 @@ function extractCourses(table) {
         elective_group: currentElectiveGroup || null,
         prerequisite_codes,
         corequisite_codes,
+        knowledge_block_name,
       });
       continue;
     }
 
-    // Sub-section headers (checked AFTER course code detection to avoid
-    // matching STT codes like "II.1.01", "II.2.1.01", "III.1.5.01")
+    // ── Level 2: Sub-section headers (checked AFTER course code detection) ──
     if (cell0.match(/^II\.1\.\s*[^\d]|^Kiến thức bắt buộc/i) || (cell0.match(/^II\.1\.$/) && !cell1.match(/^[A-Z]/))) {
+      const credits = parseInt(row[3], 10) || 0;
+      // Clean the name: remove prefix like "II.1. "
+      const blockName = cell0.replace(/^[IVX]+\.\d+\.\s*/, '').trim() || 'Kiến thức bắt buộc';
+      currentLevel2 = blockName;
+      currentLevel3 = null;
       currentCourseType = 'required';
       currentElectiveGroup = '';
+      knowledgeBlocks.push({ name: currentLevel2, parent_name: currentLevel1, level: 2, total_credits: credits, sort_order: ++blockSortOrder });
       continue;
     }
     if (cell0.match(/^II\.2\.\s*[^\d]|^Kiến thức tự chọn/i) || (cell0.match(/^II\.2\.$/) && !cell1.match(/^[A-Z]/))) {
+      const credits = parseInt(row[3], 10) || 0;
+      const blockName = cell0.replace(/^[IVX]+\.\d+\.\s*/, '').trim() || 'Kiến thức tự chọn';
+      currentLevel2 = blockName;
+      currentLevel3 = null;
       currentCourseType = 'elective';
       currentElectiveGroup = '';
+      knowledgeBlocks.push({ name: currentLevel2, parent_name: currentLevel1, level: 2, total_credits: credits, sort_order: ++blockSortOrder });
       continue;
     }
     if (cell0.match(/^III\.\d\.\s*[^\d]|^Giáo dục thể chất|^Bắt buộc/i)) {
+      const credits = parseInt(row[3], 10) || 0;
+      const blockName = cell0.replace(/^[IVX]+\.\d+\.\s*/, '').trim() || cell0.trim();
+      currentLevel2 = blockName;
+      currentLevel3 = null;
       currentCourseType = 'non_accumulative';
       currentElectiveGroup = '';
+      knowledgeBlocks.push({ name: currentLevel2, parent_name: currentLevel1, level: 2, total_credits: credits, sort_order: ++blockSortOrder });
       continue;
     }
     if (cell0.match(/^III\.2\.\s*[^\d]|^Chương trình Giáo dục quốc phòng/i)) {
+      const credits = parseInt(row[3], 10) || 0;
+      const blockName = cell0.replace(/^[IVX]+\.\d+\.\s*/, '').trim() || cell0.trim();
+      currentLevel2 = blockName;
+      currentLevel3 = null;
       currentCourseType = 'non_accumulative';
       currentElectiveGroup = '';
+      knowledgeBlocks.push({ name: currentLevel2, parent_name: currentLevel1, level: 2, total_credits: credits, sort_order: ++blockSortOrder });
       continue;
     }
 
-    // Elective group headers
+    // ── Level 3: Elective group headers ──
     const groupMatch = cell0.match(/^Nhóm\s*(\d+)\s*(?::?\s*(.*))?$/i);
     if (groupMatch) {
+      currentLevel3 = cell0.trim();
       currentElectiveGroup = cell0.trim();
-      if (currentSection !== 'KKTL') currentCourseType = 'elective';
+      if (currentCourseType !== 'non_accumulative') currentCourseType = 'elective';
+      knowledgeBlocks.push({ name: currentLevel3, parent_name: currentLevel2, level: 3, total_credits: 0, sort_order: ++blockSortOrder });
       continue;
     }
   }
 
-  return courses;
+  return { courses, knowledgeBlocks };
 }
 
 /**
@@ -1394,21 +1441,13 @@ async function parseWordFile(buffer) {
     result.warnings.push({ severity: 'warning', field: 'poploMatrix', message: `Failed to parse PO-PLO matrix: ${e.message}` });
   }
 
-  // Extract knowledge blocks
-  try {
-    if (roles.knowledgeBlocks !== undefined) {
-      result.knowledgeBlocks = extractKnowledgeBlocks(tables[roles.knowledgeBlocks]);
-    } else {
-      result.warnings.push({ severity: 'warning', field: 'knowledgeBlocks', message: 'Knowledge blocks table not identified' });
-    }
-  } catch (e) {
-    result.warnings.push({ severity: 'warning', field: 'knowledgeBlocks', message: `Failed to parse knowledge blocks: ${e.message}` });
-  }
-
-  // Extract courses
+  // Extract courses + knowledge blocks from the detailed curriculum table
+  // (replaces the old extractKnowledgeBlocks from the summary table)
   try {
     if (roles.curriculum !== undefined) {
-      result.courses = extractCourses(tables[roles.curriculum]);
+      const { courses, knowledgeBlocks } = extractCourses(tables[roles.curriculum]);
+      result.courses = courses;
+      result.knowledgeBlocks = knowledgeBlocks;
     } else {
       result.warnings.push({ severity: 'warning', field: 'courses', message: 'Curriculum table not identified' });
     }

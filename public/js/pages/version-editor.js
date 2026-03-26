@@ -692,6 +692,40 @@ window.VersionEditorPage = {
     const blocks = data.blocks || [];
     const unassigned = data.unassigned || [];
 
+    // If no blocks exist and version is editable, show button to create defaults
+    if (blocks.length === 0) {
+      body.innerHTML = `
+        <div style="display:flex;flex-direction:column;align-items:center;gap:12px;padding:40px 0;">
+          <p style="color:var(--text-muted);font-size:13px;">Chưa có cấu trúc khối kiến thức.</p>
+          ${editable ? `<button id="kb-seed-defaults" class="btn btn-primary">Tạo cấu trúc mặc định</button>` : ''}
+        </div>
+      `;
+      if (editable) {
+        body.querySelector('#kb-seed-defaults')?.addEventListener('click', async () => {
+          try {
+            const post = async (data) => {
+              const res = await fetch(`/api/versions/${this.versionId}/knowledge-blocks`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+              });
+              const json = await res.json();
+              if (!res.ok) throw new Error(json.error || 'Lỗi tạo khối');
+              return json;
+            };
+            await post({ name: 'Kiến thức giáo dục đại cương' });
+            const gdcn = await post({ name: 'Kiến thức giáo dục chuyên nghiệp' });
+            await post({ name: 'Kiến thức bắt buộc', parent_id: gdcn.id });
+            await post({ name: 'Kiến thức tự chọn', parent_id: gdcn.id });
+            await post({ name: 'Kiến thức không tích lũy' });
+            this.renderTab();
+          } catch (e) {
+            alert('Lỗi: ' + e.message);
+          }
+        });
+      }
+      return;
+    }
+
     // Build tree structure
     const roots = blocks.filter(b => !b.parent_id);
     const getChildren = (parentId) => blocks.filter(b => b.parent_id === parentId);

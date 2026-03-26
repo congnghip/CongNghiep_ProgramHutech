@@ -2333,20 +2333,33 @@ app.post('/api/import/save', authMiddleware, requirePerm('programs.import_word')
       }
     }
 
-    // ── Step 9: INSERT knowledge_blocks (with parent_id resolution) ───────
+    // ── Step 9: INSERT knowledge_blocks (with parent_id + level resolution) ───────
     const blockNameToId = {};
     for (const blk of (knowledgeBlocks || [])) {
       const parentId = blk.parent_name ? (blockNameToId[blk.parent_name] || null) : null;
       const r = await client.query(
-        `INSERT INTO knowledge_blocks (version_id, name, parent_id, total_credits, required_credits, elective_credits, sort_order)
-         VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id`,
+        `INSERT INTO knowledge_blocks (version_id, name, parent_id, level, total_credits, required_credits, elective_credits, sort_order)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`,
         [
-          version_id, blk.name, parentId,
+          version_id, blk.name, parentId, blk.level || 1,
           blk.total_credits || 0, blk.required_credits || 0,
           blk.elective_credits || 0, blk.sort_order || 0,
         ]
       );
       blockNameToId[blk.name] = r.rows[0].id;
+    }
+
+    // ── Step 9b: Assign knowledge_block_id to version_courses ───────
+    for (const c of (courses || [])) {
+      const vcId = vcMap[c.code];
+      if (!vcId || !c.knowledge_block_name) continue;
+      const blockId = blockNameToId[c.knowledge_block_name];
+      if (blockId) {
+        await client.query(
+          `UPDATE version_courses SET knowledge_block_id = $1 WHERE id = $2`,
+          [blockId, vcId]
+        );
+      }
     }
 
     // ── Step 10: INSERT po_plo_map ────────────────────────────────────────
