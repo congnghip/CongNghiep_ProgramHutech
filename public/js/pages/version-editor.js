@@ -577,13 +577,16 @@ window.VersionEditorPage = {
               <td><strong>${c.course_code}</strong></td>
               <td>${c.course_name}${c.elective_group ? ` <span style="color:var(--text-muted);font-size:11px;">(${c.elective_group})</span>` : ''}</td>
               <td style="text-align:center;">${c.credits}</td>
-              <td style="text-align:center;color:var(--text-muted);">${c.credits_theory || '—'}</td>
-              <td style="text-align:center;color:var(--text-muted);">${c.credits_practice || '—'}</td>
-              <td style="text-align:center;color:var(--text-muted);">${c.credits_project || '—'}</td>
-              <td style="text-align:center;color:var(--text-muted);">${c.credits_internship || '—'}</td>
-              <td><span class="badge badge-info">HK ${c.semester}</span></td>
+              ${editable ? `<td style="text-align:center;"><input type="number" min="0" style="width:50px;text-align:center;" value="${c.credits_theory || 0}" id="vc-lt-${c.id}"></td>` : `<td style="text-align:center;color:var(--text-muted);">${c.credits_theory || '—'}</td>`}
+              ${editable ? `<td style="text-align:center;"><input type="number" min="0" style="width:50px;text-align:center;" value="${c.credits_practice || 0}" id="vc-th-${c.id}"></td>` : `<td style="text-align:center;color:var(--text-muted);">${c.credits_practice || '—'}</td>`}
+              ${editable ? `<td style="text-align:center;"><input type="number" min="0" style="width:50px;text-align:center;" value="${c.credits_project || 0}" id="vc-da-${c.id}"></td>` : `<td style="text-align:center;color:var(--text-muted);">${c.credits_project || '—'}</td>`}
+              ${editable ? `<td style="text-align:center;"><input type="number" min="0" style="width:50px;text-align:center;" value="${c.credits_internship || 0}" id="vc-tt-${c.id}"></td>` : `<td style="text-align:center;color:var(--text-muted);">${c.credits_internship || '—'}</td>`}
+              ${editable ? `<td style="text-align:center;"><input type="number" min="1" max="8" style="width:50px;text-align:center;" value="${c.semester || 1}" id="vc-hk-${c.id}"></td>` : `<td><span class="badge badge-info">HK ${c.semester}</span></td>`}
               <td><span class="badge ${c.course_type === 'required' ? 'badge-success' : 'badge-warning'}">${c.course_type === 'required' ? 'Bắt buộc' : 'Tự chọn'}</span></td>
-              ${editable ? `<td><button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="window.VersionEditorPage.removeCourse(${c.id})">Xóa</button></td>` : ''}
+              ${editable ? `<td style="white-space:nowrap;">
+  <button class="btn btn-primary btn-sm" onclick="window.VersionEditorPage.saveCourseRow(${c.id}, ${c.course_id})">Lưu</button>
+  <button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="window.VersionEditorPage.removeCourse(${c.id})">Xóa</button>
+</td>` : ''}
             </tr>
           `).join('')}
         </tbody>
@@ -611,6 +614,26 @@ window.VersionEditorPage = {
     await fetch(`/api/version-courses/${vcId}`, { method: 'DELETE' });
     window.toast.success('Đã gỡ');
     this.renderTab();
+  },
+
+  async saveCourseRow(vcId, courseId) {
+    const credits_theory = parseInt(document.getElementById(`vc-lt-${vcId}`).value) || 0;
+    const credits_practice = parseInt(document.getElementById(`vc-th-${vcId}`).value) || 0;
+    const credits_project = parseInt(document.getElementById(`vc-da-${vcId}`).value) || 0;
+    const credits_internship = parseInt(document.getElementById(`vc-tt-${vcId}`).value) || 0;
+    const semester = parseInt(document.getElementById(`vc-hk-${vcId}`).value) || 1;
+    try {
+      await fetch(`/api/version-courses/${vcId}/course-info`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credits_theory, credits_practice, credits_project, credits_internship })
+      }).then(r => { if (!r.ok) throw r; });
+      await fetch(`/api/version-courses/${vcId}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ semester })
+      }).then(r => { if (!r.ok) throw r; });
+      window.toast.success('Đã cập nhật');
+      this.renderTab();
+    } catch (e) { window.toast.error('Lỗi cập nhật'); }
   },
 
   // ===== TAB 7: Teaching Plan =====
