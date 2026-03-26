@@ -4,10 +4,11 @@ window.ApprovalPage = {
     container.innerHTML = '<div class="spinner"></div>';
     try {
       const data = await fetch('/api/approval/pending').then(r => r.json());
-      const statusLabels = { 
-        submitted: 'Đã nộp', 
-        approved_tbm: 'TBM ✓', 
-        approved_khoa: 'Khoa ✓', 
+      const statusLabels = {
+        draft: 'Nháp',
+        submitted: 'Đã nộp',
+        approved_tbm: 'TBM ✓',
+        approved_khoa: 'Khoa ✓',
         approved_pdt: 'PĐT ✓'
       };
 
@@ -33,21 +34,25 @@ window.ApprovalPage = {
         <h1 style="font-size:24px;font-weight:700;letter-spacing:-0.3px;margin-bottom:24px;">Phê duyệt</h1>
 
         <div style="margin-bottom:32px;">
-          <h3 style="font-size:15px;font-weight:600;margin-bottom:12px;">Chương trình ĐT chờ duyệt</h3>
-          ${(data.programs || []).length === 0 ? '<p style="color:var(--text-muted);font-size:13px;">Không có CTĐT nào chờ duyệt.</p>' : `
+          <h3 style="font-size:15px;font-weight:600;margin-bottom:12px;">Chương trình ĐT</h3>
+          ${(data.programs || []).length === 0 ? '<p style="color:var(--text-muted);font-size:13px;">Không có CTĐT nào.</p>' : `
             <table class="data-table">
               <thead><tr><th>Chương trình</th><th>Năm học</th><th>Khoa</th><th>Trạng thái</th><th></th></tr></thead>
               <tbody>
                 ${data.programs.map(p => {
                   const perm = getRequiredPerm(p.status, 'program_version');
-                  const canApprove = window.App.hasPerm(perm);
+                  const canApprove = perm && window.App.hasPerm(perm);
                   return `<tr>
                     <td style="font-weight:500;">${p.program_name}</td>
                     <td>${p.academic_year}</td>
                     <td style="color:var(--text-muted);">${p.dept_name || ''}</td>
-                    <td><span class="badge ${p.is_rejected ? 'badge-danger' : (p.status === 'published' ? 'badge-success' : 'badge-info')}">${p.is_rejected ? 'Bị từ chối' : (statusLabels[p.status] || p.status)}</span></td>
+                    <td><span class="badge ${p.is_rejected ? 'badge-danger' : (p.status === 'published' ? 'badge-success' : 'badge-info')}">${p.is_rejected ? 'Bị từ chối' : (statusLabels[p.status] || p.status)}</span>
+                      ${p.is_rejected && p.rejection_reason ? `<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${p.rejection_reason}</div>` : ''}
+                    </td>
                     <td style="white-space:nowrap;">
-                      ${canApprove ? `
+                      ${p.is_rejected ? `
+                        ${canApprove ? `<button class="btn btn-danger btn-sm" onclick="window.ApprovalPage.deleteRejected(${p.id},'program_version')">Xóa</button>` : '<span style="color:var(--danger);font-size:12px;">Đã bị từ chối</span>'}
+                      ` : canApprove ? `
                         <button class="btn btn-primary btn-sm" onclick="window.ApprovalPage.approve(${p.id},'program_version')">Duyệt</button>
                         <button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="window.ApprovalPage.showRejectModal(${p.id},'program_version')">Từ chối</button>
                       ` : '<span style="color:var(--text-muted);font-size:12px;">Chờ phê duyệt</span>'}
@@ -60,22 +65,26 @@ window.ApprovalPage = {
         </div>
 
         <div style="margin-bottom:32px;">
-          <h3 style="font-size:15px;font-weight:600;margin-bottom:12px;">Đề cương chờ duyệt</h3>
-          ${(data.syllabi || []).length === 0 ? '<p style="color:var(--text-muted);font-size:13px;">Không có đề cương nào chờ duyệt.</p>' : `
+          <h3 style="font-size:15px;font-weight:600;margin-bottom:12px;">Đề cương</h3>
+          ${(data.syllabi || []).length === 0 ? '<p style="color:var(--text-muted);font-size:13px;">Không có đề cương nào.</p>' : `
             <table class="data-table">
               <thead><tr><th>Mã</th><th>Tên HP</th><th>CTĐT</th><th>Tác giả</th><th>Trạng thái</th><th></th></tr></thead>
               <tbody>
                 ${data.syllabi.map(s => {
                   const perm = getRequiredPerm(s.status, 'syllabus');
-                  const canApprove = window.App.hasPerm(perm);
+                  const canApprove = perm && window.App.hasPerm(perm);
                   return `<tr>
                     <td><strong>${s.course_code || ''}</strong></td>
                     <td>${s.course_name || ''}</td>
                     <td style="font-size:12px;color:var(--text-muted);">${s.program_name || ''}${s.academic_year ? ` (${s.academic_year})` : ''}</td>
                     <td style="color:var(--text-muted);">${s.author_name || '?'}</td>
-                    <td><span class="badge ${s.is_rejected ? 'badge-danger' : 'badge-info'}">${s.is_rejected ? 'Bị từ chối' : (statusLabels[s.status] || s.status)}</span></td>
+                    <td><span class="badge ${s.is_rejected ? 'badge-danger' : 'badge-info'}">${s.is_rejected ? 'Bị từ chối' : (statusLabels[s.status] || s.status)}</span>
+                      ${s.is_rejected && s.rejection_reason ? `<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${s.rejection_reason}</div>` : ''}
+                    </td>
                     <td style="white-space:nowrap;">
-                      ${canApprove ? `
+                      ${s.is_rejected ? `
+                        ${canApprove ? `<button class="btn btn-danger btn-sm" onclick="window.ApprovalPage.deleteRejected(${s.id},'syllabus')">Xóa</button>` : '<span style="color:var(--danger);font-size:12px;">Đã bị từ chối</span>'}
+                      ` : canApprove ? `
                         <button class="btn btn-primary btn-sm" onclick="window.ApprovalPage.approve(${s.id},'syllabus')">Duyệt</button>
                         <button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="window.ApprovalPage.showRejectModal(${s.id},'syllabus')">Từ chối</button>
                       ` : '<span style="color:var(--text-muted);font-size:12px;">Chờ phê duyệt</span>'}
@@ -109,7 +118,14 @@ window.ApprovalPage = {
   },
 
   async approve(id, type) {
-    if (!confirm('Phê duyệt?')) return;
+    const confirmed = await window.ui.confirm({
+      title: 'Phê duyệt hồ sơ',
+      eyebrow: 'Xác nhận thao tác',
+      message: 'Bạn có chắc muốn phê duyệt mục này?',
+      confirmText: 'Phê duyệt',
+      cancelText: 'Hủy'
+    });
+    if (!confirmed) return;
     try {
       const res = await fetch('/api/approval/review', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -140,6 +156,23 @@ window.ApprovalPage = {
       if (!res.ok) throw new Error((await res.json()).error);
       document.getElementById('reject-modal').classList.remove('active');
       window.toast.success('Đã từ chối');
+      this.render(document.getElementById('page-content'));
+    } catch (e) { window.toast.error(e.message); }
+  },
+
+  async deleteRejected(id, type) {
+    const confirmed = await window.ui.confirm({
+      title: 'Xóa mục bị từ chối',
+      eyebrow: 'Xác nhận xóa',
+      message: 'Xóa vĩnh viễn mục này? Hành động không thể hoàn tác.',
+      confirmText: 'Xóa',
+      cancelText: 'Hủy'
+    });
+    if (!confirmed) return;
+    try {
+      const res = await fetch(`/api/approval/rejected/${type}/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error((await res.json()).error);
+      window.toast.success('Đã xóa');
       this.render(document.getElementById('page-content'));
     } catch (e) { window.toast.error(e.message); }
   },

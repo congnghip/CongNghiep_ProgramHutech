@@ -2036,6 +2036,48 @@ app.get('/api/approval/history/:entityType/:entityId', authMiddleware, requireVi
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// Delete rejected item (approver only)
+app.delete('/api/approval/rejected/:entityType/:entityId', authMiddleware, async (req, res) => {
+  const { entityType, entityId } = req.params;
+  try {
+    let table;
+    if (entityType === 'program_version') table = 'program_versions';
+    else if (entityType === 'syllabus') table = 'version_syllabi';
+    else return res.status(400).json({ error: 'Invalid entity_type' });
+
+    // Verify item exists and is rejected
+    const item = await pool.query(`SELECT status, is_rejected FROM ${table} WHERE id=$1`, [parseInt(entityId)]);
+    if (!item.rows.length) return res.status(404).json({ error: 'Không tìm thấy' });
+    if (!item.rows[0].is_rejected) return res.status(400).json({ error: 'Chỉ có thể xóa mục đã bị từ chối' });
+
+    // Check permission: must be admin or have an approval permission in scope
+    const admin = await isAdmin(req.user.id);
+    if (!admin) {
+      let deptId;
+      if (entityType === 'program_version') {
+        const r = await pool.query('SELECT p.department_id FROM program_versions pv JOIN programs p ON pv.program_id = p.id WHERE pv.id = $1', [entityId]);
+        deptId = r.rows.length ? r.rows[0].department_id : null;
+      } else {
+        const r = await pool.query('SELECT p.department_id FROM version_syllabi vs JOIN program_versions pv ON vs.version_id = pv.id JOIN programs p ON pv.program_id = p.id WHERE vs.id = $1', [entityId]);
+        deptId = r.rows.length ? r.rows[0].department_id : null;
+      }
+      // Any approval permission in this department scope is sufficient
+      const approvePerms = entityType === 'program_version'
+        ? ['programs.approve_khoa', 'programs.approve_pdt', 'programs.approve_bgh']
+        : ['syllabus.approve_tbm', 'syllabus.approve_khoa', 'syllabus.approve_pdt', 'syllabus.approve_bgh'];
+      let hasAny = false;
+      for (const perm of approvePerms) {
+        if (await hasPermission(req.user.id, perm, deptId)) { hasAny = true; break; }
+      }
+      if (!hasAny) return res.status(403).json({ error: 'Không có quyền xóa' });
+    }
+
+    await pool.query(`DELETE FROM ${table} WHERE id=$1`, [parseInt(entityId)]);
+    await pool.query('DELETE FROM approval_logs WHERE entity_type=$1 AND entity_id=$2', [entityType, parseInt(entityId)]);
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // Pending approvals for current user
 app.get('/api/approval/pending', authMiddleware, async (req, res) => {
   try {
@@ -2058,7 +2100,7 @@ app.get('/api/approval/pending', authMiddleware, async (req, res) => {
       approved_pdt: 'syllabus.approve_bgh'
     };
 
-    // Get all pending programs
+    // Get pending items + rejected items (is_rejected=true even if back to draft), exclude published
     const programs = await pool.query(`
       SELECT pv.id, pv.academic_year, pv.status, pv.is_rejected, pv.rejection_reason,
              p.name as program_name, p.department_id, d.name as dept_name, d.parent_id as dept_parent_id,
@@ -2066,11 +2108,11 @@ app.get('/api/approval/pending', authMiddleware, async (req, res) => {
       FROM program_versions pv
       JOIN programs p ON pv.program_id = p.id
       JOIN departments d ON p.department_id = d.id
-      WHERE pv.status IN ('submitted','approved_khoa','approved_pdt')
+      WHERE (pv.status IN ('submitted','approved_khoa','approved_pdt') OR pv.is_rejected = true)
+        AND pv.status != 'published'
       ORDER BY pv.updated_at DESC
     `);
 
-    // Get all pending syllabi
     const syllabi = await pool.query(`
       SELECT vs.id, vs.status, vs.is_rejected, vs.rejection_reason,
              c.code as course_code, c.name as course_name,
@@ -2083,7 +2125,8 @@ app.get('/api/approval/pending', authMiddleware, async (req, res) => {
       JOIN program_versions pv ON vs.version_id = pv.id
       JOIN programs p ON pv.program_id = p.id
       JOIN departments d ON p.department_id = d.id
-      WHERE vs.status IN ('submitted','approved_tbm','approved_khoa','approved_pdt')
+      WHERE (vs.status IN ('submitted','approved_tbm','approved_khoa','approved_pdt') OR vs.is_rejected = true)
+        AND vs.status != 'published'
       ORDER BY vs.updated_at DESC
     `);
 
@@ -2091,10 +2134,10 @@ app.get('/api/approval/pending', authMiddleware, async (req, res) => {
       return res.json({ programs: programs.rows, syllabi: syllabi.rows });
     }
 
-    // Filter: only show items the user has the required approval permission for (dept-scoped)
     const userPerms = await getUserPermissions(req.user.id);
 
-    const hasApprovalPerm = (permCode, itemDeptId, itemDeptParentId) => {
+    // Check if user has a specific permission in the item's department scope
+    const hasDeptPerm = (permCode, itemDeptId, itemDeptParentId) => {
       return userPerms.some(p =>
         p.code === permCode && (
           maxLevel >= 4 ||
@@ -2104,14 +2147,19 @@ app.get('/api/approval/pending', authMiddleware, async (req, res) => {
       );
     };
 
+    // Show item if user can approve it OR has submit permission in scope (read-only view)
     const filteredPrograms = programs.rows.filter(p => {
-      const requiredPerm = programPermMap[p.status];
-      return requiredPerm && hasApprovalPerm(requiredPerm, p.department_id, p.dept_parent_id);
+      const approvalPerm = programPermMap[p.status];
+      const canApprove = approvalPerm && hasDeptPerm(approvalPerm, p.department_id, p.dept_parent_id);
+      const canSubmit = hasDeptPerm('programs.submit', p.department_id, p.dept_parent_id);
+      return canApprove || canSubmit;
     });
 
     const filteredSyllabi = syllabi.rows.filter(s => {
-      const requiredPerm = syllabusPermMap[s.status];
-      return requiredPerm && hasApprovalPerm(requiredPerm, s.department_id, s.dept_parent_id);
+      const approvalPerm = syllabusPermMap[s.status];
+      const canApprove = approvalPerm && hasDeptPerm(approvalPerm, s.department_id, s.dept_parent_id);
+      const canSubmit = hasDeptPerm('syllabus.submit', s.department_id, s.dept_parent_id);
+      return canApprove || canSubmit;
     });
 
     res.json({ programs: filteredPrograms, syllabi: filteredSyllabi });
