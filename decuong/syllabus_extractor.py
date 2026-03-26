@@ -251,6 +251,9 @@ Bạn là chuyên gia phân tích đề cương môn học. Hãy trích xuất t
 Văn bản đề cương:
 {pdf_text[:8000]}  # Limit text to avoid token limits
 
+Các nhóm mục đã nhận diện sơ bộ từ tài liệu:
+{json.dumps(sections, ensure_ascii=False)}
+
 Yêu cầu trích xuất:
 
 1. THÔNG TIN CƠ BẢN:
@@ -299,6 +302,56 @@ Trích xuất theo tuần với format:
 - course_description: Mô tả tóm tắt
 - learning_methods: Phương pháp học tập
 - course_requirements: Yêu cầu về phần mềm, phần cứng
+- sections: Sao chép lại các nhóm mục đã nhận diện được nếu hữu ích
+- source_file: Tên file nguồn nếu văn bản có đề cập
+- version_number: Phiên bản đề cương nếu tài liệu có ghi
+
+7. BỔ SUNG CHO CLO:
+- assessment_methods: Danh sách loại đánh giá liên quan tới từng CLO nếu suy ra được từ ma trận CLO-Assessment hoặc mô tả đánh giá
+
+8. QUY TẮC NHẬN DIỆN THUẬT NGỮ TƯƠNG ĐƯƠNG:
+- "Chuẩn đầu ra học phần", "CLO", "Learning Outcomes", "CĐR học phần" => clos
+- "Đề cương chi tiết", "Kế hoạch giảng dạy", "Lịch trình giảng dạy", "Course outline", "Nội dung giảng dạy theo tuần" => course_outline
+- "Đánh giá", "Assessment", "Thành phần điểm", "Cách tính điểm", "Rubric", "Hình thức kiểm tra" => assessment_methods
+- "Tài liệu chính", "Giáo trình", "Tài liệu học tập chính" => textbooks
+- "Tài liệu tham khảo", "Reference", "Đọc thêm" => references
+- "Điều kiện tiên quyết", "Học phần tiên quyết", "Prerequisite" => prerequisites
+- "Phương pháp dạy học", "Phương pháp học tập", "Teaching methods", "Learning methods" => learning_methods hoặc teaching_method tùy ngữ cảnh
+
+9. QUY TẮC XỬ LÝ TÌNH HUỐNG PHỨC TẠP:
+- Tài liệu có thể bị lỗi OCR, xuống dòng sai, lệch cột bảng, thiếu dấu, lặp tiêu đề, hoặc ghép nhầm ô. Hãy suy luận cẩn thận nhưng KHÔNG bịa dữ liệu.
+- Nếu cùng một thông tin xuất hiện ở nhiều nơi và mâu thuẫn nhau, ưu tiên theo thứ tự:
+  1. Bảng thông tin học phần chính thức
+  2. Phần mô tả/giới thiệu môn học
+  3. Header/footer hoặc phụ lục
+- Nếu course_code, course_name, credits, language_instruction bị tách nhiều dòng, hãy ghép lại hợp lý.
+- Nếu CLO không ghi rõ mã nhưng có danh sách chuẩn đầu ra theo thứ tự, tự gán CLO1, CLO2, ... theo thứ tự xuất hiện.
+- Nếu Bloom level không ghi trực tiếp nhưng có động từ hành động, suy ra mức phù hợp nhất trong 6 mức:
+  remember, understand, apply, analyze, evaluate, create
+- Nếu đề cương ghi theo buổi/chương/chủ đề thay vì tuần, hãy ánh xạ sang `week` theo thứ tự xuất hiện bắt đầu từ 1.
+- Nếu một tuần có nhiều dòng con, gộp chúng thành một object của tuần đó.
+- Nếu giờ lý thuyết/thực hành không tách rõ, đặt số không tìm thấy là 0, không tự chia đoán tùy ý.
+- Nếu có bảng ma trận CLO-PLO hoặc CLO-Assessment, hãy tận dụng để điền `plo_mapping`, `clo_mapping`, và `assessment_methods`.
+- Nếu đánh giá ghi theo tỷ lệ như "0.3", "30%", "30 / 100", hãy chuẩn hóa về số phần trăm nguyên hoặc số phù hợp trong trường `weight`.
+- Nếu tổng trọng số hiện trong tài liệu không đúng 100 do lỗi OCR nhỏ nhưng có thể suy ra rõ ràng, hãy sửa về giá trị hợp lý nhất.
+- Nếu không thể suy ra chắc chắn, giữ nguyên dữ liệu tìm được thay vì bịa để đủ 100.
+- Nếu tài liệu có cả tiếng Việt và tiếng Anh, ưu tiên giữ nguyên tên trường ở ngôn ngữ xuất hiện chính trong tài liệu; không cần dịch.
+- Nếu tài liệu có thông tin lặp giữa bảng và đoạn văn, hãy hợp nhất nhưng không nhân đôi phần tử.
+
+10. QUY TẮC CHUẨN HÓA OUTPUT:
+- Trả về đúng MỘT object JSON duy nhất, không giải thích, không markdown, không chú thích.
+- Tất cả key ở object gốc phải luôn tồn tại, kể cả khi giá trị là null, "", {{}}, hoặc [].
+- Với field kiểu list, nếu không có dữ liệu thì trả [].
+- Với field kiểu object như `course_requirements`, luôn trả đủ các key con: software, hardware, lab_equipment, classroom_setup.
+- `language_instruction` chỉ nên là "vi", "en", hoặc chuỗi ngắn gọn tương đương nếu tài liệu ghi rõ song ngữ.
+- `clos[].code` phải duy nhất.
+- `clos[].plo_mapping`, `course_outline[].clo_mapping`, `assessment_methods[].clo_mapping`, `clos[].assessment_methods`, `course_outline[].materials`, `course_outline[].assignments` phải là array.
+- `course_outline[].hours` luôn là object có 2 key: theory, practice.
+- `week` phải là số nguyên dương.
+- `credits` nên là số; nếu tài liệu ghi "3(2,1)" thì trích `credits = 3`, còn phân bổ giờ đưa vào course_outline nếu có bằng chứng.
+- Không tạo textbook/reference giả nếu tài liệu hoàn toàn không có; để [].
+- Không tự sinh PLO nếu tài liệu không có dấu hiệu liên kết rõ ràng.
+- Nếu một mục không chắc chắn, ưu tiên giữ mô tả ở field text hơn là suy diễn sang field cấu trúc sai.
 
 LƯU Ý QUAN TRỌNG:
 - Tổng trọng số đánh giá phải = 100%
@@ -322,6 +375,9 @@ Trả về JSON với cấu trúc:
   "course_objectives": "string",
   "course_description": "string", 
   "learning_methods": "string",
+  "sections": {{}},
+  "source_file": "string",
+  "version_number": "string",
   "course_requirements": {{
     "software": [...],
     "hardware": [...],

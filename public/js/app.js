@@ -66,7 +66,6 @@
         .filter(item => item && item.label)
         .map((item, index) => {
           let label = this.escapeHtml(item.label);
-          if (label === 'Soạn thảo' || label === 'soạn thảo') label = 'Chi tiết';
 
           const isCurrent = index === items.length - 1;
           const labelStyle = `font-weight:${isCurrent ? '600' : '400'}; color:${isCurrent ? 'var(--text)' : 'var(--text-muted)'};`;

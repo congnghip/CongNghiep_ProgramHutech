@@ -233,9 +233,17 @@ window.SyllabusPdfImportPage = {
 
   bindReviewTabs() {
     document.querySelectorAll('#import-review-tabs .tab-item').forEach(tab => {
-      tab.addEventListener('click', () => {
-        this.reviewActiveTab = Number(tab.dataset.tab);
-        this.updateReviewTabs();
+      tab.addEventListener('click', async () => {
+        const newTab = Number(tab.dataset.tab);
+        if (newTab === this.reviewActiveTab) return;
+
+        this.reviewActiveTab = newTab;
+        if (typeof this.hasUnsavedChanges === 'function' && this.hasUnsavedChanges()) {
+          this.isDirty = false;
+          await this.renderStepContent();
+        } else {
+          this.updateReviewTabs();
+        }
       });
     });
     this.updateReviewTabs();
@@ -300,6 +308,7 @@ window.SyllabusPdfImportPage = {
     this.versionId = params.versionId;
     this.preferredTargetCourseId = params.targetCourseId || null;
     this.preferredSyllabusId = params.syllabusId || null;
+    this.sourcePage = params.sourcePage || null;
     this.sessionId = params.sessionId || localStorage.getItem('syllabus_pdf_import_session_id');
     this.currentStep = parseInt(localStorage.getItem('syllabus_pdf_import_current_step') || '1', 10);
     if (!this.versionId) {
@@ -373,20 +382,41 @@ window.SyllabusPdfImportPage = {
 
     const breadcrumb = document.getElementById('syllabus-import-breadcrumb');
     if (breadcrumb) {
-      breadcrumb.innerHTML = window.App.renderBreadcrumb([
-        { label: 'Chương trình đào tạo', page: 'programs' },
-        {
-          label: 'Phiên bản',
-          page: 'version-editor',
-          params: {
-            versionId: this.versionId,
-            programId: this.version.program_id,
-            programName: this.version.program_name,
-            tabKey: 'syllabi'
-          }
-        },
-        { label: 'Nhập PDF đề cương' }
-      ]);
+      if (this.sourcePage === 'my-syllabi') {
+        breadcrumb.innerHTML = window.App.renderBreadcrumb([
+          { label: 'Đề cương của tôi', page: 'my-syllabi' },
+          { 
+            label: 'Soạn thảo',
+            page: 'syllabus-editor',
+            params: { syllabusId: this.preferredSyllabusId, sourcePage: 'my-syllabi' }
+          },
+          { label: 'Nhập PDF đề cương' }
+        ]);
+      } else {
+        breadcrumb.innerHTML = window.App.renderBreadcrumb([
+          { label: 'Chương trình đào tạo', page: 'programs' },
+          {
+            label: 'Phiên bản',
+            page: 'version-editor',
+            params: {
+              versionId: this.versionId,
+              programId: this.version.program_id,
+              programName: this.version.program_name
+            }
+          },
+          {
+            label: 'Đề cương',
+            page: 'version-editor',
+            params: {
+              versionId: this.versionId,
+              programId: this.version.program_id,
+              programName: this.version.program_name,
+              tabKey: 'syllabi'
+            }
+          },
+          { label: 'Nhập PDF đề cương' }
+        ]);
+      }
     }
 
     this.updateStepper();
@@ -462,30 +492,6 @@ window.SyllabusPdfImportPage = {
           </div>
         </div>
 
-        <div style="display:flex;justify-content:center;gap:10px;margin-top:16px;flex-wrap:wrap;">
-          <button class="btn ${this.useMockMode ? 'btn-primary' : 'btn-secondary'} btn-sm" id="mock-mode-btn">Bật heuristic fallback</button>
-          <div style="font-size:12px;color:var(--text-muted);max-width:320px;text-align:left;">
-            Mặc định hệ thống dùng Groq để chuẩn hóa đề cương. Tùy chọn này chỉ dành cho debug hoặc fallback heuristic cục bộ.
-          </div>
-        </div>
-
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:24px;text-align:left;">
-          <div style="padding:14px;border:1px solid var(--border);border-radius:var(--radius-lg);">
-            <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">Đầu vào</div>
-            <strong>PDF text-based</strong>
-            <div style="font-size:12px;color:var(--text-muted);margin-top:6px;">Ưu tiên phase đầu cho PDF có thể extract text tốt.</div>
-          </div>
-          <div style="padding:14px;border:1px solid var(--border);border-radius:var(--radius-lg);">
-            <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">Chuẩn hóa</div>
-            <strong>Groq + schema cố định</strong>
-            <div style="font-size:12px;color:var(--text-muted);margin-top:6px;">AI trả về đúng form đề cương chuẩn để review.</div>
-          </div>
-          <div style="padding:14px;border:1px solid var(--border);border-radius:var(--radius-lg);">
-            <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">An toàn dữ liệu</div>
-            <strong>Review trước commit</strong>
-            <div style="font-size:12px;color:var(--text-muted);margin-top:6px;">Không lưu thẳng từ AI vào DB.</div>
-          </div>
-        </div>
       </div>
     `;
 
@@ -520,13 +526,10 @@ window.SyllabusPdfImportPage = {
       dropZone.style.background = 'rgba(0, 102, 204, 0.05)';
     };
 
-    document.getElementById('mock-mode-btn')?.addEventListener('click', () => {
-      this.useMockMode = !this.useMockMode;
-      this.renderStep1(container);
-    });
   },
 
   renderStep2(container) {
+    this.isDirty = false;
     const payload = this.sessionData?.review_payload;
     if (!payload) {
       container.innerHTML = '<p style="color:var(--danger);">Không có dữ liệu review để hiển thị.</p>';
@@ -550,16 +553,10 @@ window.SyllabusPdfImportPage = {
           </div>
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap;">
             <div>
-              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
-                <span style="display:inline-flex;align-items:center;padding:4px 10px;border-radius:999px;background:#f3f4f6;color:#111827;font-size:12px;font-weight:700;">BM03/QT2b/ĐBCL</span>
-                <span class="badge badge-info">${payload.import_metadata.engine === 'mock' ? 'Heuristic review' : 'Groq review'}</span>
-              </div>
               <h2 style="font-size:32px;line-height:1.18;font-weight:800;letter-spacing:-0.5px;margin:0 0 8px 0;">${payload.course_identity.course_name_vi || 'Đề cương đang chuẩn hóa'}</h2>
               <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;color:var(--text-muted);font-size:13px;">
                 <span><strong style="color:var(--text-primary);">${payload.course_identity.course_code || '---'}</strong></span>
                 <span>${payload.course_identity.credits || 0} TC</span>
-                <span>${payload.course_identity.language_instruction || 'vi'}</span>
-                <span>Confidence: ${overallConfidence}</span>
               </div>
             </div>
             <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
@@ -592,12 +589,7 @@ window.SyllabusPdfImportPage = {
               <div class="input-group" style="grid-column:span 2;"><label>Tên học phần tiếng Anh</label><textarea id="course-name-en" rows="3">${payload.course_identity.course_name_en || ''}</textarea>${this.renderFieldStateHint(payload.course_identity.course_name_en)}</div>
               <div class="input-group"><label>Số tín chỉ</label><input type="number" id="course-credits" value="${payload.course_identity.credits || 0}">${this.renderFieldStateHint(payload.course_identity.credits)}</div>
               <div class="input-group"><label>Ngôn ngữ giảng dạy</label><input type="text" id="course-language" value="${payload.course_identity.language_instruction || 'vi'}">${this.renderFieldStateHint(payload.course_identity.language_instruction)}</div>
-              <div class="input-group"><label>Nguồn file</label><input type="text" id="import-source-file" value="${this.sessionData.source_filename || payload.import_metadata.source_file || 'PDF upload'}" disabled></div>
-              <div class="input-group"><label>Nguồn chuẩn hóa</label><input type="text" id="import-source-kind" value="${this.getImportDisplaySource(payload.import_metadata)}" disabled></div>
-              <div class="input-group"><label>Phương pháp extract</label><input type="text" id="import-extraction-method" value="${payload.import_metadata.extraction_method || 'pdftotext+groq'}" disabled></div>
-              <div class="input-group"><label>Model</label><input type="text" id="import-model" value="${payload.import_metadata.model || payload.import_metadata.ai_model || 'n/a'}" disabled></div>
-              <div class="input-group"><label>Prompt version</label><input type="text" id="import-prompt-version" value="${payload.import_metadata.prompt_version || 'n/a'}" disabled></div>
-              <div class="input-group"><label>Mức độ tin cậy</label><input type="text" id="import-confidence" value="${overallConfidence}" disabled></div>
+              <div class="input-group" style="grid-column:1 / -1;"><label>Nguồn file</label><input type="text" id="import-source-file" value="${this.sessionData.source_filename || payload.import_metadata.source_file || 'PDF upload'}" disabled></div>
             </div>
           </section>
         </div>
@@ -688,12 +680,22 @@ window.SyllabusPdfImportPage = {
     `;
 
     document.getElementById('save-review-btn')?.addEventListener('click', () => this.saveReview());
-    document.getElementById('add-clo-row')?.addEventListener('click', () => this.addTableRow('clo-table', ['code', 'description', 'bloom_level', 'plo_mapping']));
-    document.getElementById('add-schedule-row')?.addEventListener('click', () => this.addTableRow('schedule-table', ['week', 'topic', 'activities', 'clos']));
-    document.getElementById('add-assessment-row')?.addEventListener('click', () => this.addTableRow('assessment-table', ['component', 'weight', 'method', 'clos']));
+    document.getElementById('add-clo-row')?.addEventListener('click', () => { this.addTableRow('clo-table', ['code', 'description', 'bloom_level', 'plo_mapping']); this.isDirty = true; });
+    document.getElementById('add-schedule-row')?.addEventListener('click', () => { this.addTableRow('schedule-table', ['week', 'topic', 'activities', 'clos']); this.isDirty = true; });
+    document.getElementById('add-assessment-row')?.addEventListener('click', () => { this.addTableRow('assessment-table', ['component', 'weight', 'method', 'clos']); this.isDirty = true; });
     container.querySelectorAll('[data-action="remove-row"]').forEach(btn => {
-      btn.addEventListener('click', () => btn.closest('tr').remove());
+      btn.addEventListener('click', () => { btn.closest('tr').remove(); this.isDirty = true; });
     });
+    
+    const contentWrapper = container.firstElementChild;
+    if (contentWrapper) {
+      const markDirty = (e) => {
+        if (['INPUT', 'TEXTAREA', 'SELECT'].includes(e.target.tagName)) this.isDirty = true;
+      };
+      contentWrapper.addEventListener('input', markDirty);
+      contentWrapper.addEventListener('change', markDirty);
+    }
+
     this.bindReviewTabs();
     this.applyPendingStep2Focus();
   },
@@ -835,6 +837,11 @@ window.SyllabusPdfImportPage = {
     row.querySelector('[data-action="remove-row"]')?.addEventListener('click', () => row.remove());
   },
 
+  hasUnsavedChanges() {
+    if (this.currentStep !== 2 || !document.getElementById('import-review-tabs')) return false;
+    return Boolean(this.isDirty);
+  },
+
   captureReviewPayloadFromDom() {
     if (!this.sessionData) return;
     const payload = this.sessionData.review_payload;
@@ -920,6 +927,7 @@ window.SyllabusPdfImportPage = {
       review_payload: this.normalizeSessionData(data.review_payload || data.canonical_payload)
     };
     if (showToast) window.toast.success('Đã lưu thay đổi');
+    this.isDirty = false;
   },
 
   async uploadPdf() {
@@ -930,9 +938,6 @@ window.SyllabusPdfImportPage = {
     }
     const formData = new FormData();
     formData.append('file', file);
-    if (this.useMockMode) {
-      formData.append('mock', '1');
-    }
     const res = await fetch(`/api/versions/${this.versionId}/syllabus-import-pdf/session`, {
       method: 'POST',
       body: formData
@@ -950,7 +955,6 @@ window.SyllabusPdfImportPage = {
   },
 
   async runValidation(showToast = false) {
-    await this.saveReview(false);
     const res = await fetch(`/api/syllabus-import-pdf/session/${this.sessionId}/validate`, { method: 'POST' });
     const data = await this.parseApiResponse(res, 'Không thể validate phiên import PDF');
     if (!res.ok) throw new Error(data.error);
@@ -989,15 +993,35 @@ window.SyllabusPdfImportPage = {
   },
 
   async nextStep() {
+    const nextBtn = document.querySelector('.wizard-next-btn');
+    const prevBtn = document.querySelector('.wizard-prev-btn');
+    const originalNextText = nextBtn ? nextBtn.textContent : 'Tiếp tục';
+    const loadingHtml = `<span style="width:14px;height:14px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;margin:0 6px 0 0;display:inline-block;vertical-align:middle;animation:spin 0.6s linear infinite;box-sizing:border-box;"></span><span style="display:inline-block;vertical-align:middle;">${originalNextText}</span>`;
+
     try {
       if (this.currentStep === 1) {
+        if (nextBtn) {
+          nextBtn.innerHTML = loadingHtml;
+          nextBtn.disabled = true;
+        }
+        if (prevBtn) prevBtn.disabled = true;
         await this.uploadPdf();
         this.currentStep = 2;
       } else if (this.currentStep === 2) {
+        if (nextBtn) {
+          nextBtn.innerHTML = loadingHtml;
+          nextBtn.disabled = true;
+        }
+        if (prevBtn) prevBtn.disabled = true;
         const ok = await this.runValidation();
         this.currentStep = 3;
         if (!ok) window.toast.warning('Vẫn còn lỗi cần xử lý trước khi commit.');
       } else if (this.currentStep === 3) {
+        if (nextBtn) {
+          nextBtn.innerHTML = loadingHtml;
+          nextBtn.disabled = true;
+        }
+        if (prevBtn) prevBtn.disabled = true;
         const ok = await this.runValidation();
         if (!ok) {
           throw new Error('Phiên import còn lỗi nghiêm trọng. Hãy quay lại bước Rà soát để chỉnh sửa.');
@@ -1019,7 +1043,8 @@ window.SyllabusPdfImportPage = {
             versionId: this.versionId,
             programId: this.version.program_id,
             programName: this.version.program_name,
-            tabKey: 'syllabi'
+            tabKey: 'syllabi',
+            sourcePage: this.sourcePage
           });
           return;
         }
@@ -1028,7 +1053,11 @@ window.SyllabusPdfImportPage = {
       localStorage.setItem('syllabus_pdf_import_current_step', this.currentStep);
       await this.renderStepContent();
     } catch (e) {
+      if (nextBtn) nextBtn.innerHTML = originalNextText;
       window.toast.error(e.message);
+    } finally {
+      if (nextBtn) nextBtn.disabled = false;
+      if (prevBtn) prevBtn.disabled = false;
     }
   },
 
@@ -1044,14 +1073,13 @@ window.SyllabusPdfImportPage = {
   },
 
   cancelImport() {
+    if (!confirm('Bạn có chắc chắn muốn hủy phiên bản tải lên này?')) return;
     localStorage.removeItem('syllabus_pdf_import_session_id');
     localStorage.removeItem('syllabus_pdf_import_current_step');
-    window.App.navigate('version-editor', {
-      versionId: this.versionId,
-      programId: this.version.program_id,
-      programName: this.version.program_name,
-      tabKey: 'syllabi'
-    });
+    this.sessionId = null;
+    this.sessionData = null;
+    this.currentStep = 1;
+    this.renderStepContent();
   },
 
   destroy() {}

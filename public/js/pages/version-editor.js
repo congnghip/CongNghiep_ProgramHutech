@@ -861,31 +861,67 @@ window.VersionEditorPage = {
       </div>
       ${vCourses.length === 0 ? '<p style="color:var(--text-muted);font-size:13px;">Hãy gán HP vào CTĐT trước.</p>' : `
         <table class="data-table">
-          <thead><tr><th>Mã</th><th>Tên HP</th><th>TC</th><th>Tác giả / Phân công</th><th>Trạng thái</th><th></th></tr></thead>
+          <thead><tr><th>Mã</th><th>Tên HP</th><th>TC</th><th>Tác giả / Phân công</th><th>Trạng thái</th></tr></thead>
           <tbody>
             ${vCourses.map(c => {
       const syl = syllabiMap[c.course_id];
       const authors = (syl && syl.authors) ? syl.authors.map(a => a.display_name).join(', ') : '—';
-      return `<tr>
+      const canOpenRow = Boolean(syl || canCreate);
+      const rowAction = syl
+        ? `window.VersionEditorPage.openSyllabus(${syl.id})`
+        : `window.VersionEditorPage.createSyllabus(${c.course_id})`;
+      return `<tr ${canOpenRow ? `onclick="${rowAction}" style="cursor:pointer;"` : ''}>
                 <td><strong>${c.course_code}</strong></td>
                 <td>${c.course_name}</td>
                 <td style="text-align:center;">${c.credits}</td>
                 <td style="color:var(--text-muted);font-size:12px;">
                   ${authors}
-                  ${syl && canAssign ? `<button class="btn btn-secondary btn-sm" style="padding:2px 4px;margin-left:8px;" onclick="window.VersionEditorPage.openAssignModal(${syl.id})">Phân công</button>` : ''}
+                  ${syl && canAssign ? `<button class="btn btn-secondary btn-sm" style="padding:2px 4px;margin-left:8px;" onclick="event.stopPropagation(); window.VersionEditorPage.openAssignModal(${syl.id})">Phân công</button>` : ''}
                 </td>
                 <td>${syl ? `<span class="badge badge-info">${statusLabels[syl.status]}</span>` : '<span class="badge badge-neutral">Chưa tạo</span>'}</td>
-                <td style="white-space:nowrap;">
-                  ${syl
-          ? `<button class="btn btn-secondary btn-sm" onclick="window.App.navigate('syllabus-editor',{syllabusId:${syl.id}, versionId:${this.versionId}, programId:${this.version.program_id}, programName:'${(this.version.program_name || '').replace(/'/g, "\\'")}', tabKey:'syllabi'})">${(editable && syl.status === 'draft') ? 'Soạn' : 'Xem'}</button>`
-          : (canCreate ? `<button class="btn btn-primary btn-sm" onclick="window.VersionEditorPage.createSyllabus(${c.course_id})">Tạo ĐC</button>` : '')}
-                </td>
               </tr>`;
     }).join('')}
           </tbody>
         </table>
       `}
     `;
+  },
+
+  buildEmptySyllabusContent() {
+    return {
+      course_name_vi: '',
+      course_name_en: '',
+      course_code: '',
+      credits: '',
+      language_instruction: '',
+      knowledge_block: '',
+      course_category: '',
+      course_level: '',
+      managing_unit: '',
+      summary: '',
+      objectives: '',
+      prerequisites: '',
+      methods: '',
+      self_study_guidance: '',
+      course_requirements: '',
+      notes: '',
+      schedule: [],
+      grading: [],
+      textbooks: '',
+      references: '',
+      tools: '',
+      import_metadata: {}
+    };
+  },
+
+  openSyllabus(syllabusId) {
+    window.App.navigate('syllabus-editor', {
+      syllabusId,
+      versionId: this.versionId,
+      programId: this.version.program_id,
+      programName: this.version.program_name,
+      tabKey: 'syllabi'
+    });
   },
 
   async openAssignModal(sId) {
@@ -955,18 +991,12 @@ window.VersionEditorPage = {
     try {
       const res = await fetch(`/api/versions/${this.versionId}/syllabi`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ course_id: courseId, content: {} })
+        body: JSON.stringify({ course_id: courseId, content: this.buildEmptySyllabusContent() })
       });
       if (!res.ok) throw new Error((await res.json()).error);
       const syl = await res.json();
       window.toast.success('Đã tạo đề cương');
-      window.App.navigate('syllabus-editor', {
-        syllabusId: syl.id,
-        versionId: this.versionId,
-        programId: this.version.program_id,
-        programName: this.version.program_name,
-        tabKey: 'syllabi'
-      });
+      this.openSyllabus(syl.id);
     } catch (e) { window.toast.error(e.message); }
   },
 

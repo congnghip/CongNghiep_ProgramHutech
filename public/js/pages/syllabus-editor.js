@@ -105,29 +105,21 @@ window.SyllabusEditorPage = {
           <div style="text-align:center;border-bottom:1px solid var(--border);padding-bottom:14px;margin-bottom:18px;">
             <div style="font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px;">Trường Đại học Công nghệ TP. HCM · Khoa Công nghệ thông tin</div>
             <div style="font-size:24px;font-weight:800;letter-spacing:-0.4px;">ĐỀ CƯƠNG CHI TIẾT HỌC PHẦN</div>
-            <div style="font-size:12px;color:var(--text-muted);margin-top:6px;">Mẫu cấu trúc tham chiếu theo đề cương chuẩn BM03/QT2b/ĐBCL</div>
           </div>
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px;flex-wrap:wrap;">
           <div>
             <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
-              <span style="display:inline-flex;align-items:center;padding:4px 10px;border-radius:999px;background:#f3f4f6;color:#111827;font-size:12px;font-weight:700;">
-                BM03/QT2b/ĐBCL
-              </span>
               <span class="badge badge-info">${statusLabels[this.syllabus.status] || this.syllabus.status}</span>
-              ${hasImportMetadata ? `<span style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;background:#f3f4f6;color:#374151;font-size:12px;font-weight:600;">Nguồn: ${this.escapeHtml(this.getImportSourceLabel(content.import_metadata))}</span>` : ''}
-              ${hasImportMetadata && importMetadata.model ? `<span style="display:inline-flex;align-items:center;padding:5px 10px;border-radius:999px;background:#eef6ff;color:#1d4ed8;font-size:12px;font-weight:600;">Model: ${this.escapeHtml(importMetadata.model)}</span>` : ''}
             </div>
             <h1 style="font-size:30px;line-height:1.18;font-weight:800;letter-spacing:-0.5px;margin:0 0 8px 0;">${this.escapeHtml(content.course_name_vi || this.syllabus.course_name)}</h1>
             <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;color:var(--text-muted);font-size:13px;">
               <span><strong style="color:var(--text-primary);">${this.escapeHtml(content.course_code || this.syllabus.course_code || '---')}</strong></span>
               <span>${this.escapeHtml(String(content.credits || this.syllabus.credits || 0))} TC</span>
-              <span>${this.escapeHtml(content.course_level || 'Đại học')}</span>
-              <span>${this.escapeHtml(authorLabel)}</span>
             </div>
           </div>
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-            ${editable && this.routeContext.versionId ? `<button class="btn btn-secondary btn-sm" onclick="window.SyllabusEditorPage.openPdfImport()">Import PDF</button>` : ''}
-            ${editable ? '<button class="btn btn-primary btn-sm" onclick="window.SyllabusEditorPage.submitForApproval()">Nộp duyệt</button>' : ''}
+              ${editable ? `<button class="btn btn-secondary btn-sm" onclick="window.SyllabusEditorPage.openPdfImport()">Import PDF</button>` : ''}
+              ${editable ? '<button class="btn btn-primary btn-sm" onclick="window.SyllabusEditorPage.submitForApproval()">Nộp duyệt</button>' : ''}
           </div>
         </div>
         </div>
@@ -212,18 +204,31 @@ window.SyllabusEditorPage = {
             programName: this.routeContext.programName
           }
         },
-        { label: 'Đề cương' }
+        {
+          label: 'Đề cương',
+          page: 'version-editor',
+          params: {
+            versionId: this.routeContext.versionId,
+            programId: this.routeContext.programId,
+            programName: this.routeContext.programName,
+            tabKey: 'syllabi'
+          }
+        },
+        { label: 'Soạn thảo' }
       ];
     }
 
     if (this.routeContext.sourcePage === 'my-syllabi') {
       return [
         { label: 'Đề cương của tôi', page: 'my-syllabi' },
-        { label: 'Đề cương' }
+        { label: 'Soạn thảo' }
       ];
     }
 
-    return [{ label: 'Đề cương' }];
+    return [
+      { label: 'Đề cương' },
+      { label: 'Soạn thảo' }
+    ];
   },
 
   updateBreadcrumb() {
@@ -911,18 +916,14 @@ window.SyllabusEditorPage = {
   },
 
   openPdfImport() {
-    const versionId = this.routeContext.versionId || this.syllabus?.version_id;
-    if (!versionId) {
-      window.toast.warning('Không xác định được phiên bản để mở import PDF.');
-      return;
-    }
     window.App.navigate('syllabus-pdf-import', {
-      versionId,
-      programId: this.routeContext.programId,
-      programName: this.routeContext.programName,
-      tabKey: 'syllabi',
       syllabusId: this.syllabusId,
-      targetCourseId: this.syllabus?.course_id
+      versionId: this.routeContext.versionId || this.syllabus.version_id,
+      programId: this.routeContext.programId || this.syllabus.program_id,
+      programName: this.routeContext.programName || this.syllabus.program_name || 'Học phần',
+      tabKey: 'syllabi',
+      targetCourseId: this.syllabus?.course_id,
+      sourcePage: this.routeContext.sourcePage
     });
   },
 
