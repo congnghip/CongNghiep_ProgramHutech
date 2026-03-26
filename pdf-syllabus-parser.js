@@ -128,7 +128,14 @@ function validateResponse(json) {
     prerequisites: json.prerequisites || '',
     course_objectives: json.course_objectives || '',
     course_description: json.course_description || '',
-    learning_methods: json.learning_methods || '',
+    learning_methods: Array.isArray(json.learning_methods)
+      ? json.learning_methods.map(m => {
+          if (typeof m === 'string') return m;
+          const name = m.method || m.name || m.title || '';
+          const desc = m.objective || m.description || '';
+          return name && desc ? `${name}: ${desc}` : name || JSON.stringify(m);
+        }).join('\n')
+      : (typeof json.learning_methods === 'string' ? json.learning_methods : ''),
     clos: Array.isArray(json.clos) ? json.clos.map(c => ({
       code: c.code || '',
       description: c.description || '',

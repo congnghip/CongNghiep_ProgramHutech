@@ -134,7 +134,7 @@ window.SyllabusEditorPage = {
         <div class="input-group"><label>Mục tiêu học phần</label><textarea id="syl-course-obj" ${editable ? '' : 'disabled'} rows="3" placeholder="Mục tiêu khi hoàn thành HP (mục 7)">${c.course_objectives || ''}</textarea></div>
         <div class="input-group"><label>Yêu cầu tiên quyết</label><input type="text" id="syl-prereq" ${editable ? '' : 'disabled'} value="${c.prerequisites || ''}" placeholder="HP tiên quyết"></div>
         <div class="input-group"><label>Ngôn ngữ giảng dạy</label><input type="text" id="syl-lang-inst" ${editable ? '' : 'disabled'} value="${c.language_instruction || ''}" placeholder="Tiếng Việt"></div>
-        <div class="input-group"><label>Phương pháp giảng dạy</label><textarea id="syl-learning-methods" ${editable ? '' : 'disabled'} rows="3" placeholder="Phương pháp, hình thức tổ chức dạy học (mục 12)">${c.learning_methods || ''}</textarea></div>
+        <div class="input-group"><label>Phương pháp giảng dạy</label><textarea id="syl-learning-methods" ${editable ? '' : 'disabled'} rows="3" placeholder="Phương pháp, hình thức tổ chức dạy học (mục 12)">${Array.isArray(c.learning_methods) ? c.learning_methods.map(m => typeof m === 'string' ? m : (m.method || m.name || m.title || JSON.stringify(m))).join('\n') : (c.learning_methods || '')}</textarea></div>
         ${editable ? '<button class="btn btn-primary" onclick="window.SyllabusEditorPage.saveGeneral()">Lưu nháp</button>' : ''}
       </div>
     `;
@@ -228,7 +228,16 @@ window.SyllabusEditorPage = {
   },
 
   async deleteCLO(id) {
-    if (!confirm('Xóa CLO này?')) return;
+    const confirmed = await window.ui.confirm({
+      title: 'Xóa CLO',
+      eyebrow: 'Xác nhận thao tác',
+      message: 'Bạn có chắc muốn xóa CLO này?',
+      confirmText: 'Xóa',
+      cancelText: 'Hủy',
+      tone: 'danger',
+      confirmVariant: 'danger'
+    });
+    if (!confirmed) return;
     await fetch(`/api/clos/${id}`, { method: 'DELETE' });
     window.toast.success('Đã xóa');
     this.renderSylTab();
@@ -516,7 +525,17 @@ window.SyllabusEditorPage = {
       // Check existing data
       const c = this.syllabus.content || {};
       const hasData = c.course_description || c.course_objectives || (c.course_outline && c.course_outline.length);
-      if (hasData && !confirm('Đề cương đã có dữ liệu. Import sẽ ghi đè toàn bộ nội dung. Tiếp tục?')) return;
+      if (hasData) {
+        const confirmed = await window.ui.confirm({
+          title: 'Ghi đè dữ liệu đề cương',
+          eyebrow: 'Cẩn thận khi import',
+          message: 'Đề cương đã có dữ liệu. Import sẽ ghi đè toàn bộ nội dung.\n\nBạn có muốn tiếp tục không?',
+          confirmText: 'Tiếp tục import',
+          cancelText: 'Hủy',
+          tone: 'warning'
+        });
+        if (!confirmed) return;
+      }
 
       // Show loading
       const tabContent = document.getElementById('syl-tab-content');
@@ -579,7 +598,14 @@ window.SyllabusEditorPage = {
 
   // ============ APPROVAL ============
   async submitForApproval() {
-    if (!confirm('Nộp đề cương để phê duyệt?')) return;
+    const confirmed = await window.ui.confirm({
+      title: 'Nộp đề cương',
+      eyebrow: 'Xác nhận gửi phê duyệt',
+      message: 'Bạn có chắc muốn nộp đề cương này để phê duyệt?',
+      confirmText: 'Nộp duyệt',
+      cancelText: 'Xem lại'
+    });
+    if (!confirmed) return;
     try {
       const res = await fetch('/api/approval/submit', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
