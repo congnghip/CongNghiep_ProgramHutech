@@ -281,6 +281,10 @@ async function initDB() {
         sort_order INT DEFAULT 0
       );
 
+      ALTER TABLE knowledge_blocks ADD COLUMN IF NOT EXISTS level INT DEFAULT 1;
+
+      ALTER TABLE version_courses ADD COLUMN IF NOT EXISTS knowledge_block_id INT REFERENCES knowledge_blocks(id) ON DELETE SET NULL;
+
       -- Teaching plan (detailed per-semester schedule)
       CREATE TABLE IF NOT EXISTS teaching_plan (
         id SERIAL PRIMARY KEY,
@@ -627,25 +631,25 @@ async function seedData(client) {
       }
     }
 
-    // Knowledge blocks
+    // Knowledge blocks (with levels)
     const kbData = [
-      ['Kiến thức giáo dục đại cương', null, 12, 12, 0],
-      ['Lý luận chính trị', 'Kiến thức giáo dục đại cương', 3, 3, 0],
-      ['Ngoại ngữ', 'Kiến thức giáo dục đại cương', 3, 3, 0],
-      ['Toán & Khoa học tự nhiên', 'Kiến thức giáo dục đại cương', 6, 6, 0],
-      ['Kiến thức giáo dục chuyên nghiệp', null, 48, 42, 6],
-      ['Cơ sở ngành', 'Kiến thức giáo dục chuyên nghiệp', 15, 15, 0],
-      ['Chuyên ngành', 'Kiến thức giáo dục chuyên nghiệp', 18, 12, 6],
-      ['Thực tập & Đồ án', 'Kiến thức giáo dục chuyên nghiệp', 6, 6, 0],
+      ['Kiến thức giáo dục đại cương', null, 1, 12, 12, 0],
+      ['Lý luận chính trị', 'Kiến thức giáo dục đại cương', 2, 3, 3, 0],
+      ['Ngoại ngữ', 'Kiến thức giáo dục đại cương', 2, 3, 3, 0],
+      ['Toán & Khoa học tự nhiên', 'Kiến thức giáo dục đại cương', 2, 6, 6, 0],
+      ['Kiến thức giáo dục chuyên nghiệp', null, 1, 48, 42, 6],
+      ['Cơ sở ngành', 'Kiến thức giáo dục chuyên nghiệp', 2, 15, 15, 0],
+      ['Chuyên ngành', 'Kiến thức giáo dục chuyên nghiệp', 2, 18, 12, 6],
+      ['Thực tập & Đồ án', 'Kiến thức giáo dục chuyên nghiệp', 2, 6, 6, 0],
     ];
     const kbIds = {};
     let kbOrder = 0;
-    for (const [name, parent, total, req, elec] of kbData) {
+    for (const [name, parent, level, total, req, elec] of kbData) {
       kbOrder++;
       const parentId = parent ? (kbIds[parent] || null) : null;
       const r = await client.query(
-        'INSERT INTO knowledge_blocks (version_id, name, parent_id, total_credits, required_credits, elective_credits, sort_order) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id',
-        [verId, name, parentId, total, req, elec, kbOrder]
+        'INSERT INTO knowledge_blocks (version_id, name, parent_id, level, total_credits, required_credits, elective_credits, sort_order) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id',
+        [verId, name, parentId, level, total, req, elec, kbOrder]
       );
       kbIds[name] = r.rows[0].id;
     }
