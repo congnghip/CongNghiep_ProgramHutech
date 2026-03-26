@@ -688,43 +688,189 @@ window.VersionEditorPage = {
 
   // ===== Knowledge Blocks Tab =====
   async renderKnowledgeBlocksTab(body, editable) {
-    const blocks = await fetch(`/api/versions/${this.versionId}/knowledge-blocks`).then(r => r.json()).catch(() => []);
-    if (!blocks.length) {
-      body.innerHTML = '<p style="color:var(--text-muted);font-size:13px;">Chưa có dữ liệu cấu trúc khối kiến thức.</p>';
-      return;
-    }
-    // Build tree: parent blocks first, children indented
-    const parentMap = {};
-    const roots = [];
-    blocks.forEach(b => {
-      if (!b.parent_id) roots.push(b);
-      else {
-        if (!parentMap[b.parent_id]) parentMap[b.parent_id] = [];
-        parentMap[b.parent_id].push(b);
-      }
-    });
-    const flatList = [];
-    roots.forEach(r => {
-      flatList.push({ ...r, _depth: 0 });
-      (parentMap[r.id] || []).forEach(c => flatList.push({ ...c, _depth: 1 }));
-    });
+    const data = await fetch(`/api/versions/${this.versionId}/knowledge-blocks`).then(r => r.json()).catch(() => ({ blocks: [], unassigned: [] }));
+    const blocks = data.blocks || [];
+    const unassigned = data.unassigned || [];
+
+    // Build tree structure
+    const roots = blocks.filter(b => !b.parent_id);
+    const getChildren = (parentId) => blocks.filter(b => b.parent_id === parentId);
+
+    const renderCourseList = (courses) => {
+      if (!courses || courses.length === 0) return '<div style="color:var(--text-muted);font-size:12px;padding:4px 0 4px 16px;">Chưa có HP</div>';
+      return courses.map(c => `
+        <div style="display:flex;align-items:center;gap:8px;padding:3px 0 3px 16px;font-size:13px;">
+          <span style="color:var(--primary);font-weight:500;min-width:60px;">${c.course_code}</span>
+          <span style="flex:1;">${c.course_name}</span>
+          <span style="color:var(--text-muted);min-width:40px;text-align:right;">${c.credits} TC</span>
+        </div>
+      `).join('');
+    };
+
+    const renderBlock = (block, depth) => {
+      const children = getChildren(block.id);
+      const isLeaf = children.length === 0;
+      const headerStyles = [
+        'font-size:15px;font-weight:700;background:var(--bg-secondary);padding:10px 12px;border-radius:6px;margin-bottom:4px;',
+        'font-size:14px;font-weight:600;padding:8px 12px 8px 24px;',
+        'font-size:13px;font-weight:500;padding:6px 12px 6px 48px;'
+      ];
+      const canAddChild = block.level === 2 && editable;
+      const canDelete = block.level === 3 && editable;
+      const canAssign = isLeaf && editable;
+
+      return `
+        <div class="kb-block" data-block-id="${block.id}" data-level="${block.level}">
+          <div style="display:flex;align-items:center;justify-content:space-between;${headerStyles[depth] || headerStyles[0]}">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span>${block.name}</span>
+              <span style="color:var(--text-muted);font-size:12px;">(${block.auto_total_credits || 0} TC)</span>
+            </div>
+            <div style="display:flex;gap:4px;">
+              ${editable ? `<button class="btn-icon kb-edit-btn" data-block-id="${block.id}" data-block-name="${block.name}" title="Sửa tên">✏️</button>` : ''}
+              ${canAddChild ? `<button class="btn-icon kb-add-child-btn" data-parent-id="${block.id}" title="Thêm nhóm con">➕</button>` : ''}
+              ${canAssign ? `<button class="btn-icon kb-assign-btn" data-block-id="${block.id}" title="Gán HP">📋</button>` : ''}
+              ${canDelete ? `<button class="btn-icon kb-delete-btn" data-block-id="${block.id}" title="Xóa">🗑️</button>` : ''}
+            </div>
+          </div>
+          ${isLeaf ? renderCourseList(block.courses) : ''}
+          ${children.map(child => renderBlock(child, depth + 1)).join('')}
+        </div>
+      `;
+    };
 
     body.innerHTML = `
-      <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;">Cấu trúc khối kiến thức</h3>
-      <table class="data-table">
-        <thead><tr><th>Khối kiến thức</th><th style="text-align:center;width:80px;">Tổng TC</th><th style="text-align:center;width:80px;">Bắt buộc</th><th style="text-align:center;width:80px;">Tự chọn</th></tr></thead>
-        <tbody>
-          ${flatList.map(b => `
-            <tr>
-              <td style="padding-left:${12 + b._depth * 24}px;${b._depth === 0 ? 'font-weight:600;' : ''}">${b.name}</td>
-              <td style="text-align:center;${b._depth === 0 ? 'font-weight:600;' : ''}">${b.total_credits || ''}</td>
-              <td style="text-align:center;">${b.required_credits || ''}</td>
-              <td style="text-align:center;">${b.elective_credits || ''}</td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h3 style="font-size:15px;font-weight:600;">Cấu trúc khối kiến thức</h3>
+        ${unassigned.length > 0 ? `<span style="color:var(--warning);font-size:13px;">⚠️ ${unassigned.length} HP chưa gán khối</span>` : ''}
+      </div>
+      <div class="kb-tree">
+        ${roots.map(r => renderBlock(r, 0)).join('')}
+      </div>
     `;
+
+    // Wire up event handlers
+    if (editable) {
+      this._wireKnowledgeBlockEvents(body, blocks, data);
+    }
+  },
+
+  _wireKnowledgeBlockEvents(body, blocks, data) {
+    const allCourses = [...(data.unassigned || [])];
+    for (const b of blocks) {
+      if (b.courses) allCourses.push(...b.courses.map(c => ({ ...c, block_name: b.name })));
+    }
+
+    // Edit block name
+    body.querySelectorAll('.kb-edit-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const blockId = btn.dataset.blockId;
+        const oldName = btn.dataset.blockName;
+        const newName = prompt('Nhập tên mới cho khối kiến thức:', oldName);
+        if (!newName || newName.trim() === oldName) return;
+        const res = await fetch(`/api/knowledge-blocks/${blockId}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: newName.trim() })
+        });
+        if (res.ok) this.renderTab(this.activeTab);
+        else alert((await res.json()).error || 'Lỗi cập nhật');
+      });
+    });
+
+    // Add child block
+    body.querySelectorAll('.kb-add-child-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const parentId = btn.dataset.parentId;
+        const name = prompt('Nhập tên nhóm con mới:');
+        if (!name || !name.trim()) return;
+        const res = await fetch(`/api/versions/${this.versionId}/knowledge-blocks`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: name.trim(), parent_id: parseInt(parentId) })
+        });
+        if (res.ok) this.renderTab(this.activeTab);
+        else alert((await res.json()).error || 'Lỗi tạo khối');
+      });
+    });
+
+    // Delete block
+    body.querySelectorAll('.kb-delete-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const blockId = btn.dataset.blockId;
+        if (!confirm('Bạn có chắc muốn xóa nhóm này? Các HP sẽ bị gỡ khỏi nhóm.')) return;
+        const res = await fetch(`/api/knowledge-blocks/${blockId}`, { method: 'DELETE' });
+        if (res.ok) this.renderTab(this.activeTab);
+        else alert((await res.json()).error || 'Lỗi xóa');
+      });
+    });
+
+    // Assign courses modal
+    body.querySelectorAll('.kb-assign-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const blockId = parseInt(btn.dataset.blockId);
+        const block = blocks.find(b => b.id === blockId);
+        const assignedIds = new Set((block?.courses || []).map(c => c.id));
+
+        // Create modal
+        const overlay = document.createElement('div');
+        overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);z-index:1000;display:flex;align-items:center;justify-content:center;';
+        const modal = document.createElement('div');
+        modal.style.cssText = 'background:var(--bg);border-radius:12px;padding:24px;max-width:600px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);';
+
+        modal.innerHTML = `
+          <h3 style="margin-bottom:16px;font-size:16px;">Gán HP vào: ${block?.name || ''}</h3>
+          <div style="margin-bottom:12px;">
+            <input type="text" id="kb-search" placeholder="Tìm HP..." style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px;">
+          </div>
+          <div id="kb-course-list" style="max-height:400px;overflow-y:auto;">
+            ${allCourses.map(c => {
+              const isAssigned = assignedIds.has(c.id);
+              const inOtherBlock = !isAssigned && c.block_name;
+              return `
+                <label style="display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:4px;cursor:pointer;opacity:${inOtherBlock ? '0.8' : '1'};" class="kb-course-item">
+                  <input type="checkbox" value="${c.id}" ${isAssigned ? 'checked' : ''}>
+                  <span style="color:var(--primary);font-weight:500;min-width:60px;">${c.course_code}</span>
+                  <span style="flex:1;">${c.course_name}</span>
+                  <span style="color:var(--text-muted);font-size:12px;">${c.credits} TC</span>
+                  ${inOtherBlock ? `<span style="color:var(--text-muted);font-size:11px;">(${c.block_name})</span>` : ''}
+                </label>
+              `;
+            }).join('')}
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;">
+            <button id="kb-cancel-btn" class="btn btn-secondary">Hủy</button>
+            <button id="kb-save-btn" class="btn btn-primary">Lưu</button>
+          </div>
+        `;
+
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+
+        // Search filter
+        modal.querySelector('#kb-search').addEventListener('input', (e) => {
+          const q = e.target.value.toLowerCase();
+          modal.querySelectorAll('.kb-course-item').forEach(item => {
+            item.style.display = item.textContent.toLowerCase().includes(q) ? '' : 'none';
+          });
+        });
+
+        // Cancel
+        modal.querySelector('#kb-cancel-btn').addEventListener('click', () => overlay.remove());
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+
+        // Save
+        modal.querySelector('#kb-save-btn').addEventListener('click', async () => {
+          const selected = [...modal.querySelectorAll('#kb-course-list input[type="checkbox"]:checked')]
+            .map(cb => parseInt(cb.value));
+          const res = await fetch(`/api/knowledge-blocks/${blockId}/assign-courses`, {
+            method: 'PUT', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ courseIds: selected })
+          });
+          overlay.remove();
+          if (res.ok) this.renderTab(this.activeTab);
+          else alert((await res.json()).error || 'Lỗi gán HP');
+        });
+      });
+    });
   },
 
   // ===== Course Descriptions Tab =====
