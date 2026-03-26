@@ -1,10 +1,15 @@
 // HUTECH Program — Server
+if (typeof process.loadEnvFile === 'function') {
+  process.loadEnvFile();
+}
+
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const multer = require('multer');
 const docxParser = require('./services/docx-parser');
+const syllabusPdfImport = require('./services/syllabus-pdf-import');
 
 const { pool, initDB, getUserPermissions, getUserRoles, hasPermission, isAdmin } = require('./db');
 
@@ -68,6 +73,67 @@ async function assertImportSessionAccess(session, user) {
     error.statusCode = 403;
     throw error;
   }
+}
+
+function normalizeJsonObject(value, fallback = {}) {
+  return value && typeof value === 'object' && !Array.isArray(value) ? value : fallback;
+}
+
+function normalizeJsonArray(value) {
+  return Array.isArray(value) ? value : [];
+}
+
+function parseSyllabusImportSession(row) {
+  const aiMetadata = syllabusPdfImport.buildImportMetadata(normalizeJsonObject(row.ai_metadata));
+  return {
+    ...row,
+    extraction_data: normalizeJsonObject(row.extraction_data),
+    canonical_payload: normalizeJsonObject(row.canonical_payload),
+    review_payload: normalizeJsonObject(row.review_payload),
+    validation_errors: normalizeJsonArray(row.validation_errors),
+    warnings: normalizeJsonArray(row.warnings),
+    diagnostics: normalizeJsonObject(row.diagnostics),
+    ai_metadata: aiMetadata
+  };
+}
+
+async function getSyllabusImportSessionOrThrow(sessionId) {
+  const result = await pool.query('SELECT * FROM syllabus_import_sessions WHERE id = $1', [sessionId]);
+  if (!result.rows.length) {
+    const error = new Error('Không tìm thấy phiên import đề cương PDF');
+    error.statusCode = 404;
+    throw error;
+  }
+  return parseSyllabusImportSession(result.rows[0]);
+}
+
+async function assertSyllabusImportSessionAccess(session, user) {
+  const admin = await isAdmin(user.id);
+  if (session.user_id !== user.id && !admin) {
+    const error = new Error('Bạn không có quyền truy cập phiên import đề cương này');
+    error.statusCode = 403;
+    throw error;
+  }
+}
+
+async function getVersionSyllabusImportContext(versionId) {
+  const [versionCourses, versionPlos, syllabi] = await Promise.all([
+    pool.query(`
+      SELECT vc.id, vc.course_id, vc.semester, vc.course_type, c.code AS course_code, c.name AS course_name, c.credits
+      FROM version_courses vc
+      JOIN courses c ON vc.course_id = c.id
+      WHERE vc.version_id = $1
+      ORDER BY vc.semester, c.code
+    `, [versionId]),
+    pool.query('SELECT id, code FROM version_plos WHERE version_id = $1 ORDER BY code', [versionId]),
+    pool.query('SELECT id, course_id, status FROM version_syllabi WHERE version_id = $1', [versionId])
+  ]);
+
+  return {
+    versionCourses: versionCourses.rows,
+    versionPlos: versionPlos.rows,
+    syllabi: syllabi.rows
+  };
 }
 
 // Permission middleware factory
@@ -1692,6 +1758,307 @@ app.put('/api/syllabi/:sId/clo-plo-map', authMiddleware, async (req, res) => {
     }
     res.json({ success: true, count: mappings.length });
   } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+// ============ PDF SYLLABUS IMPORT ============
+app.post('/api/versions/:vId/syllabus-import-pdf/session', authMiddleware, requireDraft('vId', 'syllabus.create'), upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'Vui lòng chọn file PDF để import.' });
+    }
+    if (req.file.mimetype !== 'application/pdf' && !req.file.originalname.toLowerCase().endsWith('.pdf')) {
+      return res.status(400).json({ error: 'Chỉ hỗ trợ file PDF cho chức năng này.' });
+    }
+
+    const context = await getVersionSyllabusImportContext(req.params.vId);
+    const startedAt = Date.now();
+    const engine = req.body?.mock === '1' ? 'mock' : syllabusPdfImport.DEFAULT_ENGINE;
+    console.info(`[syllabus-pdf-import] start session user=${req.user.id} version=${req.params.vId} file="${req.file.originalname}" size=${req.file.size} engine=${engine}`);
+    const processed = await syllabusPdfImport.processPdfImportWithMode({
+      buffer: req.file.buffer,
+      versionCourses: context.versionCourses,
+      existingSyllabi: context.syllabi,
+      mode: engine
+    });
+    const validation = syllabusPdfImport.validateCanonicalPayload(
+      processed.canonical,
+      context.versionCourses,
+      context.versionPlos
+    );
+
+    const warnings = [
+      ...(processed.canonical.warnings || []),
+      ...validation.warnings.map(item => item.msg)
+    ];
+
+    const aiMetadata = syllabusPdfImport.buildImportMetadata(processed.canonical.import_metadata);
+    const insert = await pool.query(
+      `INSERT INTO syllabus_import_sessions (
+        user_id, version_id, status, source_filename, source_mime, extraction_text,
+        extraction_data, canonical_payload, review_payload, validation_errors,
+        warnings, diagnostics, ai_metadata, updated_at
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,NOW())
+      RETURNING *`,
+      [
+        req.user.id,
+        req.params.vId,
+        validation.valid ? 'review' : 'needs_review',
+        req.file.originalname,
+        req.file.mimetype,
+        processed.extraction.text,
+        JSON.stringify(processed.extraction.diagnostics || {}),
+        JSON.stringify(processed.canonical),
+        JSON.stringify(processed.canonical),
+        JSON.stringify(validation.errors),
+        JSON.stringify(warnings),
+        JSON.stringify({
+          ...processed.extraction.diagnostics,
+          processing_ms: Date.now() - startedAt
+        }),
+        JSON.stringify(syllabusPdfImport.buildImportMetadata({
+          ...processed.canonical.import_metadata,
+          engine: aiMetadata.engine,
+          provider: processed.canonical.import_metadata?.provider,
+          model: processed.canonical.import_metadata?.model || processed.canonical.import_metadata?.ai_model || syllabusPdfImport.DEFAULT_MODEL,
+          prompt_version: processed.canonical.import_metadata?.prompt_version || syllabusPdfImport.HYBRID_PROMPT_VERSION || syllabusPdfImport.PROMPT_VERSION
+        }))
+      ]
+    );
+
+    console.info(`[syllabus-pdf-import] session created id=${insert.rows[0].id} processingMs=${Date.now() - startedAt} engine=${aiMetadata.engine} provider=${aiMetadata.provider} model=${aiMetadata.model}`);
+    res.json(parseSyllabusImportSession(insert.rows[0]));
+  } catch (e) {
+    console.warn(`[syllabus-pdf-import] create session failed version=${req.params.vId}: ${e.message}`);
+    res.status(400).json({ error: e.message });
+  }
+});
+
+app.get('/api/syllabus-import-pdf/session/:id', authMiddleware, async (req, res) => {
+  try {
+    const session = await getSyllabusImportSessionOrThrow(req.params.id);
+    await assertSyllabusImportSessionAccess(session, req.user);
+    res.json(session);
+  } catch (e) {
+    res.status(e.statusCode || 500).json({ error: e.message });
+  }
+});
+
+app.put('/api/syllabus-import-pdf/session/:id', authMiddleware, async (req, res) => {
+  try {
+    const session = await getSyllabusImportSessionOrThrow(req.params.id);
+    await assertSyllabusImportSessionAccess(session, req.user);
+    const { review_payload } = req.body;
+    const normalized = syllabusPdfImport.normalizeCanonicalPayload(review_payload || session.review_payload || session.canonical_payload);
+    const updated = await pool.query(
+      `UPDATE syllabus_import_sessions
+       SET review_payload = $1, status = $2, updated_at = NOW()
+       WHERE id = $3
+       RETURNING *`,
+      [JSON.stringify(normalized), 'review', req.params.id]
+    );
+    res.json(parseSyllabusImportSession(updated.rows[0]));
+  } catch (e) {
+    res.status(e.statusCode || 400).json({ error: e.message });
+  }
+});
+
+app.post('/api/syllabus-import-pdf/session/:id/validate', authMiddleware, async (req, res) => {
+  try {
+    const session = await getSyllabusImportSessionOrThrow(req.params.id);
+    await assertSyllabusImportSessionAccess(session, req.user);
+    const context = await getVersionSyllabusImportContext(session.version_id);
+    const payload = syllabusPdfImport.normalizeCanonicalPayload(session.review_payload || session.canonical_payload);
+    const validation = syllabusPdfImport.validateCanonicalPayload(payload, context.versionCourses, context.versionPlos);
+    const warnings = [
+      ...(payload.warnings || []),
+      ...validation.warnings.map(item => item.msg)
+    ];
+    const updated = await pool.query(
+      `UPDATE syllabus_import_sessions
+       SET review_payload = $1, validation_errors = $2, warnings = $3, status = $4, updated_at = NOW()
+       WHERE id = $5
+       RETURNING *`,
+      [
+        JSON.stringify(payload),
+        JSON.stringify(validation.errors),
+        JSON.stringify(warnings),
+        validation.valid ? 'validated' : 'needs_review',
+        req.params.id
+      ]
+    );
+    console.info(`[syllabus-pdf-import] validated session id=${req.params.id} valid=${validation.valid} errors=${validation.errors.length} warnings=${validation.warnings.length}`);
+    res.json({
+      success: validation.valid,
+      errors: validation.errors,
+      warnings: validation.warnings,
+      session: parseSyllabusImportSession(updated.rows[0])
+    });
+  } catch (e) {
+    console.warn(`[syllabus-pdf-import] validate failed session=${req.params.id}: ${e.message}`);
+    res.status(e.statusCode || 400).json({ error: e.message });
+  }
+});
+
+app.post('/api/syllabus-import-pdf/session/:id/retry', authMiddleware, async (req, res) => {
+  try {
+    const session = await getSyllabusImportSessionOrThrow(req.params.id);
+    await assertSyllabusImportSessionAccess(session, req.user);
+    if (!session.extraction_text) {
+      return res.status(400).json({ error: 'Session chưa có extraction text để retry.' });
+    }
+    const context = await getVersionSyllabusImportContext(session.version_id);
+    const engine = syllabusPdfImport.normalizeImportEngine(session.ai_metadata?.engine || session.ai_metadata?.mode);
+    const canonical = await syllabusPdfImport.reprocessPdfTextWithMode({
+      extractionText: session.extraction_text,
+      versionCourses: context.versionCourses,
+      existingSyllabi: context.syllabi,
+      mode: engine
+    });
+    const validation = syllabusPdfImport.validateCanonicalPayload(canonical, context.versionCourses, context.versionPlos);
+    const warnings = [
+      ...(canonical.warnings || []),
+      ...validation.warnings.map(item => item.msg)
+    ];
+    const updated = await pool.query(
+      `UPDATE syllabus_import_sessions
+       SET canonical_payload = $1, review_payload = $1, validation_errors = $2, warnings = $3,
+           ai_metadata = $4, status = $5, updated_at = NOW()
+       WHERE id = $6
+       RETURNING *`,
+      [
+        JSON.stringify(canonical),
+        JSON.stringify(validation.errors),
+        JSON.stringify(warnings),
+        JSON.stringify(syllabusPdfImport.buildImportMetadata({
+          ...canonical.import_metadata,
+          engine: canonical.import_metadata?.engine || engine,
+          provider: canonical.import_metadata?.provider,
+          model: canonical.import_metadata?.model || canonical.import_metadata?.ai_model || syllabusPdfImport.DEFAULT_MODEL,
+          prompt_version: canonical.import_metadata?.prompt_version || syllabusPdfImport.HYBRID_PROMPT_VERSION || syllabusPdfImport.PROMPT_VERSION,
+          diagnostics: {
+            ...canonical.import_metadata?.diagnostics,
+            retried_at: new Date().toISOString()
+          }
+        })),
+        validation.valid ? 'review' : 'needs_review',
+        req.params.id
+      ]
+    );
+    const retryMetadata = syllabusPdfImport.buildImportMetadata(canonical.import_metadata);
+    console.info(`[syllabus-pdf-import] retried session id=${req.params.id} valid=${validation.valid} engine=${retryMetadata.engine} provider=${retryMetadata.provider} model=${retryMetadata.model}`);
+    res.json(parseSyllabusImportSession(updated.rows[0]));
+  } catch (e) {
+    console.warn(`[syllabus-pdf-import] retry failed session=${req.params.id}: ${e.message}`);
+    res.status(e.statusCode || 400).json({ error: e.message });
+  }
+});
+
+app.post('/api/syllabus-import-pdf/session/:id/commit', authMiddleware, async (req, res) => {
+  const client = await pool.connect();
+  let startedTransaction = false;
+  try {
+    const session = await getSyllabusImportSessionOrThrow(req.params.id);
+    await assertSyllabusImportSessionAccess(session, req.user);
+    await checkVersionEditAccess(req.user.id, session.version_id, 'syllabus.create');
+
+    const context = await getVersionSyllabusImportContext(session.version_id);
+    const payload = syllabusPdfImport.normalizeCanonicalPayload(session.review_payload || session.canonical_payload);
+    const validation = syllabusPdfImport.validateCanonicalPayload(payload, context.versionCourses, context.versionPlos);
+    if (!validation.valid) {
+      return res.status(400).json({ error: 'Phiên import còn lỗi nghiêm trọng. Vui lòng validate và chỉnh sửa trước khi commit.', errors: validation.errors });
+    }
+
+    const targetCourseId = Number(payload.target?.course_id);
+    const versionCourse = context.versionCourses.find(item => Number(item.course_id) === targetCourseId);
+    if (!versionCourse) {
+      throw new Error('Không tìm thấy học phần đích trong CTĐT.');
+    }
+
+    const existingSyllabusRes = await client.query(
+      'SELECT * FROM version_syllabi WHERE version_id = $1 AND course_id = $2 LIMIT 1',
+      [session.version_id, targetCourseId]
+    );
+    const existingSyllabus = existingSyllabusRes.rows[0];
+    if (existingSyllabus && existingSyllabus.status !== 'draft') {
+      throw new Error('Chỉ có thể import vào đề cương đang ở trạng thái nháp.');
+    }
+
+    await client.query('BEGIN');
+    startedTransaction = true;
+
+    const content = syllabusPdfImport.mapPayloadToSyllabusContent(payload);
+    let syllabusId = existingSyllabus?.id || null;
+
+    if (existingSyllabus) {
+      await client.query(
+        'UPDATE version_syllabi SET content = $1, updated_at = NOW() WHERE id = $2',
+        [JSON.stringify(content), existingSyllabus.id]
+      );
+    } else {
+      const created = await client.query(
+        'INSERT INTO version_syllabi (version_id, course_id, author_id, content) VALUES ($1,$2,$3,$4) RETURNING id',
+        [session.version_id, targetCourseId, req.user.id, JSON.stringify(content)]
+      );
+      syllabusId = created.rows[0].id;
+    }
+
+    await client.query('DELETE FROM clo_plo_map WHERE clo_id IN (SELECT id FROM course_clos WHERE version_course_id = $1)', [versionCourse.id]);
+    await client.query('DELETE FROM course_clos WHERE version_course_id = $1', [versionCourse.id]);
+
+    const ploCodeMap = new Map(context.versionPlos.map(plo => [String(plo.code).toUpperCase(), plo.id]));
+    for (const clo of payload.clos || []) {
+      const inserted = await client.query(
+        'INSERT INTO course_clos (version_course_id, code, description) VALUES ($1,$2,$3) RETURNING id',
+        [versionCourse.id, clo.code, clo.description]
+      );
+      const cloId = inserted.rows[0].id;
+      if (String(clo.confidence || 'medium').toLowerCase() === 'low') {
+        continue;
+      }
+      for (const ploCode of clo.plo_mapping || []) {
+        const ploId = ploCodeMap.get(String(ploCode).toUpperCase());
+        if (!ploId) continue;
+        await client.query(
+          'INSERT INTO clo_plo_map (clo_id, plo_id, contribution_level) VALUES ($1,$2,$3)',
+          [cloId, ploId, 1]
+        );
+      }
+    }
+
+    const updatedSession = await client.query(
+      `UPDATE syllabus_import_sessions
+       SET review_payload = $1, validation_errors = $2, warnings = $3, status = $4, updated_at = NOW()
+       WHERE id = $5
+       RETURNING *`,
+      [
+        JSON.stringify({
+          ...payload,
+          target: {
+            course_id: targetCourseId,
+            syllabus_id: syllabusId
+          }
+        }),
+        JSON.stringify(validation.errors),
+        JSON.stringify((payload.warnings || []).concat(validation.warnings.map(item => item.msg))),
+        'completed',
+        req.params.id
+      ]
+    );
+
+    await client.query('COMMIT');
+    console.info(`[syllabus-pdf-import] commit success session=${req.params.id} syllabus=${syllabusId} course=${targetCourseId}`);
+    res.json({
+      success: true,
+      syllabusId,
+      session: parseSyllabusImportSession(updatedSession.rows[0])
+    });
+  } catch (e) {
+    if (startedTransaction) await client.query('ROLLBACK');
+    console.warn(`[syllabus-pdf-import] commit failed session=${req.params.id}: ${e.message}`);
+    res.status(e.statusCode || 400).json({ error: e.message });
+  } finally {
+    client.release();
+  }
 });
 
 // ============ APPROVAL WORKFLOW ============

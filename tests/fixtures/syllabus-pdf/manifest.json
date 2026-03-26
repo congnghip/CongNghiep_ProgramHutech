@@ -1,0 +1,24 @@
+{
+  "fixtures": [
+    {
+      "id": "ait129",
+      "pdfPath": "decuong/AIT129_Trí tuệ nhân tạo ứng dụng.pdf",
+      "layoutStyle": "numbered-sections-with-multi-column-tables",
+      "difficultyNotes": [
+        "Heading 12-16 bị chia cột và đứt dòng theo layout PDF.",
+        "Bảng CLO và đánh giá có PLO/CLO nằm ở cột riêng, dễ bị trộn vào mô tả.",
+        "Section tài liệu chứa danh sách công cụ rất dài và nối tiếp ngay trước phần tự học."
+      ]
+    },
+    {
+      "id": "pht317",
+      "pdfPath": "decuong/PHT317_Syllabus.pdf",
+      "layoutStyle": "mixed-numbered-and-freeform-sections",
+      "difficultyNotes": [
+        "Nhiều section không đánh số rõ như mẫu CNTT, ví dụ mục tiêu, phương pháp, đánh giá.",
+        "Outline thực hành kéo dài 15 bài với nhiều CLO lặp theo cột phải.",
+        "Bảng đánh giá tách dòng mạnh, trọng số và CLO không nằm cùng một hàng."
+      ]
+    }
+  ]
+}

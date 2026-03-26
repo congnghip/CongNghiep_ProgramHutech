@@ -544,7 +544,9 @@ window.TrainingTabs = {
     body.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
         <h3 style="font-size:15px;font-weight:600;">Đề cương chi tiết</h3>
-        <span style="color:var(--text-muted);font-size:13px;">${syllabi.length}/${vCourses.length} đề cương</span>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <span style="color:var(--text-muted);font-size:13px;">${syllabi.length}/${vCourses.length} đề cương</span>
+        </div>
       </div>
       ${vCourses.length === 0 ? '<p style="color:var(--text-muted);font-size:13px;">Hãy gán HP vào CTĐT trước.</p>' : `
         <table class="data-table">

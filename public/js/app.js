@@ -238,6 +238,16 @@
         this.checkPermissions(container);
         return;
       }
+      if (page === 'syllabus-pdf-import') {
+        if (!this.hasPerm('syllabus.create')) {
+          container.innerHTML = `<div class="empty-state"><div class="icon">🔒</div><h3>Không có quyền</h3><p>Bạn không có quyền nhập đề cương từ PDF.</p></div>`;
+          return;
+        }
+        this.currentPage = window.SyllabusPdfImportPage;
+        await window.SyllabusPdfImportPage.render(container, params);
+        this.checkPermissions(container);
+        return;
+      }
       if (page === 'syllabus-editor' && params?.syllabusId) {
         this.currentPage = window.SyllabusEditorPage;
         await window.SyllabusEditorPage.render(container, params.syllabusId, params);

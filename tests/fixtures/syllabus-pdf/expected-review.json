@@ -1,0 +1,71 @@
+{
+  "fixtures": [
+    {
+      "id": "ait129",
+      "expected": {
+        "course_code": "AIT129",
+        "course_name_vi_contains": "TRÍ TUỆ NHÂN TẠO ỨNG DỤNG",
+        "credits": 3,
+        "clos": [
+          {
+            "code": "CLO1",
+            "description_contains": "Giải thích các khái niệm cơ bản về TTNT"
+          },
+          {
+            "code": "CLO2",
+            "description_contains": "Sử dụng các công cụ TTNT hiệu quả"
+          },
+          {
+            "code": "CLO3",
+            "description_contains": "Áp dụng TTNT để phát triển các giải pháp"
+          },
+          {
+            "code": "CLO4",
+            "description_contains": "Thể hiện thái độ chuyên cần"
+          }
+        ],
+        "min_schedule_count": 6,
+        "assessment_weights": [20, 20, 10, 50],
+        "textbooks_contains": [
+          "TRÍ TUỆ NHÂN TẠO ỨNG DỤNG"
+        ],
+        "tools_contains": [
+          "Google AutoML",
+          "IBM Watson"
+        ]
+      }
+    },
+    {
+      "id": "pht317",
+      "expected": {
+        "course_code": "PHT317",
+        "course_name_vi_contains": "BÓNG ĐÁ 2",
+        "credits": 2,
+        "prerequisites_contains": "PHT316",
+        "clos": [
+          {
+            "code": "CLO1",
+            "description_contains": "nguyên tắc phòng ngự và tấn công"
+          },
+          {
+            "code": "CLO2",
+            "description_contains": "phân tích được chiến thuật"
+          },
+          {
+            "code": "CLO3",
+            "description_contains": "Thực hành được chiến thuật"
+          },
+          {
+            "code": "CLO4",
+            "description_contains": "Chủ động tập luyện"
+          }
+        ],
+        "min_schedule_count": 12,
+        "assessment_weights": [25, 25, 50],
+        "textbooks_contains": [
+          "Giáo trình BÓNG ĐÁ FUTSAL"
+        ]
+      }
+    }
+  ]
+}

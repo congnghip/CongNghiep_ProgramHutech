@@ -301,6 +301,26 @@ async function initDB() {
         validation_errors JSONB,
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
+
+      -- PDF Syllabus Import Sessions
+      CREATE TABLE IF NOT EXISTS syllabus_import_sessions (
+        id SERIAL PRIMARY KEY,
+        user_id INT REFERENCES users(id) ON DELETE CASCADE,
+        version_id INT REFERENCES program_versions(id) ON DELETE CASCADE,
+        status VARCHAR(50) DEFAULT 'uploaded',
+        source_filename VARCHAR(255),
+        source_mime VARCHAR(100),
+        extraction_text TEXT,
+        extraction_data JSONB DEFAULT '{}',
+        canonical_payload JSONB DEFAULT '{}',
+        review_payload JSONB DEFAULT '{}',
+        validation_errors JSONB DEFAULT '[]',
+        warnings JSONB DEFAULT '[]',
+        diagnostics JSONB DEFAULT '{}',
+        ai_metadata JSONB DEFAULT '{}',
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
     `);
 
     console.log('  ✅ Database schema initialized');

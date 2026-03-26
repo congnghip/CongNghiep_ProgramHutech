@@ -5,7 +5,9 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js"
+    "dev": "node --watch server.js",
+    "test:groq-key": "node scripts/test_groq_key.js",
+    "test:syllabus-pdf-import": "node scripts/verify_syllabus_pdf_import.js"
   },
   "dependencies": {
     "adm-zip": "^0.5.16",
@@ -15,6 +17,7 @@
     "fast-xml-parser": "^5.5.9",
     "jsonwebtoken": "^9.0.0",
     "multer": "^2.1.1",
+    "pdf-parse": "^2.4.5",
     "pg": "^8.11.3"
   },
   "devDependencies": {

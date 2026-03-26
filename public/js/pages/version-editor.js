@@ -849,9 +849,15 @@ window.VersionEditorPage = {
     const statusLabels = { draft: 'Nháp', submitted: 'Đã nộp', approved_tbm: 'TBM ✓', approved_khoa: 'Khoa ✓', approved_pdt: 'PĐT ✓', published: 'Công bố' };
 
     body.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-        <h3 style="font-size:15px;font-weight:600;">Đề cương chi tiết</h3>
-        <span style="color:var(--text-muted);font-size:13px;">${syllabi.length}/${vCourses.length} đề cương</span>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:18px;">
+        <div>
+          <h3 style="font-size:18px;font-weight:700;letter-spacing:-0.2px;margin:0 0 4px 0;">Đề cương chi tiết</h3>
+          <div style="color:var(--text-muted);font-size:13px;">Quản lý danh sách đề cương theo từng học phần và mở nhanh luồng import PDF.</div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <span style="color:var(--text-muted);font-size:13px;">${syllabi.length}/${vCourses.length} đề cương</span>
+          ${canCreate ? `<button class="btn btn-primary btn-sm" onclick="window.App.navigate('syllabus-pdf-import',{versionId:${this.versionId}, programId:${this.version.program_id}, programName:'${(this.version.program_name || '').replace(/'/g, "\\'")}', tabKey:'syllabi'})">Import PDF</button>` : ''}
+        </div>
       </div>
       ${vCourses.length === 0 ? '<p style="color:var(--text-muted);font-size:13px;">Hãy gán HP vào CTĐT trước.</p>' : `
         <table class="data-table">
