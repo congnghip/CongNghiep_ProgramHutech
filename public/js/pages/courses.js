@@ -40,6 +40,12 @@ window.CoursesPage = {
                 <input type="number" id="c-credits" value="3" min="1" max="20">
               </div>
               <div style="display:flex;gap:8px;">
+                <div class="input-group" style="flex:1;margin:0;"><label>LT</label><input type="number" id="c-lt" value="0" min="0"></div>
+                <div class="input-group" style="flex:1;margin:0;"><label>TH</label><input type="number" id="c-th" value="0" min="0"></div>
+                <div class="input-group" style="flex:1;margin:0;"><label>ĐA</label><input type="number" id="c-da" value="0" min="0"></div>
+                <div class="input-group" style="flex:1;margin:0;"><label>TT</label><input type="number" id="c-tt" value="0" min="0"></div>
+              </div>
+              <div style="display:flex;gap:8px;">
                 <div class="input-group" style="flex:1;margin:0;">
                   <label>Khoa/Viện</label>
                   <select id="c-khoa"></select>
@@ -102,6 +108,10 @@ window.CoursesPage = {
     document.getElementById('c-code').value = c ? c.code : '';
     document.getElementById('c-name').value = c ? c.name : '';
     document.getElementById('c-credits').value = c ? c.credits : 3;
+    document.getElementById('c-lt').value = c ? (c.credits_theory || 0) : 0;
+    document.getElementById('c-th').value = c ? (c.credits_practice || 0) : 0;
+    document.getElementById('c-da').value = c ? (c.credits_project || 0) : 0;
+    document.getElementById('c-tt').value = c ? (c.credits_internship || 0) : 0;
     document.getElementById('c-desc').value = c ? (c.description || '') : '';
     // Cascading Khoa → Ngành dropdowns
     const khoaSel = document.getElementById('c-khoa');
@@ -142,6 +152,10 @@ window.CoursesPage = {
       code: document.getElementById('c-code').value.trim(),
       name: document.getElementById('c-name').value.trim(),
       credits: parseInt(document.getElementById('c-credits').value),
+      credits_theory: parseInt(document.getElementById('c-lt').value) || 0,
+      credits_practice: parseInt(document.getElementById('c-th').value) || 0,
+      credits_project: parseInt(document.getElementById('c-da').value) || 0,
+      credits_internship: parseInt(document.getElementById('c-tt').value) || 0,
       department_id: document.getElementById('c-nganh').value || document.getElementById('c-khoa').value || null,
       description: document.getElementById('c-desc').value.trim(),
     };

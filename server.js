@@ -940,22 +940,25 @@ app.get('/api/courses', authMiddleware, requirePerm('courses.view'), async (req,
 });
 
 app.post('/api/courses', authMiddleware, requirePerm('courses.create'), async (req, res) => {
-  const { code, name, credits, department_id, description } = req.body;
+  const { code, name, credits, credits_theory, credits_practice, credits_project, credits_internship, department_id, description } = req.body;
   try {
     const result = await pool.query(
-      'INSERT INTO courses (code, name, credits, department_id, description) VALUES ($1,$2,$3,$4,$5) RETURNING *',
-      [code, name, credits || 3, department_id, description]
+      'INSERT INTO courses (code, name, credits, credits_theory, credits_practice, credits_project, credits_internship, department_id, description) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *',
+      [code, name, credits || 3, credits_theory || 0, credits_practice || 0, credits_project || 0, credits_internship || 0, department_id, description]
     );
     res.json(result.rows[0]);
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
 app.put('/api/courses/:id', authMiddleware, requirePerm('courses.edit'), async (req, res) => {
-  const { code, name, credits, department_id, description } = req.body;
+  const { code, name, credits, credits_theory, credits_practice, credits_project, credits_internship, department_id, description } = req.body;
   try {
     const result = await pool.query(
-      'UPDATE courses SET code=COALESCE($1,code), name=COALESCE($2,name), credits=COALESCE($3,credits), department_id=COALESCE($4,department_id), description=COALESCE($5,description) WHERE id=$6 RETURNING *',
-      [code, name, credits, department_id, description, req.params.id]
+      `UPDATE courses SET code=COALESCE($1,code), name=COALESCE($2,name), credits=COALESCE($3,credits),
+        credits_theory=COALESCE($4,credits_theory), credits_practice=COALESCE($5,credits_practice),
+        credits_project=COALESCE($6,credits_project), credits_internship=COALESCE($7,credits_internship),
+        department_id=COALESCE($8,department_id), description=COALESCE($9,description) WHERE id=$10 RETURNING *`,
+      [code, name, credits, credits_theory, credits_practice, credits_project, credits_internship, department_id, description, req.params.id]
     );
     res.json(result.rows[0]);
   } catch (e) { res.status(400).json({ error: e.message }); }
