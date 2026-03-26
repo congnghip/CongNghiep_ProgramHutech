@@ -762,9 +762,18 @@ async function isAdmin(userId) {
 }
 
 // Get department IDs in scope for a given department + role level
+// BO_MON (Ngành) depts also include parent Khoa (courses often live at Khoa level)
 async function getDepartmentScope(departmentId, roleLevel) {
   if (roleLevel >= 4) return null; // null = no filtering (system-wide)
   const ids = [departmentId];
+  // If dept is BO_MON (Ngành), include parent Khoa so courses at Khoa level are visible
+  const dept = await pool.query(
+    'SELECT type, parent_id FROM departments WHERE id = $1', [departmentId]
+  );
+  if (dept.rows.length && dept.rows[0].type === 'BO_MON' && dept.rows[0].parent_id) {
+    ids.push(dept.rows[0].parent_id);
+  }
+  // Include child departments for level >= 2
   if (roleLevel >= 2) {
     const children = await pool.query(
       'SELECT id FROM departments WHERE parent_id = $1', [departmentId]
