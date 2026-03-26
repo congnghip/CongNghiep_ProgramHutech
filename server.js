@@ -654,6 +654,53 @@ app.post('/api/programs/:programId/versions', authMiddleware, requirePerm('progr
         INSERT INTO version_syllabi (version_id, course_id, author_id, status, content)
         SELECT $1, course_id, author_id, 'draft', content FROM version_syllabi WHERE version_id=$2
       `, [newVersionId, copy_from_version_id]);
+
+      // Copy knowledge blocks (preserving hierarchy)
+      const oldBlocks = await client.query(
+        'SELECT * FROM knowledge_blocks WHERE version_id=$1 ORDER BY sort_order, id',
+        [copy_from_version_id]
+      );
+      const blockMap = {};
+      for (const ob of oldBlocks.rows) {
+        const newParentId = ob.parent_id ? (blockMap[ob.parent_id] || null) : null;
+        const nb = await client.query(
+          `INSERT INTO knowledge_blocks (version_id, name, parent_id, level, total_credits, required_credits, elective_credits, sort_order)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`,
+          [newVersionId, ob.name, newParentId, ob.level || 1, ob.total_credits, ob.required_credits, ob.elective_credits, ob.sort_order]
+        );
+        blockMap[ob.id] = nb.rows[0].id;
+      }
+
+      // Update knowledge_block_id for copied version_courses
+      const newVCs = await client.query('SELECT id, course_id FROM version_courses WHERE version_id=$1', [newVersionId]);
+      for (const nvc of newVCs.rows) {
+        const oldVC = oldCourses.rows.find(oc => oc.course_id === nvc.course_id);
+        if (oldVC && oldVC.knowledge_block_id && blockMap[oldVC.knowledge_block_id]) {
+          await client.query('UPDATE version_courses SET knowledge_block_id=$1 WHERE id=$2', [blockMap[oldVC.knowledge_block_id], nvc.id]);
+        }
+      }
+    } else {
+      // Seed default knowledge blocks for the new version
+      const gddc = await client.query(
+        `INSERT INTO knowledge_blocks (version_id, name, parent_id, level, sort_order) VALUES ($1, 'Kiến thức giáo dục đại cương', NULL, 1, 1) RETURNING id`,
+        [newVersionId]
+      );
+      const gdcn = await client.query(
+        `INSERT INTO knowledge_blocks (version_id, name, parent_id, level, sort_order) VALUES ($1, 'Kiến thức giáo dục chuyên nghiệp', NULL, 1, 2) RETURNING id`,
+        [newVersionId]
+      );
+      await client.query(
+        `INSERT INTO knowledge_blocks (version_id, name, parent_id, level, sort_order) VALUES ($1, 'Kiến thức bắt buộc', $2, 2, 3)`,
+        [newVersionId, gdcn.rows[0].id]
+      );
+      await client.query(
+        `INSERT INTO knowledge_blocks (version_id, name, parent_id, level, sort_order) VALUES ($1, 'Kiến thức tự chọn', $2, 2, 4)`,
+        [newVersionId, gdcn.rows[0].id]
+      );
+      await client.query(
+        `INSERT INTO knowledge_blocks (version_id, name, parent_id, level, sort_order) VALUES ($1, 'Kiến thức không tích lũy', NULL, 1, 5) RETURNING id`,
+        [newVersionId]
+      );
     }
 
     await client.query('COMMIT');
