@@ -1058,6 +1058,69 @@ app.delete('/api/version-courses/:id', authMiddleware, async (req, res) => {
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
+app.put('/api/version-courses/:id/course-info', authMiddleware, async (req, res) => {
+  const { credits_theory, credits_practice, credits_project, credits_internship, description } = req.body;
+  try {
+    const vcRes = await pool.query('SELECT version_id, course_id FROM version_courses WHERE id=$1', [req.params.id]);
+    if (!vcRes.rows.length) throw new Error('Không tìm thấy HP trong phiên bản');
+    await checkVersionEditAccess(req.user.id, vcRes.rows[0].version_id);
+
+    const result = await pool.query(
+      `UPDATE courses SET
+        credits_theory=COALESCE($1,credits_theory),
+        credits_practice=COALESCE($2,credits_practice),
+        credits_project=COALESCE($3,credits_project),
+        credits_internship=COALESCE($4,credits_internship),
+        description=COALESCE($5,description)
+       WHERE id=$6 RETURNING *`,
+      [credits_theory, credits_practice, credits_project, credits_internship, description, vcRes.rows[0].course_id]
+    );
+    res.json(result.rows[0]);
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+app.post('/api/versions/:vId/teaching-plan', authMiddleware, requireDraft('vId'), async (req, res) => {
+  const { version_course_id, hours_theory, hours_practice, hours_project, hours_internship, software, managing_dept, batch, notes } = req.body;
+  try {
+    const total_hours = (hours_theory || 0) + (hours_practice || 0) + (hours_project || 0) + (hours_internship || 0);
+    const result = await pool.query(
+      `INSERT INTO teaching_plan (version_course_id, total_hours, hours_theory, hours_practice, hours_project, hours_internship, software, managing_dept, batch, notes)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+       ON CONFLICT (version_course_id) DO UPDATE SET
+         total_hours=EXCLUDED.total_hours, hours_theory=EXCLUDED.hours_theory, hours_practice=EXCLUDED.hours_practice,
+         hours_project=EXCLUDED.hours_project, hours_internship=EXCLUDED.hours_internship,
+         software=EXCLUDED.software, managing_dept=EXCLUDED.managing_dept, batch=EXCLUDED.batch, notes=EXCLUDED.notes
+       RETURNING *`,
+      [version_course_id, total_hours, hours_theory || 0, hours_practice || 0, hours_project || 0, hours_internship || 0, software || '', managing_dept || '', batch || '', notes || '']
+    );
+    res.json(result.rows[0]);
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+app.put('/api/teaching-plan/:id', authMiddleware, async (req, res) => {
+  const { hours_theory, hours_practice, hours_project, hours_internship, software, managing_dept, batch, notes } = req.body;
+  try {
+    const tpRes = await pool.query(
+      `SELECT tp.id, vc.version_id FROM teaching_plan tp JOIN version_courses vc ON tp.version_course_id = vc.id WHERE tp.id=$1`,
+      [req.params.id]
+    );
+    if (!tpRes.rows.length) throw new Error('Không tìm thấy kế hoạch giảng dạy');
+    await checkVersionEditAccess(req.user.id, tpRes.rows[0].version_id);
+
+    const total_hours = (hours_theory || 0) + (hours_practice || 0) + (hours_project || 0) + (hours_internship || 0);
+    const result = await pool.query(
+      `UPDATE teaching_plan SET
+        total_hours=COALESCE($1,total_hours), hours_theory=COALESCE($2,hours_theory),
+        hours_practice=COALESCE($3,hours_practice), hours_project=COALESCE($4,hours_project),
+        hours_internship=COALESCE($5,hours_internship), software=COALESCE($6,software),
+        managing_dept=COALESCE($7,managing_dept), batch=COALESCE($8,batch), notes=COALESCE($9,notes)
+       WHERE id=$10 RETURNING *`,
+      [total_hours, hours_theory, hours_practice, hours_project, hours_internship, software, managing_dept, batch, notes, req.params.id]
+    );
+    res.json(result.rows[0]);
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
 // ============ PO-PLO MAP ============
 app.get('/api/versions/:vId/po-plo-map', authMiddleware, requireViewVersion, async (req, res) => {
   try {
