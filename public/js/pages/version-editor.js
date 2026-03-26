@@ -636,6 +636,19 @@ window.VersionEditorPage = {
     } catch (e) { window.toast.error('Lỗi cập nhật'); }
   },
 
+  async saveDescription(vcId) {
+    const description = document.getElementById(`vc-desc-${vcId}`).value.trim();
+    try {
+      const res = await fetch(`/api/version-courses/${vcId}/course-info`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ description })
+      });
+      if (!res.ok) throw new Error((await res.json()).error);
+      window.toast.success('Đã cập nhật mô tả');
+      this.renderTab();
+    } catch (e) { window.toast.error(e.message); }
+  },
+
   // ===== TAB 7: Teaching Plan =====
   async renderPlanTab(body, editable) {
     const [vCourses, teachingPlan] = await Promise.all([
@@ -761,13 +774,14 @@ window.VersionEditorPage = {
       </div>
       ${vCourses.length === 0 ? '<p style="color:var(--text-muted);font-size:13px;">Hãy gán HP vào CTĐT trước.</p>' : `
         <table class="data-table">
-          <thead><tr><th style="width:80px;">Mã HP</th><th style="width:200px;">Tên HP</th><th>Mô tả</th></tr></thead>
+          <thead><tr><th style="width:80px;">Mã HP</th><th style="width:200px;">Tên HP</th><th>Mô tả</th>${editable ? '<th></th>' : ''}</tr></thead>
           <tbody>
             ${vCourses.map(c => `
               <tr>
                 <td><strong style="color:var(--primary);">${c.course_code}</strong></td>
                 <td>${c.course_name}</td>
-                <td style="font-size:13px;color:${c.course_desc ? 'var(--text)' : 'var(--text-muted)'};">${c.course_desc || '—'}</td>
+                ${editable ? `<td><textarea id="vc-desc-${c.id}" rows="2" style="width:100%;font-size:13px;resize:vertical;">${c.course_desc || ''}</textarea></td>` : `<td style="font-size:13px;color:${c.course_desc ? 'var(--text)' : 'var(--text-muted)'};">${c.course_desc || '—'}</td>`}
+                ${editable ? `<td><button class="btn btn-primary btn-sm" onclick="window.VersionEditorPage.saveDescription(${c.id})">Lưu</button></td>` : ''}
               </tr>
             `).join('')}
           </tbody>
