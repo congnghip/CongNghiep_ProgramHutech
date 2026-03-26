@@ -283,7 +283,14 @@ window.ImportWordPage = {
     const confirmMsg = this.existingProgram
       ? `Xác nhận tạo phiên bản mới cho CTĐT "${this.existingProgram.name}"?\n\nNăm học: ${yearVal}\nNội dung: ${poCount} PO, ${ploCount} PLO, ${courseCount} học phần\n\nSau khi tạo, bạn sẽ được chuyển đến trang chỉnh sửa phiên bản.`
       : `Xác nhận tạo bản nháp CTĐT?\n\nNgành: ${nganhSelect.options[nganhSelect.selectedIndex]?.text}\nNăm học: ${yearVal}\nNội dung: ${poCount} PO, ${ploCount} PLO, ${courseCount} học phần\n\nSau khi tạo, bạn sẽ được chuyển đến trang chỉnh sửa phiên bản.`;
-    if (!confirm(confirmMsg)) return;
+    const confirmed = await window.ui.confirm({
+      title: this.existingProgram ? 'Tạo phiên bản mới' : 'Tạo bản nháp CTĐT',
+      eyebrow: 'Xác nhận tạo dữ liệu',
+      message: confirmMsg,
+      confirmText: 'Tạo & mở',
+      cancelText: 'Xem lại'
+    });
+    if (!confirmed) return;
 
     const saveBtn = document.getElementById('iw-save-btn');
     saveBtn.disabled = true;

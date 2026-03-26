@@ -2,6 +2,7 @@
 window.RBACAdminPage = {
   activeTab: 0,
   users: [], roles: [], departments: [], permissions: [],
+  roleAssignDraftKey: null,
 
   async render(container) {
     container.innerHTML = `
@@ -99,7 +100,7 @@ window.RBACAdminPage = {
               <button class="btn btn-primary btn-sm" onclick="window.RBACAdminPage.assignRole()">Gán</button>
             </div>
             <div class="modal-footer" style="padding-top:16px;">
-              <button class="btn btn-secondary" onclick="document.getElementById('role-assign-modal').classList.remove('active')">Đóng</button>
+              <button class="btn btn-secondary" onclick="window.RBACAdminPage.closeRoleAssignModal()">Đóng</button>
             </div>
           </div>
         </div>
@@ -192,7 +193,16 @@ window.RBACAdminPage = {
   },
 
   async deleteUser(id) {
-    if (!confirm('Xóa tài khoản này? Thao tác không thể hoàn tác.')) return;
+    const confirmed = await window.ui.confirm({
+      title: 'Xóa tài khoản',
+      eyebrow: 'Hành động nguy hiểm',
+      message: 'Xóa tài khoản này? Thao tác không thể hoàn tác.',
+      confirmText: 'Xóa tài khoản',
+      cancelText: 'Hủy',
+      tone: 'danger',
+      confirmVariant: 'danger'
+    });
+    if (!confirmed) return;
     try {
       const res = await fetch(`/api/users/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error((await res.json()).error);
@@ -204,32 +214,91 @@ window.RBACAdminPage = {
   openRoleAssignModal(userId) {
     const u = this.users.find(x => x.id === userId);
     if (!u) return;
+    this.roleAssignDraftKey = null;
     document.getElementById('role-assign-title').textContent = `Vai trò: ${u.display_name}`;
     document.getElementById('ra-user-id').value = userId;
     const roles = u.roles?.length && u.roles[0]?.role_code ? u.roles : [];
     document.getElementById('ra-current').innerHTML = roles.length === 0
       ? '<p style="color:var(--text-muted);font-size:12px;">Chưa có vai trò</p>'
       : roles.map(r => `
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:var(--bg-secondary);border-radius:var(--radius);margin-bottom:4px;font-size:12px;">
+        <div
+          data-role-assignment-item="true"
+          data-role-code="${r.role_code}"
+          data-department-id="${r.department_id}"
+          style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:var(--bg-secondary);border:1px solid transparent;border-radius:var(--radius);margin-bottom:4px;font-size:12px;cursor:pointer;transition:background .15s ease,border-color .15s ease;"
+          title="Bấm để đổ lại xuống form bên dưới"
+        >
           <span><span class="badge badge-primary">${r.role_name}</span> <span class="text-muted">@ ${r.parent_dept_name ? r.parent_dept_name + ' > ' : ''}${r.dept_name}</span></span>
-          <button class="btn btn-secondary btn-sm" style="color:var(--danger);padding:2px 6px;" onclick="window.RBACAdminPage.removeRole(${userId},'${r.role_code}',${r.department_id})">✕</button>
+          <button
+            class="btn btn-secondary btn-sm"
+            data-role-remove="true"
+            style="color:var(--danger);padding:2px 6px;"
+            onclick="window.RBACAdminPage.removeRole(${userId},'${r.role_code}',${r.department_id})"
+          >✕</button>
         </div>
       `).join('');
-    document.getElementById('ra-role').innerHTML = this.roles.map(r => `<option value="${r.code}">${r.name} (L${r.level}, ${r.perm_count || 0} quyền)</option>`).join('');
-    // Only show faculty-level departments (Khoa/Viện/TT) in dropdown
-    const khoaDepts = this.departments.filter(d => ['KHOA', 'VIEN', 'TRUNG_TAM', 'ROOT', 'PHONG'].includes(d.type));
     const deptSel = document.getElementById('ra-dept');
-    deptSel.innerHTML = khoaDepts.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
-    // Wire cascading Ngành dropdown
-    const populateNganh = (khoaId) => {
-      const nganhSel = document.getElementById('ra-nganh');
-      const children = this.departments.filter(d => d.parent_id == khoaId && d.type === 'BO_MON');
-      nganhSel.innerHTML = '<option value="">— Toàn khoa —</option>' +
-        children.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+    document.getElementById('ra-role').innerHTML = this.roles.map(r => `<option value="${r.code}">${r.name} (L${r.level}, ${r.perm_count || 0} quyền)</option>`).join('');
+    deptSel.innerHTML = this.getFacultyDepartments().map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+    deptSel.onchange = () => this.populateRoleAssignNganh(deptSel.value);
+    this.populateRoleAssignNganh(deptSel.value);
+
+    const currentList = document.getElementById('ra-current');
+    currentList.onclick = (e) => {
+      const removeBtn = e.target.closest('[data-role-remove="true"]');
+      if (removeBtn) return;
+      const item = e.target.closest('[data-role-assignment-item="true"]');
+      if (!item) return;
+      this.prefillRoleAssignmentForm(item.dataset.roleCode, item.dataset.departmentId);
     };
-    deptSel.onchange = () => populateNganh(deptSel.value);
-    populateNganh(deptSel.value);
+    this.highlightRoleAssignmentDraft();
+
     document.getElementById('role-assign-modal').classList.add('active');
+  },
+
+  getFacultyDepartments() {
+    return this.departments.filter(d => ['KHOA', 'VIEN', 'TRUNG_TAM', 'ROOT', 'PHONG'].includes(d.type));
+  },
+
+  populateRoleAssignNganh(khoaId, selectedNganhId = '') {
+    const nganhSel = document.getElementById('ra-nganh');
+    if (!nganhSel) return;
+    const selectedId = selectedNganhId ? String(selectedNganhId) : '';
+    const children = this.departments.filter(d => String(d.parent_id) === String(khoaId) && d.type === 'BO_MON');
+    nganhSel.innerHTML = '<option value="">— Toàn khoa —</option>' +
+      children.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+    nganhSel.value = children.some(d => String(d.id) === selectedId) ? selectedId : '';
+  },
+
+  highlightRoleAssignmentDraft() {
+    document.querySelectorAll('[data-role-assignment-item="true"]').forEach(item => {
+      const isActive = `${item.dataset.roleCode}:${item.dataset.departmentId}` === this.roleAssignDraftKey;
+      item.style.background = isActive ? 'rgba(59, 91, 219, 0.08)' : 'var(--bg-secondary)';
+      item.style.borderColor = isActive ? 'rgba(59, 91, 219, 0.25)' : 'transparent';
+    });
+  },
+
+  prefillRoleAssignmentForm(roleCode, departmentId) {
+    const roleSel = document.getElementById('ra-role');
+    const deptSel = document.getElementById('ra-dept');
+    const nganhSel = document.getElementById('ra-nganh');
+    if (!roleSel || !deptSel || !nganhSel) return;
+
+    const assignedDept = this.departments.find(d => String(d.id) === String(departmentId));
+    if (!assignedDept) return;
+
+    roleSel.value = roleCode;
+
+    if (assignedDept.type === 'BO_MON' && assignedDept.parent_id) {
+      deptSel.value = String(assignedDept.parent_id);
+      this.populateRoleAssignNganh(assignedDept.parent_id, assignedDept.id);
+    } else {
+      deptSel.value = String(assignedDept.id);
+      this.populateRoleAssignNganh(assignedDept.id);
+    }
+
+    this.roleAssignDraftKey = `${roleCode}:${departmentId}`;
+    this.highlightRoleAssignmentDraft();
   },
 
   async assignRole() {
@@ -245,6 +314,12 @@ window.RBACAdminPage = {
     } catch (e) { window.toast.error(e.message); }
   },
 
+  async closeRoleAssignModal() {
+    document.getElementById('role-assign-modal')?.classList.remove('active');
+    await this.loadAll();
+    this.filterUsers();
+  },
+
   async removeRole(userId, roleCode, deptId) {
     try {
       await fetch(`/api/users/${userId}/roles/${roleCode}/${deptId}`, { method: 'DELETE' });
@@ -254,8 +329,19 @@ window.RBACAdminPage = {
   },
 
   async resetPassword(id) {
-    const newPw = prompt('Nhập mật khẩu mới cho user (tối thiểu 6 ký tự):');
-    if (!newPw || newPw.length < 6) { if (newPw !== null) window.toast.error('Mật khẩu phải ít nhất 6 ký tự'); return; }
+    const newPw = await window.ui.prompt({
+      title: 'Reset mật khẩu',
+      eyebrow: 'Cập nhật thông tin đăng nhập',
+      message: 'Nhập mật khẩu mới cho user này.\nMật khẩu phải có ít nhất 6 ký tự.',
+      placeholder: 'Mật khẩu mới',
+      confirmText: 'Cập nhật',
+      cancelText: 'Hủy',
+      inputType: 'password',
+      required: true,
+      requiredMessage: 'Vui lòng nhập mật khẩu mới.',
+      validate: value => value.length < 6 ? 'Mật khẩu phải ít nhất 6 ký tự.' : ''
+    });
+    if (newPw === null) return;
     try {
       const res = await fetch(`/api/users/${id}`, {
         method: 'PUT', headers: { 'Content-Type': 'application/json' },
@@ -341,7 +427,16 @@ window.RBACAdminPage = {
   },
 
   async deleteRole(id) {
-    if (!confirm('Xóa vai trò này?')) return;
+    const confirmed = await window.ui.confirm({
+      title: 'Xóa vai trò',
+      eyebrow: 'Xác nhận thao tác',
+      message: 'Bạn có chắc muốn xóa vai trò này?',
+      confirmText: 'Xóa vai trò',
+      cancelText: 'Hủy',
+      tone: 'danger',
+      confirmVariant: 'danger'
+    });
+    if (!confirmed) return;
     try {
       const res = await fetch(`/api/roles/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error((await res.json()).error);
@@ -549,7 +644,16 @@ window.RBACAdminPage = {
   },
 
   async deleteDept(id) {
-    if (!confirm('Xóa đơn vị này?')) return;
+    const confirmed = await window.ui.confirm({
+      title: 'Xóa đơn vị',
+      eyebrow: 'Xác nhận thao tác',
+      message: 'Bạn có chắc muốn xóa đơn vị này?',
+      confirmText: 'Xóa đơn vị',
+      cancelText: 'Hủy',
+      tone: 'danger',
+      confirmVariant: 'danger'
+    });
+    if (!confirmed) return;
     try {
       const res = await fetch(`/api/departments/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error((await res.json()).error);

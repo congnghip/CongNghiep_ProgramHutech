@@ -331,7 +331,16 @@ window.ProgramsPage = {
   },
 
   async deleteProgram(id, name) {
-    if (!confirm(`Bạn có chắc chắn muốn xóa CTĐT "${name}"? Thao tác này sẽ xóa tất cả các phiên bản, PO, PLO và dữ liệu liên quan.`)) return;
+    const confirmed = await window.ui.confirm({
+      title: 'Xóa chương trình đào tạo',
+      eyebrow: 'Hành động nguy hiểm',
+      message: `Bạn có chắc chắn muốn xóa CTĐT "${name}"?\n\nThao tác này sẽ xóa tất cả các phiên bản, PO, PLO và dữ liệu liên quan.`,
+      confirmText: 'Xóa CTĐT',
+      cancelText: 'Hủy',
+      tone: 'danger',
+      confirmVariant: 'danger'
+    });
+    if (!confirmed) return;
     try {
       const res = await fetch(`/api/programs/${id}`, { method: 'DELETE' });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
@@ -592,7 +601,16 @@ window.ProgramsPage = {
   },
 
   async deleteVersion(id, year, programId, programName) {
-    if (!confirm(`Bạn có chắc muốn xóa phiên bản năm học "${year}" của CTĐT "${programName}"?`)) return;
+    const confirmed = await window.ui.confirm({
+      title: 'Xóa phiên bản CTĐT',
+      eyebrow: 'Xác nhận thao tác',
+      message: `Bạn có chắc muốn xóa phiên bản năm học "${year}" của CTĐT "${programName}"?`,
+      confirmText: 'Xóa phiên bản',
+      cancelText: 'Hủy',
+      tone: 'danger',
+      confirmVariant: 'danger'
+    });
+    if (!confirmed) return;
     try {
       const res = await fetch(`/api/versions/${id}`, { method: 'DELETE' });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error); }

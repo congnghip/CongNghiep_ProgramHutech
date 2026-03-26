@@ -176,7 +176,16 @@ window.CoursesPage = {
   },
 
   async del(id) {
-    if (!confirm('Xóa học phần này?')) return;
+    const confirmed = await window.ui.confirm({
+      title: 'Xóa học phần',
+      eyebrow: 'Xác nhận thao tác',
+      message: 'Bạn có chắc muốn xóa học phần này?',
+      confirmText: 'Xóa',
+      cancelText: 'Giữ lại',
+      tone: 'danger',
+      confirmVariant: 'danger'
+    });
+    if (!confirmed) return;
     try {
       const res = await fetch(`/api/courses/${id}`, { method: 'DELETE' });
       if (!res.ok) throw new Error((await res.json()).error);

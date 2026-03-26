@@ -9,6 +9,7 @@
 
     async init() {
       this.initToast();
+      this.initDialog();
       try {
         const res = await fetch('/api/auth/me');
         if (res.ok) {
@@ -204,6 +205,9 @@
 
       const pageModule = pages[page];
       if (pageModule) {
+        if (page === 'rbac-admin' && window.RBACAdminPage) {
+          window.RBACAdminPage.activeTab = 0;
+        }
         this.currentPage = pageModule;
         await pageModule.render(container, params);
         this.checkPermissions(container);
@@ -294,6 +298,223 @@
         error(m) { this.show(m, 'error', 5000); },
         warning(m) { this.show(m, 'warning', 4000); },
         info(m) { this.show(m, 'info'); },
+      };
+    },
+
+    initDialog() {
+      if (document.getElementById('ui-dialog-overlay')) return;
+
+      const overlay = document.createElement('div');
+      overlay.className = 'modal-overlay ui-dialog-overlay';
+      overlay.id = 'ui-dialog-overlay';
+      overlay.innerHTML = `
+        <div class="modal ui-dialog" role="dialog" aria-modal="true" aria-labelledby="ui-dialog-title">
+          <div class="ui-dialog-header">
+            <div class="ui-dialog-badge" id="ui-dialog-badge">?</div>
+            <div class="ui-dialog-copy">
+              <div class="ui-dialog-eyebrow" id="ui-dialog-eyebrow"></div>
+              <h2 id="ui-dialog-title">Thông báo</h2>
+            </div>
+          </div>
+          <div class="modal-body ui-dialog-body">
+            <div class="ui-dialog-message" id="ui-dialog-message"></div>
+            <div class="ui-dialog-input-wrap" id="ui-dialog-input-wrap">
+              <input type="text" id="ui-dialog-input" class="ui-dialog-input">
+            </div>
+            <div class="modal-error" id="ui-dialog-error"></div>
+            <div class="modal-footer ui-dialog-footer">
+              <button type="button" class="btn btn-secondary" id="ui-dialog-cancel">Hủy</button>
+              <button type="button" class="btn btn-primary" id="ui-dialog-confirm">Xác nhận</button>
+            </div>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+
+      const titleEl = document.getElementById('ui-dialog-title');
+      const eyebrowEl = document.getElementById('ui-dialog-eyebrow');
+      const badgeEl = document.getElementById('ui-dialog-badge');
+      const messageEl = document.getElementById('ui-dialog-message');
+      const inputWrapEl = document.getElementById('ui-dialog-input-wrap');
+      const inputEl = document.getElementById('ui-dialog-input');
+      const errorEl = document.getElementById('ui-dialog-error');
+      const cancelBtn = document.getElementById('ui-dialog-cancel');
+      const confirmBtn = document.getElementById('ui-dialog-confirm');
+
+      const queue = [];
+      let activeRequest = null;
+
+      const toneIcons = {
+        info: 'i',
+        success: '✓',
+        warning: '!',
+        danger: '!'
+      };
+
+      const defaults = {
+        alert: {
+          title: 'Thông báo',
+          confirmText: 'Đã hiểu',
+          tone: 'info',
+          dismissible: true
+        },
+        confirm: {
+          title: 'Xác nhận',
+          confirmText: 'Xác nhận',
+          cancelText: 'Hủy',
+          tone: 'info',
+          dismissible: true
+        },
+        prompt: {
+          title: 'Nhập thông tin',
+          confirmText: 'Lưu',
+          cancelText: 'Hủy',
+          tone: 'info',
+          dismissible: true,
+          required: false,
+          trim: true,
+          inputType: 'text'
+        }
+      };
+
+      const normalizeModeOptions = (mode, options) => ({ ...defaults[mode], ...options, mode });
+
+      const showError = (message) => {
+        if (!message) {
+          errorEl.textContent = '';
+          errorEl.classList.remove('show');
+          return;
+        }
+        errorEl.textContent = message;
+        errorEl.classList.add('show');
+      };
+
+      const finish = (result) => {
+        if (!activeRequest) return;
+        const request = activeRequest;
+        activeRequest = null;
+        overlay.classList.remove('active');
+        setTimeout(() => {
+          request.resolve(result);
+          if (queue.length) {
+            showNext();
+          }
+        }, 150);
+      };
+
+      const cancel = () => {
+        if (!activeRequest) return;
+        finish(activeRequest.mode === 'prompt' ? null : false);
+      };
+
+      const submit = () => {
+        if (!activeRequest) return;
+
+        if (activeRequest.mode !== 'prompt') {
+          finish(true);
+          return;
+        }
+
+        const rawValue = inputEl.value ?? '';
+        const value = activeRequest.trim === false ? rawValue : rawValue.trim();
+
+        if (activeRequest.required && !value) {
+          showError(activeRequest.requiredMessage || 'Vui lòng nhập thông tin.');
+          return;
+        }
+
+        if (typeof activeRequest.validate === 'function') {
+          const validationMessage = activeRequest.validate(value);
+          if (validationMessage) {
+            showError(validationMessage);
+            return;
+          }
+        }
+
+        finish(value);
+      };
+
+      const showNext = () => {
+        if (activeRequest || !queue.length) return;
+        activeRequest = queue.shift();
+
+        overlay.dataset.mode = activeRequest.mode;
+        overlay.dataset.tone = activeRequest.tone || 'info';
+        badgeEl.textContent = activeRequest.icon || toneIcons[activeRequest.tone] || toneIcons.info;
+        titleEl.textContent = activeRequest.title;
+        messageEl.textContent = activeRequest.message || '';
+        eyebrowEl.textContent = activeRequest.eyebrow || '';
+        eyebrowEl.style.display = activeRequest.eyebrow ? 'block' : 'none';
+
+        inputWrapEl.style.display = activeRequest.mode === 'prompt' ? 'block' : 'none';
+        if (activeRequest.mode === 'prompt') {
+          inputEl.type = activeRequest.inputType || 'text';
+          inputEl.placeholder = activeRequest.placeholder || '';
+          inputEl.value = activeRequest.inputValue ?? '';
+          inputEl.autocomplete = activeRequest.autocomplete || 'off';
+          inputEl.select();
+        } else {
+          inputEl.value = '';
+        }
+
+        cancelBtn.style.display = activeRequest.mode === 'alert' ? 'none' : '';
+        cancelBtn.textContent = activeRequest.cancelText || 'Hủy';
+        confirmBtn.textContent = activeRequest.confirmText || 'Xác nhận';
+        confirmBtn.className = `btn ${activeRequest.confirmVariant === 'danger' || activeRequest.tone === 'danger' ? 'btn-danger' : 'btn-primary'}`;
+
+        showError('');
+        overlay.classList.add('active');
+
+        setTimeout(() => {
+          if (activeRequest?.mode === 'prompt') inputEl.focus();
+          else confirmBtn.focus();
+        }, 20);
+      };
+
+      const open = (mode, options) => new Promise(resolve => {
+        queue.push({ ...normalizeModeOptions(mode, options), resolve });
+        showNext();
+      });
+
+      const normalizeOptions = (mode, messageOrOptions, maybeOptions = {}) => {
+        if (typeof messageOrOptions === 'object' && messageOrOptions !== null && !Array.isArray(messageOrOptions)) {
+          return messageOrOptions;
+        }
+        return { ...maybeOptions, message: String(messageOrOptions ?? '') };
+      };
+
+      overlay.addEventListener('click', (e) => {
+        if (e.target !== overlay || !activeRequest?.dismissible) return;
+        cancel();
+      });
+      cancelBtn.addEventListener('click', cancel);
+      confirmBtn.addEventListener('click', submit);
+      inputEl.addEventListener('input', () => showError(''));
+      document.addEventListener('keydown', (e) => {
+        if (!activeRequest || !overlay.classList.contains('active')) return;
+        if (e.key === 'Escape') {
+          e.preventDefault();
+          cancel();
+        }
+        if (e.key === 'Enter' && activeRequest.mode === 'prompt' && document.activeElement === inputEl) {
+          e.preventDefault();
+          submit();
+        }
+      });
+
+      window.ui = {
+        alert(messageOrOptions, options = {}) {
+          return open('alert', normalizeOptions('alert', messageOrOptions, options));
+        },
+        confirm(messageOrOptions, options = {}) {
+          return open('confirm', normalizeOptions('confirm', messageOrOptions, options));
+        },
+        prompt(messageOrOptions, defaultValue = '', options = {}) {
+          if (typeof messageOrOptions === 'object' && messageOrOptions !== null && !Array.isArray(messageOrOptions)) {
+            return open('prompt', messageOrOptions);
+          }
+          return open('prompt', { ...options, message: String(messageOrOptions ?? ''), inputValue: defaultValue ?? '' });
+        },
       };
     },
   };
