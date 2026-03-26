@@ -667,7 +667,11 @@ window.VersionEditorPage = {
           <td style="text-align:center;color:var(--text-muted);" ${isEdit ? `contenteditable="true" style="text-align:center;${editStyle}"` : ''} data-field="hours_internship">${val(c.hours_internship)}</td>
           <td style="font-size:12px;color:var(--text-muted);" ${isEdit ? `contenteditable="true" style="font-size:12px;${editStyle}"` : ''} data-field="software">${c.software || ''}</td>
           <td style="font-size:12px;color:var(--text-muted);">${c.managing_dept || ''}</td>
-          <td style="text-align:center;" ${isEdit ? `contenteditable="true" style="text-align:center;${editStyle}"` : ''} data-field="batch">${c.batch || ''}</td>
+          <td style="text-align:center;">${isEdit ? `<select data-field="batch" style="font-size:12px;padding:2px;border:1px solid var(--border);border-radius:3px;">
+            <option value="" ${!c.batch ? 'selected' : ''}>—</option>
+            <option value="A" ${c.batch === 'A' ? 'selected' : ''}>A</option>
+            <option value="B" ${c.batch === 'B' ? 'selected' : ''}>B</option>
+          </select>` : (c.batch || '')}</td>
           ${isEdit ? `<td style="text-align:center;"><select data-field="semester" style="font-size:12px;padding:2px;border:1px solid var(--border);border-radius:3px;">
             ${Array.from({length: maxSem}, (_, i) => i + 1).map(s => `<option value="${s}" ${s === c.semester ? 'selected' : ''}>HK ${s}</option>`).join('')}
           </select></td>` : ''}
@@ -692,11 +696,7 @@ window.VersionEditorPage = {
 
     const renderContent = (isEdit) => {
       if (semKeys.length === 0) return '<p style="color:var(--text-muted);font-size:13px;">Hãy gán HP vào CTĐT trước.</p>';
-      if (isEdit) {
-        // In edit mode: single flat table with semester column
-        return renderTable(allItems.sort((a, b) => (a.semester || 0) - (b.semester || 0) || a.course_code.localeCompare(b.course_code)), true);
-      }
-      // Read-only: grouped by semester
+      // Both modes: grouped by semester
       return semKeys.map(sem => {
         const items = semesters[sem];
         const totalCredits = items.reduce((s, c) => s + (c.credits || 0), 0);
@@ -706,7 +706,7 @@ window.VersionEditorPage = {
             <strong style="font-size:14px;">Học kỳ ${sem}</strong>
             <span style="color:var(--text-muted);font-size:12px;">${totalCredits} TC</span>
           </div>
-          ${renderTable(items, false)}
+          ${renderTable(items, isEdit)}
         </div>`;
       }).join('');
     };
