@@ -1981,12 +1981,8 @@ app.post('/api/approval/review', authMiddleware, async (req, res) => {
       // Allow backtracking to draft or previous step
       let nextState = target_status;
       if (!nextState) {
-        if (entity_type === 'program_version') {
-          const revFlow = { 'submitted': 'draft', 'approved_khoa': 'submitted', 'approved_pdt': 'approved_khoa' };
-          nextState = revFlow[status] || 'draft';
-        } else {
-          nextState = 'draft';
-        }
+        // Always reject back to draft — author must fix and re-submit from scratch
+        nextState = 'draft';
       }
 
       await pool.query(
