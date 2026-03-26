@@ -633,7 +633,16 @@ window.SyllabusEditorPage = {
 
   toggleRejectionReason() {
     const panel = document.getElementById('syl-rejection-panel');
-    if (panel) panel.style.display = panel.style.display === 'block' ? 'none' : 'block';
+    if (panel) {
+      const isVisible = panel.style.display === 'block';
+      panel.style.display = isVisible ? 'none' : 'block';
+      const btn = document.querySelector('button[onclick*="toggleRejectionReason"]');
+      if (btn) {
+        btn.textContent = isVisible ? 'Lý do từ chối' : 'Ẩn lý do';
+        if (isVisible) { btn.style.background = '#e3a008'; btn.style.color = '#fff'; }
+        else { btn.style.background = ''; btn.style.color = ''; btn.className = 'btn btn-secondary btn-sm'; }
+      }
+    }
   },
 
   destroy() {}
