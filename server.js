@@ -2147,19 +2147,29 @@ app.get('/api/approval/pending', authMiddleware, async (req, res) => {
       );
     };
 
-    // Show item if user can approve it OR has submit permission in scope (read-only view)
+    // Check if user has ANY approval permission for this entity type in dept scope
+    const hasAnyApprovalPerm = (type, itemDeptId, itemDeptParentId) => {
+      const perms = type === 'program'
+        ? ['programs.approve_khoa', 'programs.approve_pdt', 'programs.approve_bgh']
+        : ['syllabus.approve_tbm', 'syllabus.approve_khoa', 'syllabus.approve_pdt', 'syllabus.approve_bgh'];
+      return perms.some(perm => hasDeptPerm(perm, itemDeptId, itemDeptParentId));
+    };
+
+    // Show item if: can approve current status, OR has submit perm, OR rejected + has any approval perm
     const filteredPrograms = programs.rows.filter(p => {
       const approvalPerm = programPermMap[p.status];
       const canApprove = approvalPerm && hasDeptPerm(approvalPerm, p.department_id, p.dept_parent_id);
       const canSubmit = hasDeptPerm('programs.submit', p.department_id, p.dept_parent_id);
-      return canApprove || canSubmit;
+      const rejectedVisible = p.is_rejected && hasAnyApprovalPerm('program', p.department_id, p.dept_parent_id);
+      return canApprove || canSubmit || rejectedVisible;
     });
 
     const filteredSyllabi = syllabi.rows.filter(s => {
       const approvalPerm = syllabusPermMap[s.status];
       const canApprove = approvalPerm && hasDeptPerm(approvalPerm, s.department_id, s.dept_parent_id);
       const canSubmit = hasDeptPerm('syllabus.submit', s.department_id, s.dept_parent_id);
-      return canApprove || canSubmit;
+      const rejectedVisible = s.is_rejected && hasAnyApprovalPerm('syllabus', s.department_id, s.dept_parent_id);
+      return canApprove || canSubmit || rejectedVisible;
     });
 
     res.json({ programs: filteredPrograms, syllabi: filteredSyllabi });

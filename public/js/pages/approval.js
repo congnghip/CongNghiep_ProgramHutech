@@ -30,6 +30,14 @@ window.ApprovalPage = {
         }
       };
 
+      // Check if user has ANY approval permission for an entity type
+      const hasAnyApproval = (type) => {
+        const perms = type === 'program_version'
+          ? ['programs.approve_khoa', 'programs.approve_pdt', 'programs.approve_bgh']
+          : ['syllabus.approve_tbm', 'syllabus.approve_khoa', 'syllabus.approve_pdt', 'syllabus.approve_bgh'];
+        return perms.some(p => window.App.hasPerm(p));
+      };
+
       container.innerHTML = `
         <h1 style="font-size:24px;font-weight:700;letter-spacing:-0.3px;margin-bottom:24px;">Phê duyệt</h1>
 
@@ -51,7 +59,7 @@ window.ApprovalPage = {
                     </td>
                     <td style="white-space:nowrap;">
                       ${p.is_rejected ? `
-                        ${canApprove ? `<button class="btn btn-danger btn-sm" onclick="window.ApprovalPage.deleteRejected(${p.id},'program_version')">Xóa</button>` : '<span style="color:var(--danger);font-size:12px;">Đã bị từ chối</span>'}
+                        ${hasAnyApproval('program_version') ? `<button class="btn btn-danger btn-sm" onclick="window.ApprovalPage.deleteRejected(${p.id},'program_version')">Xóa</button>` : '<span style="color:var(--danger);font-size:12px;">Đã bị từ chối</span>'}
                       ` : canApprove ? `
                         <button class="btn btn-primary btn-sm" onclick="window.ApprovalPage.approve(${p.id},'program_version')">Duyệt</button>
                         <button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="window.ApprovalPage.showRejectModal(${p.id},'program_version')">Từ chối</button>
@@ -83,7 +91,7 @@ window.ApprovalPage = {
                     </td>
                     <td style="white-space:nowrap;">
                       ${s.is_rejected ? `
-                        ${canApprove ? `<button class="btn btn-danger btn-sm" onclick="window.ApprovalPage.deleteRejected(${s.id},'syllabus')">Xóa</button>` : '<span style="color:var(--danger);font-size:12px;">Đã bị từ chối</span>'}
+                        ${hasAnyApproval('syllabus') ? `<button class="btn btn-danger btn-sm" onclick="window.ApprovalPage.deleteRejected(${s.id},'syllabus')">Xóa</button>` : '<span style="color:var(--danger);font-size:12px;">Đã bị từ chối</span>'}
                       ` : canApprove ? `
                         <button class="btn btn-primary btn-sm" onclick="window.ApprovalPage.approve(${s.id},'syllabus')">Duyệt</button>
                         <button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="window.ApprovalPage.showRejectModal(${s.id},'syllabus')">Từ chối</button>
