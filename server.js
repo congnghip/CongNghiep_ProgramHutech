@@ -1212,6 +1212,64 @@ app.get('/api/versions/:vId/teaching-plan', authMiddleware, async (req, res) => 
   }
 });
 
+app.put('/api/versions/:vId/teaching-plan/bulk', authMiddleware, requireDraft('vId'), async (req, res) => {
+  const { items } = req.body;
+  if (!Array.isArray(items)) return res.status(400).json({ error: 'items phải là mảng' });
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    // Validate all version_course_ids belong to this version
+    const vcIds = items.map(it => it.version_course_id);
+    const { rows: validVCs } = await client.query(
+      'SELECT id FROM version_courses WHERE version_id = $1 AND id = ANY($2)',
+      [req.params.vId, vcIds]
+    );
+    const validIds = new Set(validVCs.map(r => r.id));
+
+    for (const item of items) {
+      if (!validIds.has(item.version_course_id)) continue;
+
+      // Update semester on version_courses
+      if (item.semester != null) {
+        await client.query(
+          'UPDATE version_courses SET semester = $1 WHERE id = $2',
+          [parseInt(item.semester) || null, item.version_course_id]
+        );
+      }
+
+      // Upsert teaching_plan
+      const hoursTheory = parseInt(item.hours_theory) || 0;
+      const hoursPractice = parseInt(item.hours_practice) || 0;
+      const hoursProject = parseInt(item.hours_project) || 0;
+      const hoursInternship = parseInt(item.hours_internship) || 0;
+      const totalHours = hoursTheory + hoursPractice + hoursProject + hoursInternship;
+
+      await client.query(
+        `INSERT INTO teaching_plan (version_course_id, total_hours, hours_theory, hours_practice, hours_project, hours_internship, software, batch)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+         ON CONFLICT (version_course_id) DO UPDATE SET
+           total_hours = EXCLUDED.total_hours,
+           hours_theory = EXCLUDED.hours_theory,
+           hours_practice = EXCLUDED.hours_practice,
+           hours_project = EXCLUDED.hours_project,
+           hours_internship = EXCLUDED.hours_internship,
+           software = EXCLUDED.software,
+           batch = EXCLUDED.batch`,
+        [item.version_course_id, totalHours, hoursTheory, hoursPractice, hoursProject, hoursInternship,
+         item.software || null, item.batch || null]
+      );
+    }
+
+    await client.query('COMMIT');
+    res.json({ success: true });
+  } catch (e) {
+    await client.query('ROLLBACK');
+    res.status(400).json({ error: e.message });
+  } finally { client.release(); }
+});
+
 app.post('/api/versions/:vId/courses', authMiddleware, requireDraft('vId'), async (req, res) => {
   const { course_id, semester, course_type } = req.body;
   try {

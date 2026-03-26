@@ -300,6 +300,8 @@ async function initDB() {
         notes TEXT
       );
 
+      CREATE UNIQUE INDEX IF NOT EXISTS teaching_plan_vc_unique ON teaching_plan(version_course_id);
+
       -- Audit Logs
       CREATE TABLE IF NOT EXISTS audit_logs (
         id SERIAL PRIMARY KEY,
@@ -631,16 +633,13 @@ async function seedData(client) {
       }
     }
 
-    // Knowledge blocks (with levels)
+    // Knowledge blocks (default structure per spec)
     const kbData = [
-      ['Kiến thức giáo dục đại cương', null, 1, 12, 12, 0],
-      ['Lý luận chính trị', 'Kiến thức giáo dục đại cương', 2, 3, 3, 0],
-      ['Ngoại ngữ', 'Kiến thức giáo dục đại cương', 2, 3, 3, 0],
-      ['Toán & Khoa học tự nhiên', 'Kiến thức giáo dục đại cương', 2, 6, 6, 0],
-      ['Kiến thức giáo dục chuyên nghiệp', null, 1, 48, 42, 6],
-      ['Cơ sở ngành', 'Kiến thức giáo dục chuyên nghiệp', 2, 15, 15, 0],
-      ['Chuyên ngành', 'Kiến thức giáo dục chuyên nghiệp', 2, 18, 12, 6],
-      ['Thực tập & Đồ án', 'Kiến thức giáo dục chuyên nghiệp', 2, 6, 6, 0],
+      ['Kiến thức giáo dục đại cương', null, 1, 0, 0, 0],
+      ['Kiến thức giáo dục chuyên nghiệp', null, 1, 0, 0, 0],
+      ['Kiến thức bắt buộc', 'Kiến thức giáo dục chuyên nghiệp', 2, 0, 0, 0],
+      ['Kiến thức tự chọn', 'Kiến thức giáo dục chuyên nghiệp', 2, 0, 0, 0],
+      ['Kiến thức không tích lũy', null, 1, 0, 0, 0],
     ];
     const kbIds = {};
     let kbOrder = 0;

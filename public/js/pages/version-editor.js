@@ -621,69 +621,169 @@ window.VersionEditorPage = {
     ]);
     const hasTeachingPlan = teachingPlan.length > 0;
 
+    // Build teaching plan lookup by version_course_id
+    const tpMap = {};
+    teachingPlan.forEach(tp => { tpMap[tp.version_course_id] = tp; });
+
+    // Merge: use vCourses as base, enrich with teaching plan data
+    const allItems = vCourses.map(vc => {
+      const tp = tpMap[vc.id] || {};
+      return {
+        version_course_id: vc.id,
+        course_code: vc.course_code,
+        course_name: vc.course_name,
+        credits: vc.credits,
+        semester: vc.semester || 0,
+        hours_theory: tp.hours_theory || 0,
+        hours_practice: tp.hours_practice || 0,
+        hours_project: tp.hours_project || 0,
+        hours_internship: tp.hours_internship || 0,
+        software: tp.software || '',
+        managing_dept: tp.managing_dept || '',
+        batch: tp.batch || '',
+      };
+    });
+
     const semesters = {};
-    const source = hasTeachingPlan ? teachingPlan : vCourses;
-    source.forEach(c => {
+    allItems.forEach(c => {
       const sem = c.semester || 0;
       if (!semesters[sem]) semesters[sem] = [];
       semesters[sem].push(c);
     });
     const semKeys = Object.keys(semesters).sort((a, b) => a - b);
+    const maxSem = Math.max(8, ...semKeys.map(Number));
+
+    const renderRow = (c, isEdit) => {
+      const editStyle = 'outline:1px dashed var(--border);padding:2px 4px;border-radius:3px;min-width:30px;';
+      const val = (v) => isEdit ? (v || '') : (v || '—');
+      return `
+        <tr data-vc-id="${c.version_course_id}">
+          <td><strong>${c.course_code}</strong></td>
+          <td>${c.course_name}</td>
+          <td style="text-align:center;">${c.credits || ''}</td>
+          <td style="text-align:center;color:var(--text-muted);" ${isEdit ? `contenteditable="true" style="text-align:center;${editStyle}"` : ''} data-field="hours_theory">${val(c.hours_theory)}</td>
+          <td style="text-align:center;color:var(--text-muted);" ${isEdit ? `contenteditable="true" style="text-align:center;${editStyle}"` : ''} data-field="hours_practice">${val(c.hours_practice)}</td>
+          <td style="text-align:center;color:var(--text-muted);" ${isEdit ? `contenteditable="true" style="text-align:center;${editStyle}"` : ''} data-field="hours_project">${val(c.hours_project)}</td>
+          <td style="text-align:center;color:var(--text-muted);" ${isEdit ? `contenteditable="true" style="text-align:center;${editStyle}"` : ''} data-field="hours_internship">${val(c.hours_internship)}</td>
+          <td style="font-size:12px;color:var(--text-muted);" ${isEdit ? `contenteditable="true" style="font-size:12px;${editStyle}"` : ''} data-field="software">${c.software || ''}</td>
+          <td style="font-size:12px;color:var(--text-muted);">${c.managing_dept || ''}</td>
+          <td style="text-align:center;" ${isEdit ? `contenteditable="true" style="text-align:center;${editStyle}"` : ''} data-field="batch">${c.batch || ''}</td>
+          ${isEdit ? `<td style="text-align:center;"><select data-field="semester" style="font-size:12px;padding:2px;border:1px solid var(--border);border-radius:3px;">
+            ${Array.from({length: maxSem}, (_, i) => i + 1).map(s => `<option value="${s}" ${s === c.semester ? 'selected' : ''}>HK ${s}</option>`).join('')}
+          </select></td>` : ''}
+        </tr>
+      `;
+    };
+
+    const renderTable = (items, isEdit) => `
+      <div style="overflow-x:auto;">
+      <table class="data-table">
+        <thead><tr>
+          <th>Mã HP</th><th>Tên HP</th><th style="text-align:center;">TC</th>
+          <th style="text-align:center;font-size:11px;">Tiết LT</th><th style="text-align:center;font-size:11px;">Tiết TH</th>
+          <th style="text-align:center;font-size:11px;">Tiết ĐA</th><th style="text-align:center;font-size:11px;">Tiết TT</th>
+          <th>Phần mềm</th><th>Đơn vị QL</th><th>Đợt</th>
+          ${isEdit ? '<th style="font-size:11px;">Học kỳ</th>' : ''}
+        </tr></thead>
+        <tbody>${items.map(c => renderRow(c, isEdit)).join('')}</tbody>
+      </table>
+      </div>
+    `;
+
+    const renderContent = (isEdit) => {
+      if (semKeys.length === 0) return '<p style="color:var(--text-muted);font-size:13px;">Hãy gán HP vào CTĐT trước.</p>';
+      if (isEdit) {
+        // In edit mode: single flat table with semester column
+        return renderTable(allItems.sort((a, b) => (a.semester || 0) - (b.semester || 0) || a.course_code.localeCompare(b.course_code)), true);
+      }
+      // Read-only: grouped by semester
+      return semKeys.map(sem => {
+        const items = semesters[sem];
+        const totalCredits = items.reduce((s, c) => s + (c.credits || 0), 0);
+        return `
+        <div style="margin-bottom:24px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <strong style="font-size:14px;">Học kỳ ${sem}</strong>
+            <span style="color:var(--text-muted);font-size:12px;">${totalCredits} TC</span>
+          </div>
+          ${renderTable(items, false)}
+        </div>`;
+      }).join('');
+    };
 
     body.innerHTML = `
-      <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;">Kế hoạch giảng dạy</h3>
-      ${semKeys.length === 0 ? '<p style="color:var(--text-muted);font-size:13px;">Hãy gán HP vào CTĐT trước.</p>' : hasTeachingPlan ? `
-        ${semKeys.map(sem => {
-          const items = semesters[sem];
-          const totalCredits = items.reduce((s, c) => s + (c.credits || 0), 0);
-          return `
-          <div style="margin-bottom:24px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-              <strong style="font-size:14px;">Học kỳ ${sem}</strong>
-              <span style="color:var(--text-muted);font-size:12px;">${totalCredits} TC</span>
-            </div>
-            <div style="overflow-x:auto;">
-            <table class="data-table">
-              <thead><tr><th>Mã HP</th><th>Tên HP</th><th style="text-align:center;">TC</th><th style="text-align:center;font-size:11px;">Tiết LT</th><th style="text-align:center;font-size:11px;">Tiết TH</th><th style="text-align:center;font-size:11px;">Tiết ĐA</th><th style="text-align:center;font-size:11px;">Tiết TT</th><th>Phần mềm</th><th>Đơn vị QL</th><th>Đợt</th></tr></thead>
-              <tbody>
-                ${items.map(c => `
-                  <tr>
-                    <td><strong>${c.course_code}</strong></td>
-                    <td>${c.course_name}</td>
-                    <td style="text-align:center;">${c.credits || ''}</td>
-                    <td style="text-align:center;color:var(--text-muted);">${c.hours_theory || '—'}</td>
-                    <td style="text-align:center;color:var(--text-muted);">${c.hours_practice || '—'}</td>
-                    <td style="text-align:center;color:var(--text-muted);">${c.hours_project || '—'}</td>
-                    <td style="text-align:center;color:var(--text-muted);">${c.hours_internship || '—'}</td>
-                    <td style="font-size:12px;color:var(--text-muted);">${c.software || ''}</td>
-                    <td style="font-size:12px;color:var(--text-muted);">${c.managing_dept || ''}</td>
-                    <td style="text-align:center;">${c.batch || ''}</td>
-                  </tr>
-                `).join('')}
-              </tbody>
-            </table>
-            </div>
-          </div>`;
-        }).join('')}
-      ` : `
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px;">
-          ${semKeys.map(sem => `
-            <div>
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-                <strong style="font-size:14px;">Học kỳ ${sem}</strong>
-                <span style="color:var(--text-muted);font-size:12px;">${semesters[sem].reduce((s, c) => s + (c.credits || 0), 0)} TC</span>
-              </div>
-              ${semesters[sem].map(c => `
-                <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;border-bottom:1px solid var(--divider);">
-                  <span><strong>${c.course_code}</strong> ${c.course_name}</span>
-                  <span style="color:var(--text-muted);">${c.credits}</span>
-                </div>
-              `).join('')}
-            </div>
-          `).join('')}
-        </div>
-      `}
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h3 style="font-size:15px;font-weight:600;">Kế hoạch giảng dạy</h3>
+        ${editable ? `<div id="tp-edit-actions">
+          <button id="tp-edit-btn" class="btn btn-secondary" style="font-size:12px;">Chỉnh sửa</button>
+        </div>` : ''}
+      </div>
+      <div id="tp-content">${renderContent(false)}</div>
     `;
+
+    if (!editable) return;
+
+    // Wire edit button
+    const editBtn = body.querySelector('#tp-edit-btn');
+    const actionsDiv = body.querySelector('#tp-edit-actions');
+    const contentDiv = body.querySelector('#tp-content');
+
+    editBtn.addEventListener('click', () => {
+      // Switch to edit mode
+      actionsDiv.innerHTML = `
+        <div style="display:flex;gap:8px;">
+          <button id="tp-cancel-btn" class="btn btn-secondary" style="font-size:12px;">Hủy</button>
+          <button id="tp-save-btn" class="btn btn-primary" style="font-size:12px;">Lưu</button>
+        </div>
+      `;
+      contentDiv.innerHTML = renderContent(true);
+
+      // Cancel
+      actionsDiv.querySelector('#tp-cancel-btn').addEventListener('click', () => {
+        this.renderTab();
+      });
+
+      // Save
+      actionsDiv.querySelector('#tp-save-btn').addEventListener('click', async () => {
+        const rows = contentDiv.querySelectorAll('tr[data-vc-id]');
+        const items = [];
+        rows.forEach(row => {
+          const vcId = parseInt(row.dataset.vcId);
+          const getVal = (field) => {
+            const el = row.querySelector(`[data-field="${field}"]`);
+            if (!el) return null;
+            if (el.tagName === 'SELECT') return el.value;
+            return el.innerText.trim();
+          };
+          items.push({
+            version_course_id: vcId,
+            semester: parseInt(getVal('semester')) || null,
+            hours_theory: parseInt(getVal('hours_theory')) || 0,
+            hours_practice: parseInt(getVal('hours_practice')) || 0,
+            hours_project: parseInt(getVal('hours_project')) || 0,
+            hours_internship: parseInt(getVal('hours_internship')) || 0,
+            software: getVal('software') || '',
+            batch: getVal('batch') || '',
+          });
+        });
+
+        try {
+          const res = await fetch(`/api/versions/${this.versionId}/teaching-plan/bulk`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ items })
+          });
+          if (res.ok) {
+            this.renderTab();
+          } else {
+            const err = await res.json();
+            alert(err.error || 'Lỗi lưu kế hoạch giảng dạy');
+          }
+        } catch (e) {
+          alert('Lỗi: ' + e.message);
+        }
+      });
+    });
   },
 
   // ===== Knowledge Blocks Tab =====
