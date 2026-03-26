@@ -50,7 +50,7 @@ window.ApprovalPage = {
                 ${data.programs.map(p => {
                   const perm = getRequiredPerm(p.status, 'program_version');
                   const canApprove = perm && window.App.hasPerm(perm);
-                  return `<tr style="cursor:pointer;" onclick="window.App.navigate('version-editor/${p.id}')">
+                  return `<tr style="cursor:pointer;" onclick="window.App.navigate('version-editor',{versionId:${p.id}})">
                     <td style="font-weight:500;color:var(--primary);">${p.program_name}</td>
                     <td>${p.academic_year}</td>
                     <td style="color:var(--text-muted);">${p.dept_name || ''}</td>
@@ -81,7 +81,7 @@ window.ApprovalPage = {
                 ${data.syllabi.map(s => {
                   const perm = getRequiredPerm(s.status, 'syllabus');
                   const canApprove = perm && window.App.hasPerm(perm);
-                  return `<tr style="cursor:pointer;" onclick="window.App.navigate('syllabus-editor/${s.id}')">
+                  return `<tr style="cursor:pointer;" onclick="window.App.navigate('syllabus-editor',{syllabusId:${s.id}})">
                     <td><strong>${s.course_code || ''}</strong></td>
                     <td style="color:var(--primary);">${s.course_name || ''}</td>
                     <td style="font-size:12px;color:var(--text-muted);">${s.program_name || ''}${s.academic_year ? ` (${s.academic_year})` : ''}</td>
