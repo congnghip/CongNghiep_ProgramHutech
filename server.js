@@ -2129,52 +2129,47 @@ app.get('/api/dashboard/stats', authMiddleware, async (req, res) => {
     const deptIds = highest ? await getDepartmentScope(highest.department_id, level) : [0]; // no roles = empty scope (matches nothing)
 
     // Build WHERE clause for department-scoped filtering
-    // deptIds = null means system-wide (no filter)
+    // deptIds = null means system-wide (no filter), [0] means no roles (matches nothing)
     const deptFilter = deptIds ? 'AND p.department_id = ANY($1)' : '';
     const deptFilterCourse = deptIds ? 'AND c.department_id = ANY($1)' : '';
     const deptParams = deptIds ? [deptIds] : [];
 
-    // --- Programs ---
-    const programs = await pool.query(
-      `SELECT COUNT(*) as c FROM programs p WHERE 1=1 ${deptFilter}`,
-      deptParams
-    );
-
-    // --- Versions (grouped by status) ---
-    const versions = await pool.query(
-      `SELECT pv.status, COUNT(*) as c
-       FROM program_versions pv
-       JOIN programs p ON pv.program_id = p.id
-       WHERE 1=1 ${deptFilter}
-       GROUP BY pv.status`,
-      deptParams
-    );
-
-    // --- Courses ---
-    const courses = await pool.query(
-      `SELECT COUNT(*) as c FROM courses c WHERE 1=1 ${deptFilterCourse}`,
-      deptParams
-    );
-
-    // --- Syllabi (grouped by status) ---
-    const syllabi = await pool.query(
-      `SELECT vs.status, COUNT(*) as c
-       FROM version_syllabi vs
-       JOIN courses c ON vs.course_id = c.id
-       WHERE 1=1 ${deptFilterCourse}
-       GROUP BY vs.status`,
-      deptParams
-    );
-
-    // --- Users (with role assignment in dept scope) ---
-    const users = deptIds
-      ? await pool.query(
-          `SELECT COUNT(DISTINCT u.id) as c FROM users u
-           JOIN user_roles ur ON u.id = ur.user_id
-           WHERE u.is_active = true AND ur.department_id = ANY($1)`,
-          [deptIds]
-        )
-      : await pool.query('SELECT COUNT(*) as c FROM users WHERE is_active = true');
+    // --- Core stats (parallel) ---
+    const [programs, versions, courses, syllabi, users, depts] = await Promise.all([
+      pool.query(
+        `SELECT COUNT(*) as c FROM programs p WHERE 1=1 ${deptFilter}`,
+        deptParams
+      ),
+      pool.query(
+        `SELECT pv.status, COUNT(*) as c
+         FROM program_versions pv
+         JOIN programs p ON pv.program_id = p.id
+         WHERE 1=1 ${deptFilter}
+         GROUP BY pv.status`,
+        deptParams
+      ),
+      pool.query(
+        `SELECT COUNT(*) as c FROM courses c WHERE 1=1 ${deptFilterCourse}`,
+        deptParams
+      ),
+      pool.query(
+        `SELECT vs.status, COUNT(*) as c
+         FROM version_syllabi vs
+         JOIN courses c ON vs.course_id = c.id
+         WHERE 1=1 ${deptFilterCourse}
+         GROUP BY vs.status`,
+        deptParams
+      ),
+      deptIds
+        ? pool.query(
+            `SELECT COUNT(DISTINCT u.id) as c FROM users u
+             JOIN user_roles ur ON u.id = ur.user_id
+             WHERE u.is_active = true AND ur.department_id = ANY($1)`,
+            [deptIds]
+          )
+        : pool.query('SELECT COUNT(*) as c FROM users WHERE is_active = true'),
+      pool.query("SELECT type, COUNT(*) as c FROM departments GROUP BY type"),
+    ]);
 
     // --- Pending Approvals (role-specific) ---
     let pendingQuery;
@@ -2231,9 +2226,6 @@ app.get('/api/dashboard/stats', authMiddleware, async (req, res) => {
       // No role — show zero
       pendingQuery = { rows: [{ c: '0' }] };
     }
-
-    // --- Departments ---
-    const depts = await pool.query("SELECT type, COUNT(*) as c FROM departments GROUP BY type");
 
     // --- Recent Activity (filtered by users in dept scope) ---
     let recentLogs;
