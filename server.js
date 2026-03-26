@@ -4,7 +4,7 @@ const express = require('express');
 const cookieParser = require('cookie-parser');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const { pool, initDB, getUserPermissions, getUserRoles, hasPermission, isAdmin } = require('./db');
+const { pool, initDB, getUserPermissions, getUserRoles, hasPermission, isAdmin, getDepartmentScope } = require('./db');
 const multer = require('multer');
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 const { parseWordFile } = require('./word-parser');
@@ -2121,21 +2121,137 @@ app.get('/api/approval/pending', authMiddleware, async (req, res) => {
 // ============ DASHBOARD STATS ============
 app.get('/api/dashboard/stats', authMiddleware, async (req, res) => {
   try {
-    const [programs, versions, courses, syllabi, users, pending, depts, recentLogs] = await Promise.all([
-      pool.query('SELECT COUNT(*) as c FROM programs'),
-      pool.query("SELECT status, COUNT(*) as c FROM program_versions GROUP BY status"),
-      pool.query('SELECT COUNT(*) as c FROM courses'),
-      pool.query("SELECT status, COUNT(*) as c FROM version_syllabi GROUP BY status"),
-      pool.query('SELECT COUNT(*) as c FROM users WHERE is_active=true'),
-      pool.query("SELECT COUNT(*) as c FROM program_versions WHERE status IN ('submitted','approved_khoa','approved_pdt')"),
-      pool.query("SELECT type, COUNT(*) as c FROM departments GROUP BY type"),
-      pool.query(`
-        SELECT al.action, al.target, al.created_at, u.display_name
-        FROM audit_logs al LEFT JOIN users u ON al.user_id = u.id
-        ORDER BY al.created_at DESC LIMIT 15
-      `),
-    ]);
+    // Determine user's highest role and department scope
+    const roles = await getUserRoles(req.user.id);
+    const highest = roles.length ? roles[0] : null; // already sorted by level DESC
+    const level = highest ? highest.level : 0;
+    const roleCode = highest ? highest.role_code : null;
+    const deptIds = highest ? await getDepartmentScope(highest.department_id, level) : null;
 
+    // Build WHERE clause for department-scoped filtering
+    // deptIds = null means system-wide (no filter)
+    const deptFilter = deptIds ? 'AND p.department_id = ANY($1)' : '';
+    const deptFilterCourse = deptIds ? 'AND c.department_id = ANY($1)' : '';
+    const deptParams = deptIds ? [deptIds] : [];
+
+    // --- Programs ---
+    const programs = await pool.query(
+      `SELECT COUNT(*) as c FROM programs p WHERE 1=1 ${deptFilter}`,
+      deptParams
+    );
+
+    // --- Versions (grouped by status) ---
+    const versions = await pool.query(
+      `SELECT pv.status, COUNT(*) as c
+       FROM program_versions pv
+       JOIN programs p ON pv.program_id = p.id
+       WHERE 1=1 ${deptFilter}
+       GROUP BY pv.status`,
+      deptParams
+    );
+
+    // --- Courses ---
+    const courses = await pool.query(
+      `SELECT COUNT(*) as c FROM courses c WHERE 1=1 ${deptFilterCourse}`,
+      deptParams
+    );
+
+    // --- Syllabi (grouped by status) ---
+    const syllabi = await pool.query(
+      `SELECT vs.status, COUNT(*) as c
+       FROM version_syllabi vs
+       JOIN courses c ON vs.course_id = c.id
+       WHERE 1=1 ${deptFilterCourse}
+       GROUP BY vs.status`,
+      deptParams
+    );
+
+    // --- Users (with role assignment in dept scope) ---
+    const users = deptIds
+      ? await pool.query(
+          `SELECT COUNT(DISTINCT u.id) as c FROM users u
+           JOIN user_roles ur ON u.id = ur.user_id
+           WHERE u.is_active = true AND ur.department_id = ANY($1)`,
+          [deptIds]
+        )
+      : await pool.query('SELECT COUNT(*) as c FROM users WHERE is_active = true');
+
+    // --- Pending Approvals (role-specific) ---
+    let pendingQuery;
+    if (roleCode === 'GIANG_VIEN') {
+      // No approval rights
+      pendingQuery = { rows: [{ c: '0' }] };
+    } else if (roleCode === 'TRUONG_NGANH') {
+      // Syllabi at 'submitted' waiting for TBM approval
+      pendingQuery = await pool.query(
+        `SELECT COUNT(*) as c FROM version_syllabi vs
+         JOIN courses c ON vs.course_id = c.id
+         WHERE vs.status = 'submitted' ${deptFilterCourse}`,
+        deptParams
+      );
+    } else if (roleCode === 'LANH_DAO_KHOA') {
+      // Versions at 'submitted' + syllabi at 'approved_tbm'
+      const [pendV, pendS] = await Promise.all([
+        pool.query(
+          `SELECT COUNT(*) as c FROM program_versions pv
+           JOIN programs p ON pv.program_id = p.id
+           WHERE pv.status = 'submitted' ${deptFilter}`,
+          deptParams
+        ),
+        pool.query(
+          `SELECT COUNT(*) as c FROM version_syllabi vs
+           JOIN courses c ON vs.course_id = c.id
+           WHERE vs.status = 'approved_tbm' ${deptFilterCourse}`,
+          deptParams
+        ),
+      ]);
+      pendingQuery = { rows: [{ c: String(parseInt(pendV.rows[0].c) + parseInt(pendS.rows[0].c)) }] };
+    } else if (roleCode === 'PHONG_DAO_TAO') {
+      // System-wide: versions at 'approved_khoa' + syllabi at 'approved_khoa'
+      const [pendV, pendS] = await Promise.all([
+        pool.query("SELECT COUNT(*) as c FROM program_versions WHERE status = 'approved_khoa'"),
+        pool.query("SELECT COUNT(*) as c FROM version_syllabi WHERE status = 'approved_khoa'"),
+      ]);
+      pendingQuery = { rows: [{ c: String(parseInt(pendV.rows[0].c) + parseInt(pendS.rows[0].c)) }] };
+    } else if (roleCode === 'BAN_GIAM_HIEU') {
+      // System-wide: versions at 'approved_pdt' + syllabi at 'approved_pdt'
+      const [pendV, pendS] = await Promise.all([
+        pool.query("SELECT COUNT(*) as c FROM program_versions WHERE status = 'approved_pdt'"),
+        pool.query("SELECT COUNT(*) as c FROM version_syllabi WHERE status = 'approved_pdt'"),
+      ]);
+      pendingQuery = { rows: [{ c: String(parseInt(pendV.rows[0].c) + parseInt(pendS.rows[0].c)) }] };
+    } else {
+      // ADMIN: all pending across all statuses
+      pendingQuery = await pool.query(
+        "SELECT COUNT(*) as c FROM program_versions WHERE status IN ('submitted','approved_khoa','approved_pdt')"
+      );
+    }
+
+    // --- Departments ---
+    const depts = await pool.query("SELECT type, COUNT(*) as c FROM departments GROUP BY type");
+
+    // --- Recent Activity (filtered by users in dept scope) ---
+    let recentLogs;
+    if (deptIds) {
+      recentLogs = await pool.query(
+        `SELECT al.action, al.target, al.created_at, u.display_name
+         FROM audit_logs al
+         LEFT JOIN users u ON al.user_id = u.id
+         WHERE al.user_id IN (
+           SELECT DISTINCT ur2.user_id FROM user_roles ur2 WHERE ur2.department_id = ANY($1)
+         )
+         ORDER BY al.created_at DESC LIMIT 15`,
+        [deptIds]
+      );
+    } else {
+      recentLogs = await pool.query(
+        `SELECT al.action, al.target, al.created_at, u.display_name
+         FROM audit_logs al LEFT JOIN users u ON al.user_id = u.id
+         ORDER BY al.created_at DESC LIMIT 15`
+      );
+    }
+
+    // --- Build response (same shape as before) ---
     const versionStats = {};
     versions.rows.forEach(r => { versionStats[r.status] = parseInt(r.c); });
     const syllabusStats = {};
@@ -2149,7 +2265,7 @@ app.get('/api/dashboard/stats', authMiddleware, async (req, res) => {
       courses: parseInt(courses.rows[0].c),
       syllabi: syllabusStats,
       users: parseInt(users.rows[0].c),
-      pendingApprovals: parseInt(pending.rows[0].c),
+      pendingApprovals: parseInt(pendingQuery.rows[0].c),
       departments: deptStats,
       recentActivity: recentLogs.rows,
     });
@@ -2239,6 +2355,9 @@ app.post('/api/import/save', authMiddleware, requirePerm('programs.import_word')
   if (!existing_program_id && !department_id) return res.status(400).json({ success: false, error: 'Missing department_id' });
 
   const client = await pool.connect();
+  const academicYear = (version && version.academic_year)
+    ? version.academic_year
+    : `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`;
   try {
     await client.query('BEGIN');
 
@@ -2279,6 +2398,15 @@ app.post('/api/import/save', authMiddleware, requirePerm('programs.import_word')
       program_id = progRes.rows[0].id;
     }
 
+    const duplicateVersion = await client.query(
+      'SELECT id FROM program_versions WHERE program_id = $1 AND academic_year = $2',
+      [program_id, academicYear]
+    );
+    if (duplicateVersion.rows.length > 0) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ success: false, error: `Phiên bản CTĐT năm "${academicYear}" đã tồn tại.` });
+    }
+
     // ── Step 3: INSERT program_versions ──────────────────────────────────
     const verRes = await client.query(
       `INSERT INTO program_versions
@@ -2288,7 +2416,7 @@ app.post('/api/import/save', authMiddleware, requirePerm('programs.import_word')
        VALUES ($1,$2,$3,'draft',$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id`,
       [
         program_id,
-        (version && version.academic_year) ? version.academic_year : `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`,
+        academicYear,
         (version && version.version_name) ? version.version_name : null,
         program.total_credits || null,
         (version && version.training_duration) ? version.training_duration : (program.duration || null),
@@ -2543,6 +2671,9 @@ app.post('/api/import/save', authMiddleware, requirePerm('programs.import_word')
     });
   } catch (e) {
     await client.query('ROLLBACK');
+    if (e.constraint === 'program_versions_program_id_academic_year_key') {
+      return res.status(409).json({ success: false, error: `Phiên bản CTĐT năm "${academicYear}" đã tồn tại.` });
+    }
     res.status(500).json({ success: false, error: e.message });
   } finally {
     client.release();

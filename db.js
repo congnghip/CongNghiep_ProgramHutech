@@ -761,7 +761,20 @@ async function isAdmin(userId) {
   return result.rows.length > 0;
 }
 
+// Get department IDs in scope for a given department + role level
+async function getDepartmentScope(departmentId, roleLevel) {
+  if (roleLevel >= 4) return null; // null = no filtering (system-wide)
+  const ids = [departmentId];
+  if (roleLevel >= 2) {
+    const children = await pool.query(
+      'SELECT id FROM departments WHERE parent_id = $1', [departmentId]
+    );
+    children.rows.forEach(r => ids.push(r.id));
+  }
+  return ids;
+}
+
 module.exports = {
   pool, initDB,
-  getUserPermissions, getUserRoles, hasPermission, isAdmin,
+  getUserPermissions, getUserRoles, hasPermission, isAdmin, getDepartmentScope,
 };
