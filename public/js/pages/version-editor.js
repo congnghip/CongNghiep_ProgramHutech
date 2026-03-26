@@ -77,12 +77,12 @@ window.VersionEditorPage = {
         </div>
       </div>
       ${isRejected ? `
-        <div style="background:rgba(215, 58, 73, 0.1);border:1px solid var(--danger);border-radius:var(--radius-lg);padding:16px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
+        <div style="background:rgba(227, 179, 65, 0.12);border:1px solid #e3a008;border-radius:var(--radius-lg);padding:16px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
           <div style="display:flex;align-items:center;gap:12px;">
-            <span class="badge badge-danger" style="padding:4px 8px;font-weight:600;">Bị từ chối</span>
-            <div style="font-size:13px;color:var(--danger);font-weight:500;">Yêu cầu chỉnh sửa từ người phê duyệt</div>
+            <span class="badge badge-warning" style="padding:4px 8px;font-weight:600;">Bị từ chối</span>
+            <div style="font-size:13px;color:#92600a;font-weight:500;">Yêu cầu chỉnh sửa từ người phê duyệt</div>
           </div>
-          <button class="btn btn-danger btn-sm" onclick="window.VersionEditorPage.showRejectionReason()">Lý do từ chối</button>
+          <button class="btn btn-sm" style="background:#e3a008;color:#fff;border:none;" onclick="window.VersionEditorPage.showRejectionReason()">Lý do từ chối</button>
         </div>
         <div id="rejection-panel" style="display:none;background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;margin-bottom:24px;">
           <h4 style="font-size:13px;font-weight:600;margin-bottom:8px;">Lý do chi tiết:</h4>
@@ -282,7 +282,15 @@ window.VersionEditorPage = {
   },
 
   async deletePO(id) {
-    if (!confirm('Xóa mục tiêu này?')) return;
+    const confirmed = await window.ui.confirm({
+      title: 'Xóa mục tiêu PO',
+      message: 'Bạn có chắc muốn xóa mục tiêu này?',
+      confirmText: 'Xóa',
+      cancelText: 'Hủy',
+      tone: 'danger',
+      confirmVariant: 'danger'
+    });
+    if (!confirmed) return;
     await fetch(`/api/objectives/${id}`, { method: 'DELETE' });
     window.toast.success('Đã xóa');
     this.renderTab();
@@ -359,7 +367,15 @@ window.VersionEditorPage = {
   },
 
   async deletePLO(id) {
-    if (!confirm('Xóa PLO này?')) return;
+    const confirmed = await window.ui.confirm({
+      title: 'Xóa PLO',
+      message: 'Bạn có chắc muốn xóa PLO này?',
+      confirmText: 'Xóa',
+      cancelText: 'Hủy',
+      tone: 'danger',
+      confirmVariant: 'danger'
+    });
+    if (!confirmed) return;
     await fetch(`/api/plos/${id}`, { method: 'DELETE' });
     window.toast.success('Đã xóa');
     this.renderTab();
@@ -387,7 +403,7 @@ window.VersionEditorPage = {
     body.innerHTML = `
       <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;">Chỉ số đo lường (PI)</h3>
       ${plos.length === 0 ? '<p style="color:var(--text-muted);font-size:13px;">Hãy thêm PLO trước.</p>' : plos.map(plo => `
-        <div style="margin-bottom:20px;">
+        <div style="margin-bottom:20px;" id="pi-plo-section-${plo.id}">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
             <strong style="color:var(--primary);">${plo.code}: ${(plo.description || '').substring(0, 60)}...</strong>
             ${editable ? `<button class="btn btn-secondary btn-sm" onclick="window.VersionEditorPage.addPI(${plo.id},'${plo.code}',${(plo.pis || []).length})">+ PI</button>` : ''}
@@ -408,6 +424,7 @@ window.VersionEditorPage = {
               </div>
             `}).join('')}</div>
           `}
+          <div id="pi-form-slot-${plo.id}"></div>
         </div>
       `).join('')}
       <div id="pi-form-area" style="display:none;margin-top:16px;padding:16px;background:var(--bg-secondary);border-radius:var(--radius-lg);">
@@ -417,12 +434,25 @@ window.VersionEditorPage = {
             <div class="input-group" style="width:120px;margin:0;"><label>Mã PI</label><input type="text" id="pi-code" placeholder="PI.1.1"></div>
             <div class="input-group" style="flex:1;margin:0;"><label>Mô tả</label><input type="text" id="pi-desc" placeholder="Mô tả chỉ số"></div>
             <button class="btn btn-primary btn-sm" onclick="window.VersionEditorPage.savePI()">Lưu</button>
-            <button class="btn btn-secondary btn-sm" onclick="document.getElementById('pi-form-area').style.display='none'">Hủy</button>
+            <button class="btn btn-secondary btn-sm" onclick="window.VersionEditorPage.hidePIForm()">Hủy</button>
           </div>
           <div id="pi-courses-area" style="margin-top:8px;"></div>
         </div>
       </div>
     `;
+  },
+
+  movePIFormToPLO(ploId) {
+    const form = document.getElementById('pi-form-area');
+    const slot = document.getElementById(`pi-form-slot-${ploId}`);
+    if (!form || !slot) return;
+    slot.appendChild(form);
+  },
+
+  hidePIForm() {
+    const form = document.getElementById('pi-form-area');
+    if (!form) return;
+    form.style.display = 'none';
   },
 
   renderPICoursesForm(ploId, selectedIds) {
@@ -446,6 +476,7 @@ window.VersionEditorPage = {
   },
 
   addPI(ploId, ploCode, count) {
+    this.movePIFormToPLO(ploId);
     document.getElementById('pi-edit-id').value = '';
     document.getElementById('pi-plo-id').value = ploId;
     document.getElementById('pi-code').value = `PI.${ploCode.replace('PLO', '')}.${count + 1}`;
@@ -455,6 +486,7 @@ window.VersionEditorPage = {
   },
 
   editPI(id, ploId, code, desc, courseIdsArr) {
+    this.movePIFormToPLO(ploId);
     document.getElementById('pi-edit-id').value = id;
     document.getElementById('pi-plo-id').value = ploId;
     document.getElementById('pi-code').value = code;
@@ -486,7 +518,15 @@ window.VersionEditorPage = {
   },
 
   async deletePI(id) {
-    if (!confirm('Xóa PI này?')) return;
+    const confirmed = await window.ui.confirm({
+      title: 'Xóa PI',
+      message: 'Bạn có chắc muốn xóa PI này?',
+      confirmText: 'Xóa',
+      cancelText: 'Hủy',
+      tone: 'danger',
+      confirmVariant: 'danger'
+    });
+    if (!confirmed) return;
     await fetch(`/api/pis/${id}`, { method: 'DELETE' });
     window.toast.success('Đã xóa');
     this.renderTab();
@@ -607,7 +647,14 @@ window.VersionEditorPage = {
   },
 
   async removeCourse(vcId) {
-    if (!confirm('Gỡ HP khỏi CTĐT?')) return;
+    const confirmed = await window.ui.confirm({
+      title: 'Gỡ học phần khỏi CTĐT',
+      message: 'Bạn có chắc muốn gỡ học phần này khỏi chương trình đào tạo?',
+      confirmText: 'Gỡ học phần',
+      cancelText: 'Hủy',
+      tone: 'warning'
+    });
+    if (!confirmed) return;
     await fetch(`/api/version-courses/${vcId}`, { method: 'DELETE' });
     window.toast.success('Đã gỡ');
     this.renderTab();
@@ -777,10 +824,18 @@ window.VersionEditorPage = {
             this.renderTab();
           } else {
             const err = await res.json();
-            alert(err.error || 'Lỗi lưu kế hoạch giảng dạy');
+            window.ui.alert({
+              title: 'Không thể lưu kế hoạch giảng dạy',
+              message: err.error || 'Đã xảy ra lỗi khi lưu kế hoạch giảng dạy.',
+              tone: 'danger'
+            });
           }
         } catch (e) {
-          alert('Lỗi: ' + e.message);
+          window.ui.alert({
+            title: 'Không thể lưu kế hoạch giảng dạy',
+            message: 'Lỗi: ' + e.message,
+            tone: 'danger'
+          });
         }
       });
     });
@@ -819,7 +874,11 @@ window.VersionEditorPage = {
             await post({ name: 'Kiến thức không tích lũy' });
             this.renderTab();
           } catch (e) {
-            alert('Lỗi: ' + e.message);
+            window.ui.alert({
+              title: 'Không thể tạo cấu trúc mặc định',
+              message: 'Lỗi: ' + e.message,
+              tone: 'danger'
+            });
           }
         });
       }
@@ -831,12 +890,12 @@ window.VersionEditorPage = {
     const getChildren = (parentId) => blocks.filter(b => b.parent_id === parentId);
 
     const renderCourseList = (courses) => {
-      if (!courses || courses.length === 0) return '<div style="color:var(--text-muted);font-size:12px;padding:4px 0 4px 16px;">Chưa có HP</div>';
+      if (!courses || courses.length === 0) return '<div class="kb-empty">Chưa có học phần</div>';
       return courses.map(c => `
-        <div style="display:flex;align-items:center;gap:8px;padding:3px 0 3px 16px;font-size:13px;">
-          <span style="color:var(--primary);font-weight:500;min-width:60px;">${c.course_code}</span>
-          <span style="flex:1;">${c.course_name}</span>
-          <span style="color:var(--text-muted);min-width:40px;text-align:right;">${c.credits} TC</span>
+        <div class="kb-course-item">
+          <span class="kb-course-code">${c.course_code}</span>
+          <span class="kb-course-name">${c.course_name}</span>
+          <span class="kb-course-credits">${c.credits} TC</span>
         </div>
       `).join('');
     };
@@ -844,32 +903,33 @@ window.VersionEditorPage = {
     const renderBlock = (block, depth) => {
       const children = getChildren(block.id);
       const isLeaf = children.length === 0;
-      const headerStyles = [
-        'font-size:15px;font-weight:700;background:var(--bg-secondary);padding:10px 12px;border-radius:6px;margin-bottom:4px;',
-        'font-size:14px;font-weight:600;padding:8px 12px 8px 24px;',
-        'font-size:13px;font-weight:500;padding:6px 12px 6px 48px;'
-      ];
       const canAddChild = block.level === 2 && editable;
       const canDelete = block.level === 3 && editable;
       const canAssign = isLeaf && editable;
+      const hasContent = isLeaf ? (block.courses || []).length > 0 : children.length > 0;
+      const shouldOpen = depth === 0;
 
       return `
-        <div class="kb-block" data-block-id="${block.id}" data-level="${block.level}">
-          <div style="display:flex;align-items:center;justify-content:space-between;${headerStyles[depth] || headerStyles[0]}">
-            <div style="display:flex;align-items:center;gap:8px;">
-              <span>${block.name}</span>
-              <span style="color:var(--text-muted);font-size:12px;">(${block.auto_total_credits || 0} TC)</span>
+        <details class="kb-accordion" data-block-id="${block.id}" data-level="${block.level}" data-depth="${depth}" ${shouldOpen ? 'open' : ''}>
+          <summary class="kb-summary">
+            <div class="kb-summary-main">
+              <span class="kb-chevron">${hasContent ? '' : ''}</span>
+              <div class="kb-title-group">
+                <span class="kb-title">${block.name}</span>
+                <span class="kb-meta">${block.auto_total_credits || 0} TC</span>
+              </div>
             </div>
-            <div style="display:flex;gap:4px;">
-              ${editable ? `<button class="btn-icon kb-edit-btn" data-block-id="${block.id}" data-block-name="${block.name}" title="Sửa tên">✏️</button>` : ''}
-              ${canAddChild ? `<button class="btn-icon kb-add-child-btn" data-parent-id="${block.id}" title="Thêm nhóm con">➕</button>` : ''}
-              ${canAssign ? `<button class="btn-icon kb-assign-btn" data-block-id="${block.id}" title="Gán HP">📋</button>` : ''}
-              ${canDelete ? `<button class="btn-icon kb-delete-btn" data-block-id="${block.id}" title="Xóa">🗑️</button>` : ''}
+            <div class="kb-actions">
+              ${editable ? `<button class="btn btn-secondary btn-sm kb-action-btn kb-edit-btn" data-block-id="${block.id}" data-block-name="${block.name}" type="button">Sửa</button>` : ''}
+              ${canAddChild ? `<button class="btn btn-secondary btn-sm kb-action-btn kb-add-child-btn" data-parent-id="${block.id}" type="button">Thêm nhóm</button>` : ''}
+              ${canAssign ? `<button class="btn btn-secondary btn-sm kb-action-btn kb-assign-btn" data-block-id="${block.id}" type="button">Gán học phần</button>` : ''}
+              ${canDelete ? `<button class="btn btn-secondary btn-sm kb-action-btn kb-delete-btn" data-block-id="${block.id}" type="button">Xóa</button>` : ''}
             </div>
+          </summary>
+          <div class="kb-content">
+            ${isLeaf ? `<div class="kb-course-list">${renderCourseList(block.courses)}</div>` : `<div class="kb-children">${children.map(child => renderBlock(child, depth + 1)).join('')}</div>`}
           </div>
-          ${isLeaf ? renderCourseList(block.courses) : ''}
-          ${children.map(child => renderBlock(child, depth + 1)).join('')}
-        </div>
+        </details>
       `;
     };
 
@@ -895,19 +955,40 @@ window.VersionEditorPage = {
       if (b.courses) allCourses.push(...b.courses.map(c => ({ ...c, block_name: b.name })));
     }
 
+    body.querySelectorAll('.kb-action-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      });
+    });
+
     // Edit block name
     body.querySelectorAll('.kb-edit-btn').forEach(btn => {
       btn.addEventListener('click', async () => {
         const blockId = btn.dataset.blockId;
         const oldName = btn.dataset.blockName;
-        const newName = prompt('Nhập tên mới cho khối kiến thức:', oldName);
+        const newName = await window.ui.prompt({
+          title: 'Đổi tên khối kiến thức',
+          eyebrow: 'Cập nhật cấu trúc CTĐT',
+          message: 'Nhập tên mới cho khối kiến thức.',
+          inputValue: oldName,
+          placeholder: 'Tên khối kiến thức',
+          confirmText: 'Lưu',
+          cancelText: 'Hủy',
+          required: true,
+          requiredMessage: 'Vui lòng nhập tên khối kiến thức.'
+        });
         if (!newName || newName.trim() === oldName) return;
         const res = await fetch(`/api/knowledge-blocks/${blockId}`, {
           method: 'PUT', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: newName.trim() })
         });
         if (res.ok) this.renderTab(this.activeTab);
-        else alert((await res.json()).error || 'Lỗi cập nhật');
+        else window.ui.alert({
+          title: 'Không thể cập nhật khối',
+          message: (await res.json()).error || 'Lỗi cập nhật',
+          tone: 'danger'
+        });
       });
     });
 
@@ -915,14 +996,27 @@ window.VersionEditorPage = {
     body.querySelectorAll('.kb-add-child-btn').forEach(btn => {
       btn.addEventListener('click', async () => {
         const parentId = btn.dataset.parentId;
-        const name = prompt('Nhập tên nhóm con mới:');
+        const name = await window.ui.prompt({
+          title: 'Tạo nhóm con',
+          eyebrow: 'Cấu trúc khối kiến thức',
+          message: 'Nhập tên nhóm con mới.',
+          placeholder: 'Tên nhóm con',
+          confirmText: 'Tạo nhóm',
+          cancelText: 'Hủy',
+          required: true,
+          requiredMessage: 'Vui lòng nhập tên nhóm con.'
+        });
         if (!name || !name.trim()) return;
         const res = await fetch(`/api/versions/${this.versionId}/knowledge-blocks`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ name: name.trim(), parent_id: parseInt(parentId) })
         });
         if (res.ok) this.renderTab(this.activeTab);
-        else alert((await res.json()).error || 'Lỗi tạo khối');
+        else window.ui.alert({
+          title: 'Không thể tạo khối',
+          message: (await res.json()).error || 'Lỗi tạo khối',
+          tone: 'danger'
+        });
       });
     });
 
@@ -930,10 +1024,23 @@ window.VersionEditorPage = {
     body.querySelectorAll('.kb-delete-btn').forEach(btn => {
       btn.addEventListener('click', async () => {
         const blockId = btn.dataset.blockId;
-        if (!confirm('Bạn có chắc muốn xóa nhóm này? Các HP sẽ bị gỡ khỏi nhóm.')) return;
+        const confirmed = await window.ui.confirm({
+          title: 'Xóa nhóm kiến thức',
+          eyebrow: 'Xác nhận thao tác',
+          message: 'Bạn có chắc muốn xóa nhóm này?\n\nCác học phần đang gán trong nhóm sẽ bị gỡ khỏi nhóm.',
+          confirmText: 'Xóa nhóm',
+          cancelText: 'Hủy',
+          tone: 'danger',
+          confirmVariant: 'danger'
+        });
+        if (!confirmed) return;
         const res = await fetch(`/api/knowledge-blocks/${blockId}`, { method: 'DELETE' });
         if (res.ok) this.renderTab(this.activeTab);
-        else alert((await res.json()).error || 'Lỗi xóa');
+        else window.ui.alert({
+          title: 'Không thể xóa khối',
+          message: (await res.json()).error || 'Lỗi xóa',
+          tone: 'danger'
+        });
       });
     });
 
@@ -1001,7 +1108,11 @@ window.VersionEditorPage = {
           });
           overlay.remove();
           if (res.ok) this.renderTab(this.activeTab);
-          else alert((await res.json()).error || 'Lỗi gán HP');
+          else window.ui.alert({
+            title: 'Không thể gán học phần',
+            message: (await res.json()).error || 'Lỗi gán HP',
+            tone: 'danger'
+          });
         });
       });
     });
@@ -1277,7 +1388,15 @@ window.VersionEditorPage = {
   },
 
   async deleteAssessment(id) {
-    if (!confirm('Xóa?')) return;
+    const confirmed = await window.ui.confirm({
+      title: 'Xóa kế hoạch đánh giá',
+      message: 'Bạn có chắc muốn xóa mục này?',
+      confirmText: 'Xóa',
+      cancelText: 'Hủy',
+      tone: 'danger',
+      confirmVariant: 'danger'
+    });
+    if (!confirmed) return;
     await fetch(`/api/assessments/${id}`, { method: 'DELETE' });
     window.toast.success('Đã xóa');
     this.renderTab();
@@ -1342,11 +1461,11 @@ window.VersionEditorPage = {
         }
       } else if (canAssign) {
         // Not assigned — show dropdown
-        gvCell = `<select id="assign-gv-${c.course_id}" style="font-size:12px;padding:4px 6px;min-width:140px;">
+        gvCell = `<select id="assign-gv-${c.course_id}" class="assign-inline-control assign-inline-select">
           <option value="">-- Chọn GV --</option>
           ${this._eligibleGV.map(g => `<option value="${g.id}">${g.display_name} (${g.dept_name})</option>`).join('')}
         </select>`;
-        deadlineCell = `<input type="date" id="assign-dl-${c.course_id}" style="font-size:12px;padding:4px 6px;width:130px;">`;
+        deadlineCell = `<input type="date" id="assign-dl-${c.course_id}" class="assign-inline-control assign-inline-date">`;
         actionCell = `<button class="btn btn-primary btn-sm" onclick="window.VersionEditorPage.assignSyllabus(${c.course_id})">Phân công</button>`;
       } else {
         gvCell = '<span style="color:var(--text-muted);">—</span>';
@@ -1464,8 +1583,15 @@ window.VersionEditorPage = {
     } catch (e) { window.toast.error(e.message); }
   },
 
-  submitVersion() {
-    if (!confirm('Nộp CTĐT để phê duyệt?')) return;
+  async submitVersion() {
+    const confirmed = await window.ui.confirm({
+      title: 'Nộp CTĐT',
+      eyebrow: 'Xác nhận gửi phê duyệt',
+      message: 'Bạn có chắc muốn nộp CTĐT này để phê duyệt?',
+      confirmText: 'Nộp duyệt',
+      cancelText: 'Xem lại'
+    });
+    if (!confirmed) return;
     this.saveSubmit();
   },
 
