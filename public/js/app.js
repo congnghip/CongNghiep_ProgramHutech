@@ -27,10 +27,9 @@
     hasPerm(code) {
       if (this.isAdmin) return true;
       if (this.userPerms.includes(code)) return true;
-      // HIERARCHY: programs.edit grants all programs.*.edit, syllabus.edit, and programs.view_*
-      const isEditPerm = (code.startsWith('programs.') && code.endsWith('.edit')) || code === 'syllabus.edit';
+      // HIERARCHY: programs.edit grants view permissions
       const isViewPerm = code === 'programs.view_published' || code === 'programs.view_draft';
-      if (isEditPerm || isViewPerm) {
+      if (isViewPerm) {
         return this.userPerms.includes('programs.edit');
       }
       return false;

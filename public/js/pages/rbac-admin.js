@@ -380,7 +380,6 @@ window.RBACAdminPage = {
 
     const moduleLabels = {
       programs: 'Chương trình đào tạo (CTĐT)',
-      programs_granular: 'CTĐT (Soạn thảo chi tiết)',
       plo: 'Chuẩn đầu ra (PLO)',
       syllabus: 'Đề cương học phần',
       courses: 'Danh mục học phần',
