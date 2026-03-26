@@ -371,10 +371,11 @@ async function seedData(client) {
     );
   }
 
-  // Seed permissions (36)
+  // Seed permissions (25)
   // First, clear old plo permissions as requested by user to merge into CTDT edit
   await client.query("DELETE FROM permissions WHERE module = 'plo'");
   await client.query("DELETE FROM permissions WHERE module = 'rbac'");
+  await client.query("DELETE FROM permissions WHERE module = 'programs_granular'");
 
   const perms = [
     // Programs (13)
@@ -391,12 +392,6 @@ async function seedData(client) {
     ['programs.import_word', 'programs', 'Import CTĐT từ Word'],
     ['programs.manage_all', 'programs', 'Quản lý CTĐT toàn trường'],
     ['programs.create_version', 'programs', 'Tạo phiên bản CTĐT mới'],
-    // Granular Program Permissions (New)
-    ['programs.po.edit', 'programs_granular', 'Chỉnh sửa Mục tiêu PO'],
-    ['programs.plo.edit', 'programs_granular', 'Chỉnh sửa Chuẩn đầu ra PLO & PI'],
-    ['programs.courses.edit', 'programs_granular', 'Chỉnh sửa Học phần & Kế hoạch GD'],
-    ['programs.matrix.edit', 'programs_granular', 'Chỉnh sửa Ma trận liên kết (PO-PLO, HP-PLO)'],
-    ['programs.assessment.edit', 'programs_granular', 'Chỉnh sửa Đánh giá CĐR'],
     // Syllabus (9)
     ['syllabus.view', 'syllabus', 'Xem đề cương đã công bố'],
     ['syllabus.create', 'syllabus', 'Tạo đề cương'],
@@ -422,14 +417,13 @@ async function seedData(client) {
   }
 
   // Role-Permission mapping (from RBAC analysis doc)
-  const ctDtGranular = ['programs.po.edit', 'programs.plo.edit', 'programs.courses.edit', 'programs.matrix.edit', 'programs.assessment.edit'];
   const rolePerms = {
     GIANG_VIEN: ['programs.view_published', 'syllabus.view', 'syllabus.create', 'syllabus.edit', 'syllabus.submit', 'courses.view'],
     TRUONG_NGANH: ['programs.view_published', 'programs.view_draft', 'syllabus.view', 'syllabus.approve_tbm', 'syllabus.assign', 'courses.view'],
-    LANH_DAO_KHOA: ['programs.view_published', 'programs.view_draft', 'programs.create', 'programs.edit', 'programs.delete_draft', 'programs.submit', 'programs.approve_khoa', 'programs.export', 'programs.import_word', ...ctDtGranular, 'syllabus.view', 'syllabus.create', 'syllabus.edit', 'syllabus.submit', 'syllabus.approve_khoa', 'syllabus.assign', 'courses.view'],
-    PHONG_DAO_TAO: ['programs.view_published', 'programs.view_draft', 'programs.create', 'programs.edit', 'programs.delete_draft', 'programs.approve_pdt', 'programs.export', 'programs.import_word', 'programs.manage_all', 'programs.create_version', ...ctDtGranular, 'syllabus.view', 'syllabus.create', 'syllabus.edit', 'syllabus.approve_pdt', 'syllabus.assign', 'courses.view', 'courses.create', 'courses.edit'],
+    LANH_DAO_KHOA: ['programs.view_published', 'programs.view_draft', 'programs.create', 'programs.edit', 'programs.delete_draft', 'programs.submit', 'programs.approve_khoa', 'programs.export', 'programs.import_word', 'syllabus.view', 'syllabus.create', 'syllabus.edit', 'syllabus.submit', 'syllabus.approve_khoa', 'syllabus.assign', 'courses.view'],
+    PHONG_DAO_TAO: ['programs.view_published', 'programs.view_draft', 'programs.create', 'programs.edit', 'programs.delete_draft', 'programs.approve_pdt', 'programs.export', 'programs.import_word', 'programs.manage_all', 'programs.create_version', 'syllabus.view', 'syllabus.create', 'syllabus.edit', 'syllabus.approve_pdt', 'syllabus.assign', 'courses.view', 'courses.create', 'courses.edit'],
     BAN_GIAM_HIEU: ['programs.view_published', 'programs.view_draft', 'programs.approve_bgh', 'programs.export', 'syllabus.view', 'syllabus.approve_bgh', 'syllabus.assign', 'courses.view'],
-    ADMIN: ['programs.view_published', 'programs.view_draft', 'programs.delete_draft', 'programs.manage_all', 'programs.create_version', ...ctDtGranular, 'syllabus.view', 'courses.view'],
+    ADMIN: ['programs.view_published', 'programs.view_draft', 'programs.delete_draft', 'programs.manage_all', 'programs.create_version', 'syllabus.view', 'courses.view'],
   };
 
   for (const [roleCode, permCodes] of Object.entries(rolePerms)) {
