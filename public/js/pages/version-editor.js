@@ -584,7 +584,7 @@ window.VersionEditorPage = {
   async renderCoursesTab(body, editable) {
     const [vCourses, allCourses] = await Promise.all([
       fetch(`/api/versions/${this.versionId}/courses`).then(r => r.json()),
-      fetch('/api/courses').then(r => r.json()),
+      fetch('/api/courses/all').then(r => r.json()),
     ]);
     const usedIds = new Set(vCourses.map(c => c.course_id));
     const available = allCourses.filter(c => !usedIds.has(c.id));

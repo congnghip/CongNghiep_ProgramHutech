@@ -552,10 +552,20 @@ app.delete('/api/programs/:id', authMiddleware, requirePerm('programs.delete_dra
       return res.status(400).json({ error: 'Không thể xóa CTĐT đã công bố. Hãy liên hệ Admin nếu cần xóa triệt để.' });
     }
 
-    // 2. Cascade delete will be handled by DB foreign keys (ON DELETE CASCADE)
+    // 2. Nullify copied_from_id references pointing to versions of this program
+    const versionIds = await pool.query('SELECT id FROM program_versions WHERE program_id = $1', [req.params.id]);
+    if (versionIds.rows.length > 0) {
+      const ids = versionIds.rows.map(r => r.id);
+      await pool.query('UPDATE program_versions SET copied_from_id = NULL WHERE copied_from_id = ANY($1)', [ids]);
+    }
+
+    // 3. Cascade delete will be handled by DB foreign keys (ON DELETE CASCADE)
     await pool.query('DELETE FROM programs WHERE id = $1', [req.params.id]);
     res.json({ success: true });
   } catch (e) {
+    if (e.code === '23503' && e.constraint && e.constraint.includes('copied_from_id')) {
+      return res.status(400).json({ error: 'Không thể xóa CTĐT vì có phiên bản khác được tạo từ bản này. Hãy xóa các phiên bản phụ thuộc trước.' });
+    }
     res.status(500).json({ error: e.message });
   }
 });
@@ -606,6 +616,14 @@ app.post('/api/programs/:programId/versions', authMiddleware, requirePerm('progr
       client.release();
       return res.status(409).json({ error: `Phiên bản năm học "${academic_year}" đã tồn tại. Vui lòng chọn năm học khác.` });
     }
+    // Only allow copying from published versions
+    if (copy_from_version_id) {
+      const srcVer = await client.query('SELECT status FROM program_versions WHERE id=$1', [copy_from_version_id]);
+      if (!srcVer.rows.length || srcVer.rows[0].status !== 'published') {
+        client.release();
+        return res.status(400).json({ error: 'Chỉ có thể nhân bản từ phiên bản đã công bố.' });
+      }
+    }
     // Create new version
     const ver = await client.query(
       'INSERT INTO program_versions (program_id, academic_year, copied_from_id) VALUES ($1,$2,$3) RETURNING *',
@@ -649,10 +667,10 @@ app.post('/api/programs/:programId/versions', authMiddleware, requirePerm('progr
         );
       }
 
-      // Copy syllabi
+      // Copy syllabi (reset author_id — will be set when assigned)
       await client.query(`
         INSERT INTO version_syllabi (version_id, course_id, author_id, status, content)
-        SELECT $1, course_id, author_id, 'draft', content FROM version_syllabi WHERE version_id=$2
+        SELECT $1, course_id, NULL, 'draft', content FROM version_syllabi WHERE version_id=$2
       `, [newVersionId, copy_from_version_id]);
 
       // Copy knowledge blocks (preserving hierarchy)
@@ -774,9 +792,15 @@ app.delete('/api/versions/:id', authMiddleware, requirePerm('programs.delete_dra
     if (check.rows[0].status !== 'draft') {
       return res.status(400).json({ error: 'Chỉ có thể xóa phiên bản ở trạng thái "Bản nháp".' });
     }
+    // Nullify copied_from_id references pointing to this version
+    await pool.query('UPDATE program_versions SET copied_from_id = NULL WHERE copied_from_id = $1', [req.params.id]);
+
     await pool.query('DELETE FROM program_versions WHERE id = $1', [req.params.id]);
     res.json({ success: true });
   } catch (e) {
+    if (e.code === '23503' && e.constraint && e.constraint.includes('copied_from_id')) {
+      return res.status(400).json({ error: 'Không thể xóa phiên bản vì có phiên bản khác được tạo từ bản này. Hãy xóa các phiên bản phụ thuộc trước.' });
+    }
     res.status(500).json({ error: e.message });
   }
 });
@@ -993,6 +1017,17 @@ app.get('/api/courses', authMiddleware, requirePerm('courses.view'), async (req,
           FROM courses c LEFT JOIN departments d ON c.department_id = d.id
           ORDER BY c.code
         `);
+    res.json(result.rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/courses/all', authMiddleware, requirePerm('courses.view'), async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT c.*, d.name as dept_name, d.code as dept_code
+      FROM courses c LEFT JOIN departments d ON c.department_id = d.id
+      ORDER BY c.code
+    `);
     res.json(result.rows);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -2217,14 +2252,23 @@ app.get('/api/dashboard/stats', authMiddleware, async (req, res) => {
         `SELECT COUNT(*) as c FROM courses c WHERE 1=1 ${deptFilterCourse}`,
         deptParams
       ),
-      pool.query(
-        `SELECT vs.status, COUNT(*) as c
-         FROM version_syllabi vs
-         JOIN courses c ON vs.course_id = c.id
-         WHERE 1=1 ${deptFilterCourse}
-         GROUP BY vs.status`,
-        deptParams
-      ),
+      roleCode === 'GIANG_VIEN'
+        ? pool.query(
+            `SELECT vs.status, COUNT(*) as c
+             FROM version_syllabi vs
+             JOIN syllabus_assignments sa ON sa.version_id = vs.version_id AND sa.course_id = vs.course_id
+             WHERE sa.assigned_to = $1
+             GROUP BY vs.status`,
+            [req.user.id]
+          )
+        : pool.query(
+            `SELECT vs.status, COUNT(*) as c
+             FROM version_syllabi vs
+             JOIN courses c ON vs.course_id = c.id
+             WHERE 1=1 ${deptFilterCourse}
+             GROUP BY vs.status`,
+            deptParams
+          ),
       deptIds
         ? pool.query(
             `SELECT COUNT(DISTINCT u.id) as c FROM users u

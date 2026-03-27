@@ -548,7 +548,7 @@ window.ProgramsPage = {
                   </div>
                 </div>
                 <div style="display:flex;gap:6px;flex-shrink:0;" onclick="event.stopPropagation()">
-                  ${window.App.hasPerm('programs.create_version') ? `<button class="btn btn-secondary btn-sm" title="Nhân bản phiên bản này" onclick="window.ProgramsPage.cloneVersion(${programId}, ${v.id}, '${v.academic_year}')">📋 Nhân bản</button>` : ''}
+                  ${window.App.hasPerm('programs.create_version') && v.status === 'published' ? `<button class="btn btn-secondary btn-sm" title="Nhân bản phiên bản này" onclick="window.ProgramsPage.cloneVersion(${programId}, ${v.id}, '${v.academic_year}')">📋 Nhân bản</button>` : ''}
                   ${window.App.hasPerm('programs.edit') && v.status === 'draft' ? `<button class="btn btn-sm" style="background:none;border:1px solid var(--border);color:var(--text);font-size:12px;" onclick="window.ProgramsPage.openVersionEditModal(${v.id}, ${programId}, '${programName.replace(/'/g, "\\'")}')">Chỉnh sửa</button>` : ''}
                   ${window.App.hasPerm('programs.delete_draft') && v.status === 'draft' ? `<button class="btn btn-sm" style="background:none;border:none;color:var(--danger);font-size:12px;font-weight:500;" onclick="window.ProgramsPage.deleteVersion(${v.id}, '${v.academic_year}', ${programId}, '${programName.replace(/'/g, "\\'")}')">Xóa</button>` : ''}
                 </div>
@@ -590,7 +590,7 @@ window.ProgramsPage = {
       const versions = await fetch(`/api/programs/${programId}/versions`).then(r => r.json());
       const sel = document.getElementById('ver-copy-from');
       sel.innerHTML = '<option value="">— Tạo mới trắng —</option>';
-      versions.forEach(v => {
+      versions.filter(v => v.status === 'published').forEach(v => {
         sel.innerHTML += `<option value="${v.id}" ${v.id === sourceVersionId ? 'selected' : ''}>${v.academic_year} (${v.status}${v.is_locked ? ' 🔒' : ''})</option>`;
       });
     } catch (e) {}
