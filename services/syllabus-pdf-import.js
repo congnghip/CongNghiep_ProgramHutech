@@ -138,7 +138,11 @@ function normalizeCanonicalPayload(raw = {}) {
   const schedule = safeArray(raw.schedule).map((week, index) => ({
     week: Math.max(1, Math.round(safeNumber(week?.week, index + 1))),
     topic: safeString(week?.topic),
-    activities: safeString(week?.activities || week?.content),
+    content: safeString(week?.content || week?.activities),
+    theory_hours: safeNumber(week?.theory_hours || week?.hours?.theory),
+    practice_hours: safeNumber(week?.practice_hours || week?.hours?.practice),
+    teaching_method: safeString(week?.teaching_method || week?.activities),
+    materials: safeString(week?.materials || week?.assignments),
     clos: safeString(week?.clos || normalizeCodeList(week?.clo_mapping).join(', '))
   }));
 
@@ -232,7 +236,11 @@ function buildCanonicalPayloadFromAi(aiPayload = {}) {
     schedule: safeArray(aiPayload.course_outline).map(item => ({
       week: item?.week,
       topic: item?.topic,
-      activities: item?.content,
+      content: item?.content,
+      theory_hours: item?.hours?.theory,
+      practice_hours: item?.hours?.practice,
+      teaching_method: item?.teaching_method,
+      materials: item?.materials || item?.assignments,
       clos: normalizeCodeList(item?.clo_mapping).join(', ')
     })),
     assessments: safeArray(aiPayload.assessment_methods).map(item => ({
@@ -1521,9 +1529,11 @@ function mapPayloadToSyllabusContent(payload) {
     schedule: safeArray(payload.schedule).map(item => ({
       week: Math.max(1, Math.round(safeNumber(item.week, 1))),
       topic: safeString(item.topic),
-      content: safeString(item.activities),
-      activities: safeString(item.activities),
-      teaching_method: safeString(item.activities),
+      content: safeString(item.content),
+      theory_hours: safeNumber(item.theory_hours),
+      practice_hours: safeNumber(item.practice_hours),
+      teaching_method: safeString(item.teaching_method),
+      materials: safeString(item.materials),
       clos: safeString(item.clos)
     })),
     grading: safeArray(payload.assessments).map(item => ({
@@ -1571,5 +1581,6 @@ module.exports = {
   reprocessPdfText,
   reprocessPdfTextWithMode,
   validateCanonicalPayload,
-  mapPayloadToSyllabusContent
+  mapPayloadToSyllabusContent,
+  buildCanonicalPayloadFromAi
 };

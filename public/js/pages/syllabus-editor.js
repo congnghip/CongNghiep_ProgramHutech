@@ -298,17 +298,7 @@ window.SyllabusEditorPage = {
             <div class="input-group"><label>Thuộc khối kiến thức</label><input type="text" id="syl-knowledge-block" ${editable ? '' : 'disabled'} value="${this.escapeHtml(c.knowledge_block)}" placeholder="Kiến thức GD chuyên nghiệp"></div>
             <div class="input-group"><label>Tính chất học phần</label><input type="text" id="syl-course-category" ${editable ? '' : 'disabled'} value="${this.escapeHtml(c.course_category)}" placeholder="Bắt buộc / Tự chọn"></div>
             <div class="input-group" style="grid-column:1 / -1;"><label>Đơn vị quản lý học phần</label><textarea id="syl-managing-unit" ${editable ? '' : 'disabled'} rows="3" placeholder="Khoa Công nghệ thông tin">${this.escapeHtml(c.managing_unit)}</textarea>${this.renderFieldStateHint(c.managing_unit)}</div>
-          </div>
-        </section>
-
-        <section style="padding:28px;border:1px solid var(--border);border-radius:24px;background:#fff;box-shadow:0 8px 24px rgba(15,23,42,0.04);">
-          ${this.renderSectionHeader('7, 11, 12', 'Mục tiêu, mô tả và phương pháp dạy học', 'Gom các nội dung cốt lõi trong phần mô tả tóm tắt, mục tiêu và phương pháp tổ chức dạy học.')}
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:20px 24px;">
-            <div class="input-group" style="grid-column:1 / -1;"><label>Mô tả tóm tắt nội dung học phần</label><textarea id="syl-summary" ${editable ? '' : 'disabled'} rows="6" placeholder="Mô tả tóm tắt HP">${this.escapeHtml(c.summary)}</textarea>${this.renderFieldStateHint(c.summary)}</div>
-            <div class="input-group" style="grid-column:1 / -1;"><label>Mục tiêu của học phần</label><textarea id="syl-objectives" ${editable ? '' : 'disabled'} rows="6" placeholder="Các mục tiêu sau khi hoàn thành học phần">${this.escapeHtml(c.objectives)}</textarea>${this.renderFieldStateHint(c.objectives)}</div>
-            <div class="input-group" style="grid-column:1 / -1;"><label>Học phần học trước</label><textarea id="syl-prereq" ${editable ? '' : 'disabled'} rows="3" placeholder="Nhập học phần tiên quyết">${this.escapeHtml(c.prerequisites)}</textarea>${this.renderFieldStateHint(c.prerequisites)}</div>
-            <div class="input-group" style="grid-column:1 / -1;"><label>Các yêu cầu của học phần</label><textarea id="syl-requirements" ${editable ? '' : 'disabled'} rows="4" placeholder="Phần mềm, hạ tầng, điều kiện học tập">${this.escapeHtml(c.course_requirements)}</textarea>${this.renderFieldStateHint(c.course_requirements)}</div>
-            <div class="input-group" style="grid-column:1 / -1;"><label>Phương pháp, hình thức tổ chức dạy học</label><textarea id="syl-methods" ${editable ? '' : 'disabled'} rows="5" placeholder="Giảng dạy tích cực, thảo luận, bài tập, tự nghiên cứu...">${this.escapeHtml(c.methods)}</textarea>${this.renderFieldStateHint(c.methods)}</div>
+            <div class="input-group" style="grid-column:1 / -1;"><label>Các yêu cầu của học phần (Yêu cầu 17)</label><textarea id="syl-requirements" ${editable ? '' : 'disabled'} rows="4" placeholder="Phần mềm, hạ tầng, điều kiện học tập">${this.escapeHtml(c.course_requirements)}</textarea>${this.renderFieldStateHint(c.course_requirements)}</div>
           </div>
         </section>
       </div>
@@ -338,16 +328,11 @@ window.SyllabusEditorPage = {
       knowledge_block: document.getElementById('syl-knowledge-block').value.trim(),
       course_category: document.getElementById('syl-course-category').value.trim(),
       managing_unit: document.getElementById('syl-managing-unit').value.trim(),
-      summary: document.getElementById('syl-summary').value,
-      objectives: document.getElementById('syl-objectives').value,
-      prerequisites: document.getElementById('syl-prereq').value.trim(),
-      course_requirements: document.getElementById('syl-requirements').value.trim(),
-      methods: document.getElementById('syl-methods').value
+      course_requirements: document.getElementById('syl-requirements').value.trim()
     };
 
     try {
       await this.saveContent(content, 'Đã lưu phần thông tin chuẩn', 'Không thể lưu đề cương');
-      this.render(document.getElementById('page-content'), this.syllabusId, this.routeContext);
     } catch (e) {
       window.toast.error(e.message);
     }
@@ -688,75 +673,38 @@ window.SyllabusEditorPage = {
   },
 
   renderScheduleTab(body, editable, c) {
-    const rows = this.getScheduleRows(c);
     body.innerHTML = `
-      <section style="padding:22px;border:1px solid var(--border);border-radius:20px;background:#fff;">
-        ${this.renderSectionHeader('13', 'Nội dung chi tiết học phần', 'Bảng này được dựng theo cấu trúc bài học, số tiết, phương pháp tổ chức dạy học và CLO đáp ứng trong PDF mẫu.', editable ? '<div style="display:flex;gap:8px;"><button class="btn btn-secondary btn-sm" onclick="window.SyllabusEditorPage.addScheduleRow()">+ Thêm dòng</button><button class="btn btn-primary btn-sm" onclick="window.SyllabusEditorPage.saveSchedule()">Lưu nội dung</button></div>' : '')}
-        <div style="overflow-x:auto;">
-          <table class="data-table" id="schedule-table" style="min-width:1240px;">
-            <thead>
-              <tr>
-                <th style="width:70px;">Bài</th>
-                <th style="min-width:220px;">Tên bài / chủ đề</th>
-                <th style="min-width:220px;">Nội dung chi tiết</th>
-                <th style="width:70px;">LT</th>
-                <th style="width:70px;">TH</th>
-                <th style="min-width:240px;">Phương pháp, hình thức dạy học</th>
-                <th style="min-width:220px;">Tài liệu / nhiệm vụ SV</th>
-                <th style="width:120px;">Đáp ứng CLO</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${rows.map(row => `
-                <tr>
-                  <td><input type="text" data-field="week" value="${this.escapeHtml(String(row.week || ''))}" ${editable ? '' : 'disabled'} style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:inherit;text-align:center;"></td>
-                  <td><input type="text" data-field="topic" value="${this.escapeHtml(row.topic)}" ${editable ? '' : 'disabled'} style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:inherit;"></td>
-                  <td><textarea data-field="content" ${editable ? '' : 'disabled'} rows="3" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:inherit;resize:vertical;">${this.escapeHtml(row.content)}</textarea></td>
-                  <td><input type="number" data-field="theory_hours" value="${this.escapeHtml(String(row.theory_hours ?? ''))}" ${editable ? '' : 'disabled'} style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:inherit;text-align:center;"></td>
-                  <td><input type="number" data-field="practice_hours" value="${this.escapeHtml(String(row.practice_hours ?? ''))}" ${editable ? '' : 'disabled'} style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:inherit;text-align:center;"></td>
-                  <td><textarea data-field="teaching_method" ${editable ? '' : 'disabled'} rows="3" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:inherit;resize:vertical;">${this.escapeHtml(row.teaching_method)}</textarea></td>
-                  <td><textarea data-field="materials" ${editable ? '' : 'disabled'} rows="3" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:inherit;resize:vertical;">${this.escapeHtml(row.materials)}</textarea></td>
-                  <td><input type="text" data-field="clos" value="${this.escapeHtml(row.clos)}" ${editable ? '' : 'disabled'} placeholder="CLO1, CLO4" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:inherit;"></td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-      </section>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:16px;">
+        ${editable ? '<button class="btn btn-primary btn-sm" onclick="window.SyllabusEditorPage.saveSchedule()">Lưu nội dung chi tiết</button>' : ''}
+      </div>
+      <div id="syl-details-section-container"></div>
     `;
-  },
 
-  addScheduleRow() {
-    const tbody = document.querySelector('#schedule-table tbody');
-    if (!tbody) return;
-    const nextIndex = tbody.querySelectorAll('tr').length + 1;
-    tbody.insertAdjacentHTML('beforeend', `
-      <tr>
-        <td><input type="text" data-field="week" value="${nextIndex}" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:inherit;text-align:center;"></td>
-        <td><input type="text" data-field="topic" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:inherit;"></td>
-        <td><textarea data-field="content" rows="3" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:inherit;resize:vertical;"></textarea></td>
-        <td><input type="number" data-field="theory_hours" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:inherit;text-align:center;"></td>
-        <td><input type="number" data-field="practice_hours" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:inherit;text-align:center;"></td>
-        <td><textarea data-field="teaching_method" rows="3" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:inherit;resize:vertical;"></textarea></td>
-        <td><textarea data-field="materials" rows="3" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:inherit;resize:vertical;"></textarea></td>
-        <td><input type="text" data-field="clos" style="width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:inherit;"></td>
-      </tr>
-    `);
+    const container = document.getElementById('syl-details-section-container');
+    if (container && window.SyllabusDetailsSection) {
+      window.SyllabusDetailsSection.init(container, {
+        summary: c.summary,
+        objectives: c.objectives,
+        prerequisites: c.prerequisites,
+        methods: c.methods,
+        schedule: c.schedule
+      }, editable);
+    }
   },
 
   async saveSchedule() {
-    const rows = Array.from(document.querySelectorAll('#schedule-table tbody tr')).map(row => ({
-      week: parseInt(row.querySelector('[data-field="week"]').value, 10) || 0,
-      topic: row.querySelector('[data-field="topic"]').value.trim(),
-      content: row.querySelector('[data-field="content"]').value.trim(),
-      theory_hours: parseInt(row.querySelector('[data-field="theory_hours"]').value, 10) || 0,
-      practice_hours: parseInt(row.querySelector('[data-field="practice_hours"]').value, 10) || 0,
-      teaching_method: row.querySelector('[data-field="teaching_method"]').value.trim(),
-      materials: row.querySelector('[data-field="materials"]').value.trim(),
-      clos: row.querySelector('[data-field="clos"]').value.trim()
-    })).filter(item => item.week || item.topic || item.content || item.teaching_method || item.materials || item.clos);
+    if (!window.SyllabusDetailsSection) return;
+    const detailsData = window.SyllabusDetailsSection.capture();
+    if (!detailsData) return;
 
-    const content = { ...this.syllabus.content, schedule: rows };
+    const content = {
+      ...this.syllabus.content,
+      summary: detailsData.summary,
+      objectives: detailsData.objectives,
+      prerequisites: detailsData.prerequisites,
+      methods: detailsData.methods,
+      schedule: detailsData.schedule
+    };
 
     try {
       await this.saveContent(content, 'Đã lưu nội dung chi tiết học phần', 'Không thể lưu lịch giảng dạy');

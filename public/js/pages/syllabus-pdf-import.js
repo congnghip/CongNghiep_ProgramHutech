@@ -617,32 +617,8 @@ window.SyllabusPdfImportPage = {
           </section>
         </div>
 
-        <div data-review-panel="2" style="display:none;">
-          <section style="padding:28px;border:1px solid var(--border);border-radius:24px;background:#fff;box-shadow:0 8px 24px rgba(15,23,42,0.04);">
-            ${this.renderReviewSectionHeader('11-13', 'Mô tả, mục tiêu và nội dung chi tiết học phần', 'Đây là phần người dùng sẽ rà kỹ nhất trước khi commit vì AI thường suy luận mạnh ở nội dung tuần học.', '<button class="btn btn-secondary btn-sm" id="add-schedule-row">+ Thêm tuần</button>')}
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:20px 24px;margin-bottom:20px;">
-              <div class="input-group" style="grid-column:1 / -1;"><label>Mô tả tóm tắt nội dung học phần</label><textarea id="general-summary" rows="6">${payload.general.summary || ''}</textarea>${this.renderFieldStateHint(payload.general.summary)}</div>
-              <div class="input-group" style="grid-column:1 / -1;"><label>Mục tiêu học phần</label><textarea id="general-objectives" rows="6">${payload.general.objectives || ''}</textarea>${this.renderFieldStateHint(payload.general.objectives)}</div>
-              <div class="input-group" style="grid-column:1 / -1;"><label>Điều kiện tiên quyết</label><textarea id="general-prerequisites" rows="3">${payload.general.prerequisites || ''}</textarea>${this.renderFieldStateHint(payload.general.prerequisites)}</div>
-              <div class="input-group" style="grid-column:1 / -1;"><label>Phương pháp, hình thức dạy học</label><textarea id="general-methods" rows="5">${payload.general.methods || ''}</textarea>${this.renderFieldStateHint(payload.general.methods)}</div>
-            </div>
-            <div style="overflow-x:auto;">
-              <table class="data-table" id="schedule-table" style="min-width:1180px;">
-                <thead><tr><th>Bài/Tuần</th><th>Chủ đề</th><th>Hoạt động / phương pháp</th><th>CLO</th><th></th></tr></thead>
-                <tbody>
-                  ${payload.schedule.map(item => `
-                    <tr>
-                      <td><input type="number" data-field="week" value="${item.week || ''}" style="width:84px;"></td>
-                      <td><input type="text" data-field="topic" value="${item.topic || ''}"></td>
-                      <td><input type="text" data-field="activities" value="${item.activities || ''}"></td>
-                      <td><input type="text" data-field="clos" value="${item.clos || ''}"></td>
-                      <td><button class="btn btn-secondary btn-sm" style="color:var(--danger);" data-action="remove-row">✕</button></td>
-                    </tr>
-                  `).join('')}
-                </tbody>
-              </table>
-            </div>
-          </section>
+        <div data-review-panel="2" id="syl-details-section-container" style="display:none;">
+          <!-- Component will be rendered here -->
         </div>
 
         <div data-review-panel="3" style="display:none;">
@@ -681,8 +657,22 @@ window.SyllabusPdfImportPage = {
 
     document.getElementById('save-review-btn')?.addEventListener('click', () => this.saveReview());
     document.getElementById('add-clo-row')?.addEventListener('click', () => { this.addTableRow('clo-table', ['code', 'description', 'bloom_level', 'plo_mapping']); this.isDirty = true; });
-    document.getElementById('add-schedule-row')?.addEventListener('click', () => { this.addTableRow('schedule-table', ['week', 'topic', 'activities', 'clos']); this.isDirty = true; });
     document.getElementById('add-assessment-row')?.addEventListener('click', () => { this.addTableRow('assessment-table', ['component', 'weight', 'method', 'clos']); this.isDirty = true; });
+    
+    // Initialize shared details section for Section 11-13
+    const detailsContainer = document.getElementById('syl-details-section-container');
+    if (detailsContainer && payload.general && window.SyllabusDetailsSection) {
+      window.SyllabusDetailsSection.init(detailsContainer, {
+        summary: payload.general.summary || payload.general.course_description || '',
+        objectives: payload.general.objectives || payload.general.course_objectives || '',
+        prerequisites: payload.general.prerequisites || '',
+        methods: payload.general.methods || payload.general.learning_methods || '',
+        schedule: payload.schedule || []
+      }, true);
+    } else if (!window.SyllabusDetailsSection) {
+      console.error('SyllabusDetailsSection component not loaded');
+    }
+
     container.querySelectorAll('[data-action="remove-row"]').forEach(btn => {
       btn.addEventListener('click', () => { btn.closest('tr').remove(); this.isDirty = true; });
     });
@@ -852,10 +842,6 @@ window.SyllabusPdfImportPage = {
     const courseNameEnEl = document.getElementById('course-name-en');
     const courseCreditsEl = document.getElementById('course-credits');
     const courseLanguageEl = document.getElementById('course-language');
-    const generalSummaryEl = document.getElementById('general-summary');
-    const generalObjectivesEl = document.getElementById('general-objectives');
-    const generalPrerequisitesEl = document.getElementById('general-prerequisites');
-    const generalMethodsEl = document.getElementById('general-methods');
     const resourcesTextbooksEl = document.getElementById('resources-textbooks');
     const resourcesReferencesEl = document.getElementById('resources-references');
     const resourcesToolsEl = document.getElementById('resources-tools');
@@ -867,10 +853,28 @@ window.SyllabusPdfImportPage = {
     if (courseNameEnEl) payload.course_identity.course_name_en = courseNameEnEl.value.trim() || '';
     if (courseCreditsEl) payload.course_identity.credits = Number(courseCreditsEl.value || 0);
     if (courseLanguageEl) payload.course_identity.language_instruction = courseLanguageEl.value.trim() || 'vi';
-    if (generalSummaryEl) payload.general.summary = generalSummaryEl.value.trim() || '';
-    if (generalObjectivesEl) payload.general.objectives = generalObjectivesEl.value.trim() || '';
-    if (generalPrerequisitesEl) payload.general.prerequisites = generalPrerequisitesEl.value.trim() || '';
-    if (generalMethodsEl) payload.general.methods = generalMethodsEl.value.trim() || '';
+    
+    // Initialize general if missing
+    if (!payload.general) payload.general = {};
+
+    // Capture data from the shared component for Sections 11-13
+    if (window.SyllabusDetailsSection) {
+      const detailsData = window.SyllabusDetailsSection.capture();
+      if (detailsData) {
+        payload.general.summary = detailsData.summary;
+        payload.general.objectives = detailsData.objectives;
+        payload.general.prerequisites = detailsData.prerequisites;
+        payload.general.methods = detailsData.methods;
+        
+        // Also sync to legacy fields used by some AI providers or old sessions
+        payload.general.course_description = detailsData.summary;
+        payload.general.course_objectives = detailsData.objectives;
+        payload.general.learning_methods = detailsData.methods;
+        
+        payload.schedule = detailsData.schedule;
+      }
+    }
+
     if (resourcesTextbooksEl) payload.resources.textbooks = resourcesTextbooksEl.value.trim() || '';
     if (resourcesReferencesEl) payload.resources.references = resourcesReferencesEl.value.trim() || '';
     if (resourcesToolsEl) payload.resources.tools = resourcesToolsEl.value.trim() || '';
