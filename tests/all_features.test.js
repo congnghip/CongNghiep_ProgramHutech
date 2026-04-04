@@ -47,14 +47,18 @@ test.describe('Authentication', () => {
     await page.goto('/');
     await page.locator('#login-pass').fill('admin123');
     await page.locator('#login-form button[type="submit"]').click();
-    await expect(page.locator('#login-error')).toBeVisible();
+    // HTML5 required validation prevents submit — user stays on login page
+    await expect(page.locator('#login-form')).toBeVisible();
+    await expect(page.locator('.sidebar')).not.toBeVisible();
   });
 
   test('TC_AUTH_03: Dang nhap trong mat khau', async ({ page }) => {
     await page.goto('/');
     await page.locator('#login-user').fill('admin');
     await page.locator('#login-form button[type="submit"]').click();
-    await expect(page.locator('#login-error')).toBeVisible();
+    // HTML5 required validation prevents submit — user stays on login page
+    await expect(page.locator('#login-form')).toBeVisible();
+    await expect(page.locator('.sidebar')).not.toBeVisible();
   });
 
   test('TC_AUTH_04: Dang nhap sai mat khau', async ({ page }) => {
@@ -76,7 +80,7 @@ test.describe('Authentication', () => {
 
   test('TC_AUTH_06: Dang xuat thanh cong', async ({ page }) => {
     await login(page);
-    await page.locator('.logout-btn').click();
+    await page.locator('button.logout-btn', { hasText: 'Đăng xuất' }).click();
     await expect(page.locator('#login-form')).toBeVisible({ timeout: 5000 });
   });
 

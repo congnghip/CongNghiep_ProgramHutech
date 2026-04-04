@@ -1,21 +1,21 @@
 ID,Module,TestCase,Input,ExpectedResult,Result,Date
-TC_AUTH_01,Authentication,Dang nhap thanh cong,username=admin; password=admin123,Sidebar hien thi va dashboard load,,
-TC_AUTH_02,Authentication,Dang nhap trong tai khoan,username=; password=admin123,Hien thi loi dang nhap,,
-TC_AUTH_03,Authentication,Dang nhap trong mat khau,username=admin; password=,Hien thi loi dang nhap,,
-TC_AUTH_04,Authentication,Dang nhap sai mat khau,username=admin; password=wrongpass,Hien thi loi Sai ten dang nhap hoac mat khau,,
-TC_AUTH_05,Authentication,Dang nhap sai tai khoan,username=nonexist; password=pass123,Hien thi loi dang nhap,,
-TC_AUTH_06,Authentication,Dang xuat thanh cong,Click logout,Form dang nhap hien thi,,
-TC_AUTH_07,Authentication,Doi mat khau thanh cong,current + new + confirm,Toast thanh cong,,
-TC_AUTH_08,Authentication,Doi MK sai mat khau cu,wrong current password,Hien thi loi trong modal,,
-TC_AUTH_09,Authentication,Doi MK mat khau moi khong khop,new != confirm,Hien thi loi trong modal,,
-TC_AUTH_10,Authentication,Dang nhap ky tu dac biet,"username=<script>alert(1)</script>; password=pass",Hien thi loi va khong bi XSS,,
-TC_AUTH_11,Authentication,Dang nhap chuoi cuc dai,username=1000 ky tu; password=pass,Hien thi loi va khong crash,,
+TC_AUTH_01,Authentication,Dang nhap thanh cong,username=admin; password=admin123,Sidebar hien thi va dashboard load,Pass,2026-04-04
+TC_AUTH_02,Authentication,Dang nhap trong tai khoan,username=; password=admin123,Hien thi loi dang nhap,Pass,2026-04-04
+TC_AUTH_03,Authentication,Dang nhap trong mat khau,username=admin; password=,Hien thi loi dang nhap,Pass,2026-04-04
+TC_AUTH_04,Authentication,Dang nhap sai mat khau,username=admin; password=wrongpass,Hien thi loi Sai ten dang nhap hoac mat khau,Pass,2026-04-04
+TC_AUTH_05,Authentication,Dang nhap sai tai khoan,username=nonexist; password=pass123,Hien thi loi dang nhap,Pass,2026-04-04
+TC_AUTH_06,Authentication,Dang xuat thanh cong,Click logout,Form dang nhap hien thi,Pass,2026-04-04
+TC_AUTH_07,Authentication,Doi mat khau thanh cong,current + new + confirm,Toast thanh cong,Pass,2026-04-04
+TC_AUTH_08,Authentication,Doi MK sai mat khau cu,wrong current password,Hien thi loi trong modal,Pass,2026-04-04
+TC_AUTH_09,Authentication,Doi MK mat khau moi khong khop,new != confirm,Hien thi loi trong modal,Pass,2026-04-04
+TC_AUTH_10,Authentication,Dang nhap ky tu dac biet,username=<script>alert(1)</script>; password=pass,Hien thi loi va khong bi XSS,Pass,2026-04-04
+TC_AUTH_11,Authentication,Dang nhap chuoi cuc dai,username=1000 ky tu; password=pass,Hien thi loi va khong crash,Pass,2026-04-04
 TC_DASH_01,Dashboard,Hien thi dashboard sau login,Login as admin,6 metric cards hien thi,,
 TC_DASH_02,Dashboard,Hien thi hoat dong gan day,Login as admin,Bang hoat dong co du lieu,,
 TC_DASH_03,Dashboard,Dashboard khi khong co quyen,Login as basic user,Metrics gioi han hoac trong,,
 TC_DASH_04,Dashboard,Dashboard voi DB trong,Fresh database,Cards hien thi 0 va khong crash,,
 TC_PROG_01,Programs,Xem danh sach CTDT,Navigate to programs,Danh sach chuong trinh hien thi,,
-TC_PROG_02,Programs,Tao CTDT moi thanh cong,"code=TEST001; name=Test Program; dept=select",Toast thanh cong va program trong list,,
+TC_PROG_02,Programs,Tao CTDT moi thanh cong,code=TEST001; name=Test Program; dept=select,Toast thanh cong va program trong list,,
 TC_PROG_03,Programs,Sua CTDT thanh cong,Update ten chuong trinh,Toast thanh cong,,
 TC_PROG_04,Programs,Xoa CTDT draft,Xoa chuong trinh draft,Toast thanh cong va xoa khoi list,,
 TC_PROG_05,Programs,Archive CTDT,Click archive,Chuong trinh chuyen sang tab archived,,
@@ -31,7 +31,7 @@ TC_PROG_14,Programs,Unarchive CTDT,Click unarchive,Chuong trinh tro lai danh sac
 TC_VER_01,Version Editor,Xem thong tin version,Mo version editor,Tab thong tin load voi du lieu,,
 TC_VER_02,Version Editor,Cap nhat thong tin version,Sua mo ta,Toast thanh cong,,
 TC_VER_03,Version Editor,Cap nhat voi field trong,Xoa field bat buoc,Hien thi loi,,
-TC_VER_04,Version Editor,Cap nhat voi HTML content,"Nhap <b>bold</b> vao field",Luu ma khong render HTML,,
+TC_VER_04,Version Editor,Cap nhat voi HTML content,Nhap <b>bold</b> vao field,Luu ma khong render HTML,,
 TC_VER_05,Version Editor,Them PO moi,code + description,PO hien thi trong danh sach,,
 TC_VER_06,Version Editor,Sua PO,Cap nhat mo ta,Toast thanh cong,,
 TC_VER_07,Version Editor,Xoa PO,Xoa PO,Xoa khoi danh sach,,
@@ -69,7 +69,7 @@ TC_VER_38,Version Editor,Flowchart khi khong co HP,Version khong co courses,Hien
 TC_COURSE_01,Courses,Xem danh sach hoc phan,Navigate to courses,Bang hoc phan hien thi,,
 TC_COURSE_02,Courses,Tim kiem hoc phan theo ma,Search by code,Ket qua loc,,
 TC_COURSE_03,Courses,Tim kiem hoc phan theo ten,Search by name,Ket qua loc,,
-TC_COURSE_04,Courses,Them hoc phan moi,"code=HP_TEST; name=Test Course; credits=3; dept=select",Toast thanh cong va course trong list,,
+TC_COURSE_04,Courses,Them hoc phan moi,code=HP_TEST; name=Test Course; credits=3; dept=select,Toast thanh cong va course trong list,,
 TC_COURSE_05,Courses,Sua hoc phan,Cap nhat ten,Toast thanh cong,,
 TC_COURSE_06,Courses,Them HP trong ma,code=empty,Hien thi loi trong modal,,
 TC_COURSE_07,Courses,Them HP trong ten,name=empty,Hien thi loi trong modal,,
@@ -107,7 +107,7 @@ TC_APPR_09,Approval,Duyet version khong phai cua minh,Wrong department,Hien thi 
 TC_APPR_10,Approval,Xoa version bi tu choi,Delete rejected,Toast thanh cong va xoa khoi list,,
 TC_APPR_11,Approval,Submit lai sau khi bi tu choi,Re-submit after fix,Status=submitted lai,,
 TC_USER_01,Users,Xem danh sach users,Navigate to users,Bang users hien thi,,
-TC_USER_02,Users,Tao user moi,"username=testuser; password=Test123; display=Test User",Toast thanh cong va user trong list,,
+TC_USER_02,Users,Tao user moi,username=testuser; password=Test123; display=Test User,Toast thanh cong va user trong list,,
 TC_USER_03,Users,Sua user,Cap nhat display name,Toast thanh cong,,
 TC_USER_04,Users,Gan vai tro cho user,Select role + dept,Role badge hien thi tren user,,
 TC_USER_05,Users,Xoa vai tro khoi user,Remove role,Role bi xoa,,
@@ -134,7 +134,7 @@ TC_RBAC_14,RBAC Admin,Tim kiem khong ket qua,Nonexistent name,Empty state,,
 TC_RBAC_15,RBAC Admin,Tao vai tro ky tu dac biet,Special chars,Luu thanh cong hoac loi,,
 TC_RBAC_16,RBAC Admin,Sua vai tro va cap nhat quyen,Edit + permissions change,Ca hai luu thanh cong,,
 TC_DEPT_01,Departments,Xem danh sach don vi,Navigate to departments,Tree view hien thi,,
-TC_DEPT_02,Departments,Tao don vi moi,"code=DV_TEST; name=Don Vi Test; type=BO_MON",Toast thanh cong va hien thi trong tree,,
+TC_DEPT_02,Departments,Tao don vi moi,code=DV_TEST; name=Don Vi Test; type=BO_MON,Toast thanh cong va hien thi trong tree,,
 TC_DEPT_03,Departments,Sua don vi,Cap nhat ten,Toast thanh cong,,
 TC_DEPT_04,Departments,Tao don vi con,Set parent,Don vi con hien thi duoi parent,,
 TC_DEPT_05,Departments,Tao don vi trong ma,code=empty,Hien thi loi trong modal,,
@@ -144,7 +144,7 @@ TC_DEPT_08,Departments,Tao don vi ky tu dac biet,Special chars trong name,Luu th
 TC_DEPT_09,Departments,Tao don vi ten cuc dai,300 ky tu name,Luu thanh cong hoac loi,,
 TC_AUDIT_01,Audit Logs,Xem nhat ky he thong,Navigate to audit logs,Bang log entries hien thi,,
 TC_AUDIT_02,Audit Logs,Phan trang nhat ky,Click next page,Trang moi hien thi,,
-TC_AUDIT_03,Audit Logs,Hien thi badge mau theo action,View logs,"POST=xanh; PUT=cam; DELETE=do",,
+TC_AUDIT_03,Audit Logs,Hien thi badge mau theo action,View logs,POST=xanh; PUT=cam; DELETE=do,,
 TC_AUDIT_04,Audit Logs,Xem audit khi khong co quyen,Non-admin user,Trang khong hien thi,,
 TC_AUDIT_05,Audit Logs,Phan trang khi het data,Click next at last page,Button disabled hoac khong co data,,
 TC_ASSIGN_01,My Assignments,Xem danh sach phan cong,Navigate as teacher,Bang assignments hien thi,,
