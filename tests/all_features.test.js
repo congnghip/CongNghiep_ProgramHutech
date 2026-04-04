@@ -620,7 +620,7 @@ test.describe('Version Editor', () => {
   // PO Tests
   test('TC_VER_05: Them PO moi', async ({ page }) => {
     await login(page);
-    const poCode = 'PO_TEST_' + Date.now();
+    const poCode = 'POT_' + (Date.now() % 1e6);
     const result = await page.evaluate(async (data) => {
       const res = await fetch(`/api/versions/${data.vId}/objectives`, {
         method: 'POST',
@@ -653,7 +653,7 @@ test.describe('Version Editor', () => {
       const res = await fetch(`/api/versions/${vId}/objectives`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: 'PO_EDIT_' + Date.now(), description: 'Original desc' })
+        body: JSON.stringify({ code: 'POE_' + (Date.now() % 1e6), description: 'Original desc' })
       });
       return await res.json();
     }, testVersionId);
@@ -681,7 +681,7 @@ test.describe('Version Editor', () => {
       const res = await fetch(`/api/versions/${vId}/objectives`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: 'PO_DEL_' + Date.now(), description: 'To delete' })
+        body: JSON.stringify({ code: 'POD_' + (Date.now() % 1e6), description: 'To delete' })
       });
       return await res.json();
     }, testVersionId);
@@ -712,7 +712,7 @@ test.describe('Version Editor', () => {
 
   test('TC_VER_09: Them PO trung ma', async ({ page }) => {
     await login(page);
-    const code = 'PO_DUP_' + Date.now();
+    const code = 'PODUP_' + (Date.now() % 1e6);
     const first = await page.evaluate(async (data) => {
       const res = await fetch(`/api/versions/${data.vId}/objectives`, {
         method: 'POST',
@@ -745,7 +745,7 @@ test.describe('Version Editor', () => {
   // PLO Tests
   test('TC_VER_10: Them PLO moi', async ({ page }) => {
     await login(page);
-    const ploCode = 'PLO_TEST_' + Date.now();
+    const ploCode = 'PLOT_' + (Date.now() % 1e6);
     const result = await page.evaluate(async (data) => {
       const res = await fetch(`/api/versions/${data.vId}/plos`, {
         method: 'POST',
@@ -767,7 +767,7 @@ test.describe('Version Editor', () => {
       const res = await fetch(`/api/versions/${vId}/plos`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: 'PLO_EDIT_' + Date.now(), description: 'Original' })
+        body: JSON.stringify({ code: 'PLOE_' + (Date.now() % 1e6), description: 'Original' })
       });
       return await res.json();
     }, testVersionId);
@@ -793,7 +793,7 @@ test.describe('Version Editor', () => {
       const res = await fetch(`/api/versions/${vId}/plos`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: 'PLO_DEL_' + Date.now(), description: 'Delete me' })
+        body: JSON.stringify({ code: 'PLOD_' + (Date.now() % 1e6), description: 'Delete me' })
       });
       return await res.json();
     }, testVersionId);
@@ -824,7 +824,7 @@ test.describe('Version Editor', () => {
 
   test('TC_VER_14: Them PLO trung ma', async ({ page }) => {
     await login(page);
-    const code = 'PLO_DUP_' + Date.now();
+    const code = 'PLDUP_' + (Date.now() % 1e6);
     const first = await page.evaluate(async (data) => {
       const res = await fetch(`/api/versions/${data.vId}/plos`, {
         method: 'POST',
@@ -861,7 +861,7 @@ test.describe('Version Editor', () => {
       const res = await fetch(`/api/versions/${vId}/plos`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: 'PLO_PI_' + Date.now(), description: 'PLO for PI' })
+        body: JSON.stringify({ code: 'PLPI_' + (Date.now() % 1e6), description: 'PLO for PI' })
       });
       return await res.json();
     }, testVersionId);
@@ -871,7 +871,7 @@ test.describe('Version Editor', () => {
       const res = await fetch(`/api/plos/${ploId}/pis`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pi_code: 'PI_TEST_' + Date.now(), description: 'Test PI' })
+        body: JSON.stringify({ pi_code: 'PIT_' + (Date.now() % 1e6), description: 'Test PI' })
       });
       return await res.json();
     }, plo.id);
@@ -890,7 +890,7 @@ test.describe('Version Editor', () => {
       const res = await fetch(`/api/versions/${vId}/plos`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: 'PLO_PIE_' + Date.now(), description: 'PLO' })
+        body: JSON.stringify({ code: 'PLPE_' + (Date.now() % 1e6), description: 'PLO' })
       });
       return await res.json();
     }, testVersionId);
@@ -900,7 +900,7 @@ test.describe('Version Editor', () => {
       const res = await fetch(`/api/plos/${ploId}/pis`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pi_code: 'PI_EDIT_' + Date.now(), description: 'Original PI' })
+        body: JSON.stringify({ pi_code: 'PIE_' + (Date.now() % 1e6), description: 'Original PI' })
       });
       return await res.json();
     }, plo.id);
@@ -927,7 +927,7 @@ test.describe('Version Editor', () => {
       const res = await fetch(`/api/versions/${vId}/plos`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: 'PLO_PID_' + Date.now(), description: 'PLO' })
+        body: JSON.stringify({ code: 'PLPD_' + (Date.now() % 1e6), description: 'PLO' })
       });
       return await res.json();
     }, testVersionId);
@@ -937,7 +937,7 @@ test.describe('Version Editor', () => {
       const res = await fetch(`/api/plos/${ploId}/pis`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pi_code: 'PI_DEL_' + Date.now(), description: 'Delete PI' })
+        body: JSON.stringify({ pi_code: 'PID_' + (Date.now() % 1e6), description: 'Delete PI' })
       });
       return await res.json();
     }, plo.id);
@@ -959,7 +959,7 @@ test.describe('Version Editor', () => {
       const res = await fetch(`/api/versions/${vId}/plos`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: 'PLO_PIE2_' + Date.now(), description: 'PLO' })
+        body: JSON.stringify({ code: 'PLPE2_' + (Date.now() % 1e6), description: 'PLO' })
       });
       return await res.json();
     }, testVersionId);
@@ -968,7 +968,7 @@ test.describe('Version Editor', () => {
       const res = await fetch(`/api/plos/${ploId}/pis`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: 'PI_EMPTY_' + Date.now(), description: '' })
+        body: JSON.stringify({ code: 'PIMT_' + (Date.now() % 1e6), description: '' })
       });
       return res.ok;
     }, plo.id);
@@ -986,11 +986,11 @@ test.describe('Version Editor', () => {
     const setup = await page.evaluate(async (vId) => {
       const po = await (await fetch(`/api/versions/${vId}/objectives`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: 'PO_MAP_' + Date.now(), description: 'PO' })
+        body: JSON.stringify({ code: 'POM_' + (Date.now() % 1e6), description: 'PO' })
       })).json();
       const plo = await (await fetch(`/api/versions/${vId}/plos`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: 'PLO_MAP_' + Date.now(), description: 'PLO' })
+        body: JSON.stringify({ code: 'PLOM_' + (Date.now() % 1e6), description: 'PLO' })
       })).json();
       return { poId: po.id, ploId: plo.id };
     }, testVersionId);
@@ -1031,18 +1031,18 @@ test.describe('Version Editor', () => {
     await login(page);
     // Create multiple POs and 1 PLO
     const setup = await page.evaluate(async (vId) => {
-      const ts = Date.now();
+      const ts = Date.now() % 1e6;
       const po1 = await (await fetch(`/api/versions/${vId}/objectives`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: 'PO_ALL1_' + ts, description: 'PO1' })
+        body: JSON.stringify({ code: 'POA1_' + ts, description: 'PO1' })
       })).json();
       const po2 = await (await fetch(`/api/versions/${vId}/objectives`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: 'PO_ALL2_' + ts, description: 'PO2' })
+        body: JSON.stringify({ code: 'POA2_' + ts, description: 'PO2' })
       })).json();
       const plo = await (await fetch(`/api/versions/${vId}/plos`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: 'PLO_ALL_' + ts, description: 'PLO All' })
+        body: JSON.stringify({ code: 'PLOA_' + ts, description: 'PLO All' })
       })).json();
       return { po1Id: po1.id, po2Id: po2.id, ploId: plo.id };
     }, testVersionId);
@@ -1686,7 +1686,7 @@ test.describe('Syllabus Editor', () => {
           if (syls.length > 0) {
             const cloRes = await fetch(`/api/syllabi/${syls[0].id}/clos`, {
               method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ code: 'CLO_T_' + Date.now(), description: 'Test CLO', level: 'K2' })
+              body: JSON.stringify({ code: 'CLOT_' + (Date.now() % 1e6), description: 'Test CLO', level: 'K2' })
             });
             const clo = await cloRes.json();
             if (cloRes.ok && clo.id) await fetch(`/api/clos/${clo.id}`, { method: 'DELETE' });
@@ -1715,7 +1715,7 @@ test.describe('Syllabus Editor', () => {
             // Create CLO then edit it
             const cloRes = await fetch(`/api/syllabi/${syls[0].id}/clos`, {
               method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ code: 'CLO_E_' + Date.now(), description: 'Original', level: 'K2' })
+              body: JSON.stringify({ code: 'CLOE_' + (Date.now() % 1e6), description: 'Original', level: 'K2' })
             });
             const clo = await cloRes.json();
             if (!cloRes.ok) return 'fail';
@@ -1748,7 +1748,7 @@ test.describe('Syllabus Editor', () => {
           if (syls.length > 0) {
             const cloRes = await fetch(`/api/syllabi/${syls[0].id}/clos`, {
               method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ code: 'CLO_D_' + Date.now(), description: 'Delete me', level: 'K1' })
+              body: JSON.stringify({ code: 'CLOD_' + (Date.now() % 1e6), description: 'Delete me', level: 'K1' })
             });
             const clo = await cloRes.json();
             if (!cloRes.ok) return 'fail';
@@ -1856,7 +1856,7 @@ test.describe('Syllabus Editor', () => {
           const sylRes = await fetch(`/api/versions/${v.id}/syllabi`);
           const syls = await sylRes.json();
           if (syls.length > 0) {
-            const code = 'CLO_DUP_' + Date.now();
+            const code = 'CLODUP_' + (Date.now() % 1e6);
             const first = await fetch(`/api/syllabi/${syls[0].id}/clos`, {
               method: 'POST', headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ code, description: 'First', level: 'K1' })
@@ -1904,7 +1904,7 @@ test.describe('Syllabus Editor', () => {
             const longDesc = 'X'.repeat(1000);
             const cloRes = await fetch(`/api/syllabi/${syls[0].id}/clos`, {
               method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ code: 'CLO_LG_' + Date.now(), description: longDesc, level: 'K3' })
+              body: JSON.stringify({ code: 'CLOL_' + (Date.now() % 1e6), description: longDesc, level: 'K3' })
             });
             const clo = await cloRes.json();
             if (cloRes.ok && clo.id) await fetch(`/api/clos/${clo.id}`, { method: 'DELETE' });
@@ -1932,7 +1932,7 @@ test.describe('Syllabus Editor', () => {
           if (syls.length > 0) {
             const cloRes = await fetch(`/api/syllabi/${syls[0].id}/clos`, {
               method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ code: 'CLO_SP_' + Date.now(), description: '<script>alert(1)</script>', level: 'K1' })
+              body: JSON.stringify({ code: 'CLOS_' + (Date.now() % 1e6), description: '<script>alert(1)</script>', level: 'K1' })
             });
             const clo = await cloRes.json();
             if (cloRes.ok && clo.id) await fetch(`/api/clos/${clo.id}`, { method: 'DELETE' });
