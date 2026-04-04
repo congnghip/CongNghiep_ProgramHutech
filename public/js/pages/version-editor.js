@@ -14,6 +14,7 @@ window.VersionEditorPage = {
     { key: 'courses', label: 'Học phần', viewPerm: 'programs.view_published' },
     { key: 'descriptions', label: 'Mô tả HP', viewPerm: 'programs.view_published' },
     { key: 'plan', label: 'Kế hoạch GD', viewPerm: 'programs.view_published' },
+    { key: 'flowchart', label: 'Sơ đồ tiến trình', viewPerm: 'programs.view_published' },
     { key: 'course_plo', label: 'HP ↔ PLO', viewPerm: 'programs.view_published' },
     { key: 'course_pi', label: 'HP ↔ PI', viewPerm: 'programs.view_published' },
     { key: 'assessment', label: 'Đánh giá CĐR', viewPerm: 'programs.view_published' },
@@ -54,8 +55,6 @@ window.VersionEditorPage = {
       <div style="margin-bottom:24px;">
         <nav style="display:flex;align-items:center;gap:6px;font-size:13px;margin-bottom:12px;flex-wrap:wrap;">
           <a href="#" onclick="event.preventDefault();window.App.navigate('programs')" style="color:var(--text-muted);text-decoration:none;cursor:pointer;" onmouseenter="this.style.textDecoration='underline'" onmouseleave="this.style.textDecoration='none'">Chương trình Đào tạo</a>
-          <span style="color:var(--text-muted);">›</span>
-          <a href="#" onclick="event.preventDefault();window.App.navigate('programs',{deptName:'${(this.version.dept_name || '').replace(/'/g, "\\'")}'})  " style="color:var(--text-muted);text-decoration:none;cursor:pointer;" onmouseenter="this.style.textDecoration='underline'" onmouseleave="this.style.textDecoration='none'">${this.version.dept_name}</a>
           <span style="color:var(--text-muted);">›</span>
           <a href="#" onclick="event.preventDefault();window.App.navigate('programs',{programId:${this.version.program_id},programName:'${(this.version.program_name || '').replace(/'/g, "\\'")}'})  " style="color:var(--text-muted);text-decoration:none;cursor:pointer;" onmouseenter="this.style.textDecoration='underline'" onmouseleave="this.style.textDecoration='none'">${this.version.program_name}</a>
           <span style="color:var(--text-muted);">›</span>
@@ -135,6 +134,7 @@ window.VersionEditorPage = {
         case 'courses': await this.renderCoursesTab(body, tabEditable); break;
         case 'descriptions': await this.renderDescriptionsTab(body, tabEditable); break;
         case 'plan': await this.renderPlanTab(body, tabEditable); break;
+        case 'flowchart': await window.CourseFlowchart.render(body, this.versionId, tabEditable); break;
         case 'course_plo': await this.renderCoursePLOMatrix(body, tabEditable); break;
         case 'course_pi': await this.renderCoursePIMatrix(body, tabEditable); break;
         case 'assessment': await this.renderAssessmentTab(body, tabEditable); break;
