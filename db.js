@@ -285,6 +285,8 @@ async function initDB() {
 
       ALTER TABLE version_courses ADD COLUMN IF NOT EXISTS knowledge_block_id INT REFERENCES knowledge_blocks(id) ON DELETE SET NULL;
 
+      ALTER TABLE programs ADD COLUMN IF NOT EXISTS archived_at TIMESTAMPTZ DEFAULT NULL;
+
       -- Teaching plan (detailed per-semester schedule)
       CREATE TABLE IF NOT EXISTS teaching_plan (
         id SERIAL PRIMARY KEY,
