@@ -149,6 +149,29 @@ function requireDraft(vIdParam = 'vId', requiredPerm = 'programs.edit') {
 async function requireViewVersion(req, res, next) {
   try {
     const admin = await isAdmin(req.user.id);
+
+    // Block access to versions of archived programs (for ALL users including admin)
+    let checkVId = req.params.vId || (req.path.includes('/api/versions/') ? req.params.id : null);
+    let checkSId = req.params.sId || (req.path.includes('/api/syllabi/') ? req.params.id : null);
+    if (req.path.includes('/api/export/version/')) checkVId = req.params.vId;
+    if (req.params.entityType === 'program_version') checkVId = req.params.entityId;
+    if (req.params.entityType === 'syllabus') checkSId = req.params.entityId;
+
+    let archivedQuery, archivedParams;
+    if (checkVId) {
+      archivedQuery = 'SELECT p.archived_at FROM program_versions pv JOIN programs p ON pv.program_id = p.id WHERE pv.id = $1';
+      archivedParams = [checkVId];
+    } else if (checkSId) {
+      archivedQuery = 'SELECT p.archived_at FROM version_syllabi vs JOIN program_versions pv ON vs.version_id = pv.id JOIN programs p ON pv.program_id = p.id WHERE vs.id = $1';
+      archivedParams = [checkSId];
+    }
+    if (archivedQuery) {
+      const archivedRes = await pool.query(archivedQuery, archivedParams);
+      if (archivedRes.rows.length && archivedRes.rows[0].archived_at) {
+        return res.status(404).json({ error: 'CTĐT đã được lưu trữ.' });
+      }
+    }
+
     if (admin) return next();
 
     let vId = req.params.vId || (req.path.includes('/api/versions/') ? req.params.id : null);
@@ -601,8 +624,9 @@ app.post('/api/programs/:id/unarchive', authMiddleware, async (req, res) => {
 app.get('/api/programs/:programId/versions', authMiddleware, async (req, res) => {
   try {
     const admin = await isAdmin(req.user.id);
-    const progRes = await pool.query('SELECT department_id FROM programs WHERE id = $1', [req.params.programId]);
+    const progRes = await pool.query('SELECT department_id, archived_at FROM programs WHERE id = $1', [req.params.programId]);
     if (!progRes.rows.length) return res.status(404).json({ error: 'CTĐT không tồn tại' });
+    if (progRes.rows[0].archived_at) return res.status(404).json({ error: 'CTĐT đã được lưu trữ.' });
     const deptId = progRes.rows[0].department_id;
 
     let query = 'SELECT * FROM program_versions WHERE program_id=$1';
