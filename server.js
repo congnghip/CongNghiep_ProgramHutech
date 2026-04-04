@@ -511,6 +511,13 @@ app.get('/api/programs', authMiddleware, async (req, res) => {
     const params = [req.user.id];
     const conditions = [];
 
+    // Archive filter: by default hide archived, admin can request ?archived=true
+    if (admin && req.query.archived === 'true') {
+      conditions.push('p.archived_at IS NOT NULL');
+    } else {
+      conditions.push('p.archived_at IS NULL');
+    }
+
     if (!admin) {
       // Must have at least one allowed version to see the program in the list
       conditions.push(`EXISTS (
