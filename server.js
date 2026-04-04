@@ -2288,14 +2288,14 @@ app.get('/api/dashboard/stats', authMiddleware, async (req, res) => {
     // --- Core stats (parallel) ---
     const [programs, versions, courses, syllabi, users, depts] = await Promise.all([
       pool.query(
-        `SELECT COUNT(*) as c FROM programs p WHERE 1=1 ${deptFilter}`,
+        `SELECT COUNT(*) as c FROM programs p WHERE p.archived_at IS NULL ${deptFilter}`,
         deptParams
       ),
       pool.query(
         `SELECT pv.status, COUNT(*) as c
          FROM program_versions pv
          JOIN programs p ON pv.program_id = p.id
-         WHERE 1=1 ${deptFilter}
+         WHERE p.archived_at IS NULL ${deptFilter}
          GROUP BY pv.status`,
         deptParams
       ),
