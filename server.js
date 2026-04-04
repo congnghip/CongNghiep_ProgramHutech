@@ -579,7 +579,7 @@ app.delete('/api/programs/:id', authMiddleware, requirePerm('programs.delete_dra
     // 1. Check if program has any published versions
     const check = await pool.query('SELECT id FROM program_versions WHERE program_id = $1 AND status = \'published\' LIMIT 1', [req.params.id]);
     if (check.rows.length > 0) {
-      return res.status(400).json({ error: 'Không thể xóa CTĐT đã công bố. Hãy liên hệ Admin nếu cần xóa triệt để.' });
+      return res.status(400).json({ error: 'Không thể xóa CTĐT đã công bố. Hãy sử dụng chức năng Lưu trữ thay vì xóa.' });
     }
 
     // 2. Nullify copied_from_id references pointing to versions of this program
