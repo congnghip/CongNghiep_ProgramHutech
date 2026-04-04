@@ -2,6 +2,7 @@
 window.ProgramsPage = {
   programs: [],
   departments: [],
+  showArchived: false,
 
   async render(container, params = {}) {
     this.routeParams = params || {};
@@ -9,9 +10,10 @@ window.ProgramsPage = {
       <div class="card">
         <div class="card-header">
           <div class="card-title">Chương trình Đào tạo</div>
-          <div style="display:flex;gap:8px;">
+          <div style="display:flex;gap:8px;align-items:center;">
+            ${window.App.isAdmin ? `<button id="archive-tab-btn" class="btn ${this.showArchived ? 'btn-warning' : 'btn-outline-secondary'} btn-sm" onclick="window.ProgramsPage.toggleArchived()">${this.showArchived ? '📦 Đang xem: Đã lưu trữ' : '📦 Đã lưu trữ'}</button>` : ''}
             ${window.App.hasPerm('programs.import_word') ? `<button class="btn btn-outline-primary" onclick="window.App.navigate('import-word')">Import Word</button>` : ''}
-            ${window.App.hasPerm('programs.create') ? `<button class="btn btn-primary" onclick="window.ProgramsPage.openAddModal()">+ Tạo CTĐT</button>` : ''}
+            ${!this.showArchived && window.App.hasPerm('programs.create') ? `<button class="btn btn-primary" onclick="window.ProgramsPage.openAddModal()">+ Tạo CTĐT</button>` : ''}
           </div>
         </div>
         <div id="programs-content" class="card-body"><div class="spinner"></div></div>
@@ -247,7 +249,7 @@ window.ProgramsPage = {
   async loadData() {
     try {
       const [programs, depts] = await Promise.all([
-        fetch('/api/programs').then(r => r.json()),
+        fetch(`/api/programs${this.showArchived ? '?archived=true' : ''}`).then(r => r.json()),
         fetch('/api/departments').then(r => r.json()),
       ]);
       this.programs = programs;
@@ -271,10 +273,18 @@ window.ProgramsPage = {
     }
   },
 
+  toggleArchived() {
+    this.showArchived = !this.showArchived;
+    const container = document.getElementById('programs-content').closest('.card').parentElement;
+    this.render(container);
+  },
+
   renderList() {
     const content = document.getElementById('programs-content');
     if (this.programs.length === 0) {
-      content.innerHTML = '<div class="empty-state"><div class="icon">📭</div><h3>Chưa có CTĐT nào</h3><p>Nhấn "+ Tạo CTĐT" để bắt đầu</p></div>';
+      content.innerHTML = this.showArchived
+        ? '<div class="empty-state"><div class="icon">📦</div><h3>Không có CTĐT nào được lưu trữ</h3></div>'
+        : '<div class="empty-state"><div class="icon">📭</div><h3>Chưa có CTĐT nào</h3><p>Nhấn "+ Tạo CTĐT" để bắt đầu</p></div>';
       return;
     }
 
@@ -308,8 +318,13 @@ window.ProgramsPage = {
           </div>
         </div>
         <div style="display:flex;gap:6px;flex-shrink:0;" onclick="event.stopPropagation()">
-          ${window.App.hasPerm('programs.edit') ? `<button class="btn btn-sm" style="background:none;border:1px solid var(--border);color:var(--text);font-size:12px;" onclick="window.ProgramsPage.openEditModal(${p.id})">Chỉnh sửa</button>` : ''}
-          ${window.App.hasPerm('programs.delete_draft') ? `<button class="btn btn-sm" style="background:none;border:none;color:var(--danger);font-size:12px;font-weight:500;" onclick="window.ProgramsPage.deleteProgram(${p.id}, '${p.name.replace(/'/g, "\\'")}')">Xóa</button>` : ''}
+          ${p.archived_at ? `
+            ${window.App.isAdmin ? `<button class="btn btn-sm btn-outline-primary" style="font-size:12px;" onclick="window.ProgramsPage.unarchiveProgram(${p.id}, '${p.name.replace(/'/g, "\\'")}')">Khôi phục</button>` : ''}
+          ` : `
+            ${window.App.hasPerm('programs.edit') ? `<button class="btn btn-sm" style="background:none;border:1px solid var(--border);color:var(--text);font-size:12px;" onclick="window.ProgramsPage.openEditModal(${p.id})">Chỉnh sửa</button>` : ''}
+            ${window.App.hasPerm('programs.delete_draft') ? `<button class="btn btn-sm" style="background:none;border:none;color:var(--danger);font-size:12px;font-weight:500;" onclick="window.ProgramsPage.deleteProgram(${p.id}, '${p.name.replace(/'/g, "\\'")}')">Xóa</button>` : ''}
+            ${window.App.isAdmin && parseInt(p.version_count) > 0 ? `<button class="btn btn-sm" style="background:none;border:none;color:var(--warning, #e67e22);font-size:12px;font-weight:500;" onclick="window.ProgramsPage.archiveProgram(${p.id}, '${p.name.replace(/'/g, "\\'")}')">Lưu trữ</button>` : ''}
+          `}
         </div>
       </div>
     `;
@@ -345,6 +360,48 @@ window.ProgramsPage = {
       const res = await fetch(`/api/programs/${id}`, { method: 'DELETE' });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
       window.toast.success('Đã xóa chương trình đào tạo');
+      await this.loadData();
+    } catch (e) {
+      window.toast.error(e.message);
+    }
+  },
+
+  async archiveProgram(id, name) {
+    const confirmed = await window.ui.confirm({
+      title: 'Lưu trữ chương trình đào tạo',
+      eyebrow: 'Lưu trữ',
+      message: `Bạn có chắc chắn muốn lưu trữ CTĐT "${name}"?\n\nCTĐT sẽ bị ẩn khỏi tất cả người dùng. Bạn có thể khôi phục sau.`,
+      confirmText: 'Lưu trữ',
+      cancelText: 'Hủy',
+      tone: 'warning',
+      confirmVariant: 'warning'
+    });
+    if (!confirmed) return;
+    try {
+      const res = await fetch(`/api/programs/${id}/archive`, { method: 'POST' });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      window.toast.success('Đã lưu trữ chương trình đào tạo');
+      await this.loadData();
+    } catch (e) {
+      window.toast.error(e.message);
+    }
+  },
+
+  async unarchiveProgram(id, name) {
+    const confirmed = await window.ui.confirm({
+      title: 'Khôi phục chương trình đào tạo',
+      eyebrow: 'Khôi phục',
+      message: `Bạn có chắc chắn muốn khôi phục CTĐT "${name}"?\n\nCTĐT sẽ hiển thị lại cho tất cả người dùng.`,
+      confirmText: 'Khôi phục',
+      cancelText: 'Hủy',
+      tone: 'info',
+      confirmVariant: 'primary'
+    });
+    if (!confirmed) return;
+    try {
+      const res = await fetch(`/api/programs/${id}/unarchive`, { method: 'POST' });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      window.toast.success('Đã khôi phục chương trình đào tạo');
       await this.loadData();
     } catch (e) {
       window.toast.error(e.message);
