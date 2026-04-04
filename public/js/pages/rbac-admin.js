@@ -357,7 +357,6 @@ window.RBACAdminPage = {
     body.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
         <h3 style="font-size:15px;font-weight:600;">Danh sách vai trò</h3>
-        <button class="btn btn-primary btn-sm" onclick="window.RBACAdminPage.openRoleModal()">+ Tạo vai trò</button>
       </div>
       <table class="data-table">
         <thead><tr><th>Mã</th><th>Tên</th><th>Level</th><th>Users</th><th>Quyền</th><th>Loại</th><th></th></tr></thead>
