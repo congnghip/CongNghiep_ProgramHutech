@@ -1409,6 +1409,35 @@ app.delete('/api/version-courses/:id', authMiddleware, async (req, res) => {
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
+app.put('/api/versions/:vId/course-relations', authMiddleware, requireDraft('vId'), async (req, res) => {
+  const { version_course_id, prerequisite_course_ids, corequisite_course_ids } = req.body;
+  try {
+    // Validate version_course belongs to this version
+    const vc = await pool.query('SELECT id FROM version_courses WHERE id = $1 AND version_id = $2', [version_course_id, req.params.vId]);
+    if (!vc.rows.length) return res.status(404).json({ error: 'Học phần không thuộc phiên bản này.' });
+
+    // Validate all referenced IDs belong to the same version
+    const prereqs = prerequisite_course_ids || [];
+    const coreqs = corequisite_course_ids || [];
+    const allRefIds = [...prereqs, ...coreqs].filter(id => id != null);
+    if (allRefIds.length > 0) {
+      const valid = await pool.query(
+        'SELECT id FROM version_courses WHERE version_id = $1 AND id = ANY($2)',
+        [req.params.vId, allRefIds]
+      );
+      if (valid.rows.length !== allRefIds.length) {
+        return res.status(400).json({ error: 'Một số học phần tham chiếu không thuộc phiên bản này.' });
+      }
+    }
+
+    await pool.query(
+      'UPDATE version_courses SET prerequisite_course_ids = $1, corequisite_course_ids = $2 WHERE id = $3 AND version_id = $4',
+      [prereqs.length ? prereqs : null, coreqs.length ? coreqs : null, version_course_id, req.params.vId]
+    );
+    res.json({ success: true });
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
 // ============ PO-PLO MAP ============
 app.get('/api/versions/:vId/po-plo-map', authMiddleware, requireViewVersion, async (req, res) => {
   try {
