@@ -89,7 +89,7 @@ function requirePerm(permCode) {
 async function checkVersionEditAccess(userId, vId, requiredPerm = 'programs.edit') {
   const admin = await isAdmin(userId);
   const result = await pool.query(`
-    SELECT pv.status, pv.is_locked, p.department_id 
+    SELECT pv.status, pv.is_locked, p.department_id, p.archived_at
     FROM program_versions pv
     JOIN programs p ON pv.program_id = p.id
     WHERE pv.id = $1
@@ -98,6 +98,7 @@ async function checkVersionEditAccess(userId, vId, requiredPerm = 'programs.edit
   if (!result.rows.length) throw new Error('Phiên bản không tồn tại');
   const context = result.rows[0];
 
+  if (context.archived_at) throw new Error('CTĐT đã được lưu trữ.');
   if (admin) return context;
   if (context.is_locked) throw new Error('Phiên bản đã bị khóa, không thể chỉnh sửa.');
 
@@ -144,7 +145,6 @@ function requireDraft(vIdParam = 'vId', requiredPerm = 'programs.edit') {
   };
 }
 
-// Middleware to check view permission for a specific version based on its status
 // Middleware to check view permission for a specific version based on its status
 async function requireViewVersion(req, res, next) {
   try {
@@ -658,6 +658,11 @@ app.post('/api/programs/:programId/versions', authMiddleware, requirePerm('progr
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
+    // Check if program is archived
+    const progArchived = await client.query('SELECT archived_at FROM programs WHERE id = $1', [req.params.programId]);
+    if (!progArchived.rows.length) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'CTĐT không tồn tại' }); }
+    if (progArchived.rows[0].archived_at) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'CTĐT đã được lưu trữ.' }); }
+
     // Check for duplicate academic_year
     const dup = await client.query(
       'SELECT id FROM program_versions WHERE program_id=$1 AND academic_year=$2',
