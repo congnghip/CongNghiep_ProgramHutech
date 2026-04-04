@@ -570,6 +570,26 @@ app.delete('/api/programs/:id', authMiddleware, requirePerm('programs.delete_dra
   }
 });
 
+app.post('/api/programs/:id/archive', authMiddleware, async (req, res) => {
+  try {
+    const admin = await isAdmin(req.user.id);
+    if (!admin) return res.status(403).json({ error: 'Chỉ Admin mới có quyền lưu trữ CTĐT.' });
+    const result = await pool.query('UPDATE programs SET archived_at = NOW() WHERE id = $1 AND archived_at IS NULL RETURNING id', [req.params.id]);
+    if (!result.rows.length) return res.status(404).json({ error: 'CTĐT không tồn tại hoặc đã được lưu trữ.' });
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/programs/:id/unarchive', authMiddleware, async (req, res) => {
+  try {
+    const admin = await isAdmin(req.user.id);
+    if (!admin) return res.status(403).json({ error: 'Chỉ Admin mới có quyền khôi phục CTĐT.' });
+    const result = await pool.query('UPDATE programs SET archived_at = NULL WHERE id = $1 AND archived_at IS NOT NULL RETURNING id', [req.params.id]);
+    if (!result.rows.length) return res.status(404).json({ error: 'CTĐT không tồn tại hoặc chưa được lưu trữ.' });
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ============ VERSIONS API ============
 app.get('/api/programs/:programId/versions', authMiddleware, async (req, res) => {
   try {
@@ -2571,22 +2591,73 @@ app.post('/api/import/save', authMiddleware, requirePerm('programs.import_word')
       piMap[pi.pi_code] = r.rows[0].id;
     }
 
+    // ── Step 6b: Build department lookup from teachingPlan ──────────────
+    const warnings = [];
+    const deptCodes = [...new Set(
+      (teachingPlan || []).map(tp => tp.department).filter(Boolean)
+    )];
+    const deptLookup = {}; // code → { id, name }
+    if (deptCodes.length) {
+      const deptRows = (await client.query(
+        'SELECT id, code, name FROM departments WHERE code = ANY($1)',
+        [deptCodes]
+      )).rows;
+      for (const d of deptRows) deptLookup[d.code] = { id: d.id, name: d.name };
+    }
+    for (const code of deptCodes) {
+      if (!deptLookup[code]) {
+        warnings.push({
+          type: 'dept_not_found',
+          dept_code: code,
+          message: `Mã đơn vị "${code}" không tồn tại trong hệ thống. Các HP thuộc đơn vị này sẽ dùng đơn vị mặc định của CTĐT.`,
+        });
+      }
+    }
+    const courseDeptMap = {}; // course_code → department_id
+    for (const tp of (teachingPlan || [])) {
+      if (tp.code && tp.department && deptLookup[tp.department]) {
+        courseDeptMap[tp.code] = deptLookup[tp.department].id;
+      }
+    }
+
     // ── Step 7: UPSERT courses → courseMap (code→id) ─────────────────────
     const courseMap = {}; // code → courses.id
     for (const c of (courses || [])) {
+      const newDeptId = courseDeptMap[c.code] || department_id;
+
+      // Check if course exists with a different department → warn
+      const existCheck = await client.query(
+        `SELECT c.department_id, d.name as old_dept_name
+         FROM courses c LEFT JOIN departments d ON c.department_id = d.id
+         WHERE c.code = $1`,
+        [c.code]
+      );
+      if (existCheck.rows.length && existCheck.rows[0].department_id
+          && existCheck.rows[0].department_id !== newDeptId) {
+        const oldName = existCheck.rows[0].old_dept_name || `ID ${existCheck.rows[0].department_id}`;
+        const newDeptInfo = Object.values(deptLookup).find(d => d.id === newDeptId);
+        const newName = newDeptInfo ? newDeptInfo.name : `ID ${newDeptId}`;
+        warnings.push({
+          type: 'dept_changed',
+          course_code: c.code,
+          message: `HP "${c.code}" đổi đơn vị quản lý từ "${oldName}" sang "${newName}".`,
+        });
+      }
+
       const r = await client.query(
         `INSERT INTO courses (code, name, credits, department_id, credits_theory, credits_practice, credits_project, credits_internship)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
          ON CONFLICT (code) DO UPDATE SET
            name=EXCLUDED.name,
            credits=EXCLUDED.credits,
+           department_id=EXCLUDED.department_id,
            credits_theory=EXCLUDED.credits_theory,
            credits_practice=EXCLUDED.credits_practice,
            credits_project=EXCLUDED.credits_project,
            credits_internship=EXCLUDED.credits_internship
          RETURNING id`,
         [
-          c.code, c.name || c.code, c.credits || 0, department_id,
+          c.code, c.name || c.code, c.credits || 0, newDeptId,
           c.credits_theory || 0, c.credits_practice || 0,
           c.credits_project || 0, c.credits_internship || 0,
         ]
@@ -2774,6 +2845,7 @@ app.post('/api/import/save', authMiddleware, requirePerm('programs.import_word')
         assessment_plans: (assessmentPlan || []).length,
         course_descriptions: (courseDescriptions || []).length,
       },
+      warnings: warnings.length ? warnings : undefined,
     });
   } catch (e) {
     await client.query('ROLLBACK');
