@@ -7,6 +7,8 @@ window.CourseFlowchart = {
   sourceNode: null,
   scale: 1,
 
+  esc(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); },
+
   // Node dimensions
   NODE_W: 160,
   NODE_H: 52,
@@ -141,6 +143,12 @@ window.CourseFlowchart = {
         this.onArrowClick(parseInt(el.dataset.from), parseInt(el.dataset.to), el.dataset.type);
       });
     });
+
+    // Restore zoom level after re-render
+    if (this.scale !== 1) {
+      const canvas = document.getElementById('flowchart-canvas');
+      if (canvas) canvas.style.transform = `scale(${this.scale})`;
+    }
   },
 
   renderToolbar() {
@@ -197,8 +205,8 @@ window.CourseFlowchart = {
                   box-shadow:0 1px 2px rgba(0,0,0,0.04);transition:all .15s;"
            onmouseenter="this.style.borderColor='#2563eb';this.style.boxShadow='0 2px 8px rgba(37,99,235,.15)'"
            onmouseleave="this.style.borderColor='${borderColor}';this.style.boxShadow='0 1px 2px rgba(0,0,0,.04)'">
-        <div style="font-weight:600;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${course.course_name}</div>
-        <div style="font-size:10px;color:#94a3b8;margin-top:1px;">${course.course_code} · ${course.credits} TC</div>
+        <div style="font-weight:600;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${this.esc(course.course_name)}</div>
+        <div style="font-size:10px;color:#94a3b8;margin-top:1px;">${this.esc(course.course_code)} · ${course.credits} TC</div>
       </div>
     `;
   },
@@ -223,8 +231,11 @@ window.CourseFlowchart = {
     return `
       <path class="flowchart-arrow" data-from="${edge.from}" data-to="${edge.to}" data-type="${edge.type}"
             d="M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}"
-            stroke="${color}" stroke-width="2" fill="none" ${dash} marker-end="${marker}"
+            stroke="transparent" stroke-width="12" fill="none"
             style="pointer-events:stroke;cursor:pointer;" />
+      <path d="M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}"
+            stroke="${color}" stroke-width="2" fill="none" ${dash} marker-end="${marker}"
+            style="pointer-events:none;" />
     `;
   },
 

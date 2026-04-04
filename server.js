@@ -1420,12 +1420,27 @@ app.put('/api/versions/:vId/course-relations', authMiddleware, requireDraft('vId
     const prereqs = prerequisite_course_ids || [];
     const coreqs = corequisite_course_ids || [];
     const allRefIds = [...prereqs, ...coreqs].filter(id => id != null);
-    if (allRefIds.length > 0) {
+
+    // Validate types
+    if (!Number.isInteger(version_course_id) || version_course_id <= 0) {
+      return res.status(400).json({ error: 'version_course_id phải là số nguyên dương.' });
+    }
+    if (!allRefIds.every(id => Number.isInteger(id) && id > 0)) {
+      return res.status(400).json({ error: 'Tất cả ID phải là số nguyên dương.' });
+    }
+
+    // Self-reference check
+    if (allRefIds.includes(version_course_id)) {
+      return res.status(400).json({ error: 'Học phần không thể là tiên quyết/song hành của chính nó.' });
+    }
+
+    const uniqueRefIds = [...new Set(allRefIds)];
+    if (uniqueRefIds.length > 0) {
       const valid = await pool.query(
         'SELECT id FROM version_courses WHERE version_id = $1 AND id = ANY($2)',
-        [req.params.vId, allRefIds]
+        [req.params.vId, uniqueRefIds]
       );
-      if (valid.rows.length !== allRefIds.length) {
+      if (valid.rows.length !== uniqueRefIds.length) {
         return res.status(400).json({ error: 'Một số học phần tham chiếu không thuộc phiên bản này.' });
       }
     }

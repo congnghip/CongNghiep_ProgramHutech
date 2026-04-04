@@ -56,6 +56,8 @@ window.VersionEditorPage = {
         <nav style="display:flex;align-items:center;gap:6px;font-size:13px;margin-bottom:12px;flex-wrap:wrap;">
           <a href="#" onclick="event.preventDefault();window.App.navigate('programs')" style="color:var(--text-muted);text-decoration:none;cursor:pointer;" onmouseenter="this.style.textDecoration='underline'" onmouseleave="this.style.textDecoration='none'">Chương trình Đào tạo</a>
           <span style="color:var(--text-muted);">›</span>
+          <a href="#" onclick="event.preventDefault();window.App.navigate('programs',{deptId:${this.version.department_id || 'null'},deptName:'${(this.version.dept_name || '').replace(/'/g, "\\'")}'})  " style="color:var(--text-muted);text-decoration:none;cursor:pointer;" onmouseenter="this.style.textDecoration='underline'" onmouseleave="this.style.textDecoration='none'">${this.version.dept_name || ''}</a>
+          <span style="color:var(--text-muted);">›</span>
           <a href="#" onclick="event.preventDefault();window.App.navigate('programs',{programId:${this.version.program_id},programName:'${(this.version.program_name || '').replace(/'/g, "\\'")}'})  " style="color:var(--text-muted);text-decoration:none;cursor:pointer;" onmouseenter="this.style.textDecoration='underline'" onmouseleave="this.style.textDecoration='none'">${this.version.program_name}</a>
           <span style="color:var(--text-muted);">›</span>
           <span style="color:var(--text);font-weight:600;">${this.version.academic_year}</span>
