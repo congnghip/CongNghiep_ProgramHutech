@@ -10,158 +10,158 @@ TC_AUTH_08,Authentication,Doi MK sai mat khau cu,wrong current password,Hien thi
 TC_AUTH_09,Authentication,Doi MK mat khau moi khong khop,new != confirm,Hien thi loi trong modal,Pass,2026-04-04
 TC_AUTH_10,Authentication,Dang nhap ky tu dac biet,username=<script>alert(1)</script>; password=pass,Hien thi loi va khong bi XSS,Pass,2026-04-04
 TC_AUTH_11,Authentication,Dang nhap chuoi cuc dai,username=1000 ky tu; password=pass,Hien thi loi va khong crash,Pass,2026-04-04
-TC_DASH_01,Dashboard,Hien thi dashboard sau login,Login as admin,6 metric cards hien thi,,
-TC_DASH_02,Dashboard,Hien thi hoat dong gan day,Login as admin,Bang hoat dong co du lieu,,
-TC_DASH_03,Dashboard,Dashboard khi khong co quyen,Login as basic user,Metrics gioi han hoac trong,,
-TC_DASH_04,Dashboard,Dashboard voi DB trong,Fresh database,Cards hien thi 0 va khong crash,,
-TC_PROG_01,Programs,Xem danh sach CTDT,Navigate to programs,Danh sach chuong trinh hien thi,,
-TC_PROG_02,Programs,Tao CTDT moi thanh cong,code=TEST001; name=Test Program; dept=select,Toast thanh cong va program trong list,,
-TC_PROG_03,Programs,Sua CTDT thanh cong,Update ten chuong trinh,Toast thanh cong,,
-TC_PROG_04,Programs,Xoa CTDT draft,Xoa chuong trinh draft,Toast thanh cong va xoa khoi list,,
-TC_PROG_05,Programs,Archive CTDT,Click archive,Chuong trinh chuyen sang tab archived,,
-TC_PROG_06,Programs,Tao version moi,Chon nam hoc,Toast thanh cong va version duoc tao,,
-TC_PROG_07,Programs,Tao CTDT trong ma,code=empty,Hien thi loi trong modal,,
-TC_PROG_08,Programs,Tao CTDT trong ten,name=empty,Hien thi loi trong modal,,
-TC_PROG_09,Programs,Tao CTDT trung ma,code=duplicate,Hien thi loi trung ma,,
-TC_PROG_10,Programs,Xoa CTDT khong phai draft,Non-draft program,Hien thi loi hoac button disabled,,
-TC_PROG_11,Programs,Tao version trung nam,Duplicate year,Hien thi loi,,
-TC_PROG_12,Programs,Tao CTDT ky tu dac biet,"name=<>&""'",Luu thanh cong va khong bi XSS,,
-TC_PROG_13,Programs,Tao CTDT ten cuc dai,name=500 ky tu,Luu thanh cong hoac hien thi loi,,
-TC_PROG_14,Programs,Unarchive CTDT,Click unarchive,Chuong trinh tro lai danh sach active,,
-TC_VER_01,Version Editor,Xem thong tin version,Mo version editor,Tab thong tin load voi du lieu,,
-TC_VER_02,Version Editor,Cap nhat thong tin version,Sua mo ta,Toast thanh cong,,
-TC_VER_03,Version Editor,Cap nhat voi field trong,Xoa field bat buoc,Hien thi loi,,
-TC_VER_04,Version Editor,Cap nhat voi HTML content,Nhap <b>bold</b> vao field,Luu ma khong render HTML,,
-TC_VER_05,Version Editor,Them PO moi,code + description,PO hien thi trong danh sach,,
-TC_VER_06,Version Editor,Sua PO,Cap nhat mo ta,Toast thanh cong,,
-TC_VER_07,Version Editor,Xoa PO,Xoa PO,Xoa khoi danh sach,,
-TC_VER_08,Version Editor,Them PO trong ma,code=empty,Hien thi loi,,
-TC_VER_09,Version Editor,Them PO trung ma,code=duplicate,Hien thi loi,,
-TC_VER_10,Version Editor,Them PLO moi,code + description,PLO hien thi trong danh sach,,
-TC_VER_11,Version Editor,Sua PLO,Cap nhat mo ta,Toast thanh cong,,
-TC_VER_12,Version Editor,Xoa PLO,Xoa PLO,Xoa khoi danh sach,,
-TC_VER_13,Version Editor,Them PLO trong ma,code=empty,Hien thi loi,,
-TC_VER_14,Version Editor,Them PLO trung ma,code=duplicate,Hien thi loi,,
-TC_VER_15,Version Editor,Them PI cho PLO,Chon PLO va them PI,PI hien thi duoi PLO,,
-TC_VER_16,Version Editor,Sua PI,Cap nhat mo ta,Toast thanh cong,,
-TC_VER_17,Version Editor,Xoa PI,Xoa PI,Xoa khoi danh sach,,
-TC_VER_18,Version Editor,Them PI trong noi dung,description=empty,Hien thi loi,,
-TC_VER_19,Version Editor,Map PO voi PLO,Check checkbox trong matrix,Toast thanh cong khi luu,,
-TC_VER_20,Version Editor,Unmap PO-PLO,Uncheck checkbox,Toast thanh cong khi luu,,
-TC_VER_21,Version Editor,Map tat ca PO voi 1 PLO,Check tat ca trong cot,Luu thanh cong,,
-TC_VER_22,Version Editor,Tao khoi kien thuc,name + type,Khoi hien thi trong danh sach,,
-TC_VER_23,Version Editor,Gan hoc phan vao khoi,Assign courses,Hoc phan liet ke duoi khoi,,
-TC_VER_24,Version Editor,Tao khoi trong ten,name=empty,Hien thi loi,,
-TC_VER_25,Version Editor,Xoa khoi kien thuc,Xoa khoi,Xoa khoi danh sach,,
-TC_VER_26,Version Editor,Them hoc phan vao version,Chon hoc phan,Hoc phan duoc them vao list,,
-TC_VER_27,Version Editor,Xoa hoc phan khoi version,Xoa hoc phan,Xoa khoi list,,
-TC_VER_28,Version Editor,Them hoc phan da ton tai,Duplicate course,Hien thi loi,,
-TC_VER_29,Version Editor,Cap nhat thong tin HP trong version,Sua hoc ky/loai,Toast thanh cong,,
-TC_VER_30,Version Editor,Map HP voi PLO,Set level trong matrix,Toast thanh cong khi luu,,
-TC_VER_31,Version Editor,Unmap HP-PLO,Clear level,Toast thanh cong khi luu,,
-TC_VER_32,Version Editor,Map tat ca HP voi 1 PLO,Fill toan bo cot,Luu thanh cong,,
-TC_VER_33,Version Editor,Map HP voi PI,Check trong matrix,Toast thanh cong,,
-TC_VER_34,Version Editor,Unmap HP-PI,Uncheck,Toast thanh cong,,
-TC_VER_35,Version Editor,Cap nhat ke hoach giang day,Set hoc ky cho HP,Toast thanh cong,,
-TC_VER_36,Version Editor,Thiet lap tien quyet HP,Set prerequisite,Toast thanh cong,,
-TC_VER_37,Version Editor,Xem so do tien trinh,Mo tab flowchart,SVG diagram render,,
-TC_VER_38,Version Editor,Flowchart khi khong co HP,Version khong co courses,Hien thi empty state hoac message,,
-TC_COURSE_01,Courses,Xem danh sach hoc phan,Navigate to courses,Bang hoc phan hien thi,,
-TC_COURSE_02,Courses,Tim kiem hoc phan theo ma,Search by code,Ket qua loc,,
-TC_COURSE_03,Courses,Tim kiem hoc phan theo ten,Search by name,Ket qua loc,,
-TC_COURSE_04,Courses,Them hoc phan moi,code=HP_TEST; name=Test Course; credits=3; dept=select,Toast thanh cong va course trong list,,
-TC_COURSE_05,Courses,Sua hoc phan,Cap nhat ten,Toast thanh cong,,
-TC_COURSE_06,Courses,Them HP trong ma,code=empty,Hien thi loi trong modal,,
-TC_COURSE_07,Courses,Them HP trong ten,name=empty,Hien thi loi trong modal,,
-TC_COURSE_08,Courses,Them HP trung ma,code=duplicate,Hien thi loi,,
-TC_COURSE_09,Courses,Them HP tin chi bang 0,credits=0,Hien thi loi,,
-TC_COURSE_10,Courses,Xoa HP dang su dung,Course used in version,Hien thi loi,,
-TC_COURSE_11,Courses,Them HP ky tu dac biet,"name=<>&""'",Luu thanh cong,,
-TC_COURSE_12,Courses,Them HP ten cuc dai,name=500 ky tu,Luu thanh cong hoac hien thi loi,,
-TC_COURSE_13,Courses,Tim kiem khong co ket qua,Search nonexistent,Hien thi empty state,,
-TC_SYL_01,Syllabus Editor,Mo editor de cuong,Click syllabus,Editor load voi du lieu,,
-TC_SYL_02,Syllabus Editor,Cap nhat thong tin chung,Sua mo ta,Toast thanh cong,,
-TC_SYL_03,Syllabus Editor,Them CLO moi,code + description + level,CLO trong list,,
-TC_SYL_04,Syllabus Editor,Sua CLO,Cap nhat mo ta,Toast thanh cong,,
-TC_SYL_05,Syllabus Editor,Xoa CLO,Xoa CLO,Xoa khoi list,,
-TC_SYL_06,Syllabus Editor,Map CLO voi PLO,Set mapping,Toast thanh cong,,
-TC_SYL_07,Syllabus Editor,Import PDF de cuong,Upload PDF file,Noi dung duoc parse va dien vao,,
-TC_SYL_08,Syllabus Editor,Luu de cuong,Click save,Toast thanh cong,,
-TC_SYL_09,Syllabus Editor,Them CLO trong ma,code=empty,Hien thi loi,,
-TC_SYL_10,Syllabus Editor,Them CLO trung ma,code=duplicate,Hien thi loi,,
-TC_SYL_11,Syllabus Editor,Import file khong phai PDF,Upload .txt file,Hien thi loi,,
-TC_SYL_12,Syllabus Editor,Import PDF rong,Empty PDF,Hien thi loi hoac noi dung trong,,
-TC_SYL_13,Syllabus Editor,Luu de cuong voi field bat buoc trong,Clear required field,Hien thi loi,,
-TC_SYL_14,Syllabus Editor,CLO voi mo ta cuc dai,1000 ky tu description,Luu thanh cong hoac hien thi loi,,
-TC_SYL_15,Syllabus Editor,CLO voi ky tu dac biet,<script> trong mo ta,Luu ma khong bi XSS,,
-TC_SYL_16,Syllabus Editor,Import PDF cuc lon,Large PDF file,Timeout hoac xu ly gracefully,,
-TC_APPR_01,Approval,Submit version de duyet,Click submit,Toast thanh cong va status=submitted,,
-TC_APPR_02,Approval,Duyet version cap Khoa,Approve as LANH_DAO_KHOA,Status=approved_khoa,,
-TC_APPR_03,Approval,Duyet version cap PDT,Approve as PHONG_DAO_TAO,Status=approved_pdt,,
-TC_APPR_04,Approval,Duyet version cap BGH,Approve as BAN_GIAM_HIEU,Status=approved_bgh,,
-TC_APPR_05,Approval,Tu choi version,Reject with reason,Status=rejected va reason hien thi,,
-TC_APPR_06,Approval,Submit version da submit,Re-submit,Hien thi loi hoac button disabled,,
-TC_APPR_07,Approval,Duyet khi khong co quyen,Login as GIANG_VIEN,Nut duyet khong hien thi,,
-TC_APPR_08,Approval,Tu choi khong co ly do,Reject voi notes trong,Hien thi loi,,
-TC_APPR_09,Approval,Duyet version khong phai cua minh,Wrong department,Hien thi loi,,
-TC_APPR_10,Approval,Xoa version bi tu choi,Delete rejected,Toast thanh cong va xoa khoi list,,
-TC_APPR_11,Approval,Submit lai sau khi bi tu choi,Re-submit after fix,Status=submitted lai,,
-TC_USER_01,Users,Xem danh sach users,Navigate to users,Bang users hien thi,,
-TC_USER_02,Users,Tao user moi,username=testuser; password=Test123; display=Test User,Toast thanh cong va user trong list,,
-TC_USER_03,Users,Sua user,Cap nhat display name,Toast thanh cong,,
-TC_USER_04,Users,Gan vai tro cho user,Select role + dept,Role badge hien thi tren user,,
-TC_USER_05,Users,Xoa vai tro khoi user,Remove role,Role bi xoa,,
-TC_USER_06,Users,Tao user trong username,username=empty,Hien thi loi trong modal,,
-TC_USER_07,Users,Tao user trong mat khau,password=empty,Hien thi loi trong modal,,
-TC_USER_08,Users,Tao user trung username,username=duplicate,Hien thi loi,,
-TC_USER_09,Users,Xoa user dang hoat dong,Delete active user,Hien thi loi hoac xac nhan,,
-TC_USER_10,Users,Toggle user active/inactive,Toggle status,Status thay doi va toast thanh cong,,
-TC_USER_11,Users,Tao user ky tu dac biet,Special chars trong name,Luu thanh cong,,
-TC_RBAC_01,RBAC Admin,Xem tab Tai khoan,Click tab,Danh sach users hien thi,,
-TC_RBAC_02,RBAC Admin,Tim kiem user,Search by name,Ket qua loc,,
-TC_RBAC_03,RBAC Admin,Loc user theo vai tro,Select role filter,Ket qua loc,,
-TC_RBAC_04,RBAC Admin,Xem tab Vai tro,Click tab,Danh sach roles hien thi,,
-TC_RBAC_05,RBAC Admin,Tao vai tro moi,code + name + level,Toast thanh cong,,
-TC_RBAC_06,RBAC Admin,Gan quyen cho vai tro,Check permissions,Toast thanh cong,,
-TC_RBAC_07,RBAC Admin,Xem Ma tran quyen,Click tab,Bang matrix hien thi,,
-TC_RBAC_08,RBAC Admin,Xem tab Don vi,Click tab,Danh sach departments hien thi,,
-TC_RBAC_09,RBAC Admin,Tao vai tro trong ma,code=empty,Hien thi loi,,
-TC_RBAC_10,RBAC Admin,Tao vai tro trung ma,code=duplicate,Hien thi loi,,
-TC_RBAC_11,RBAC Admin,Xoa vai tro dang su dung,Role assigned to users,Hien thi loi,,
-TC_RBAC_12,RBAC Admin,Truy cap RBAC khong phai admin,Login as non-admin,Trang khong hien thi hoac redirect,,
-TC_RBAC_13,RBAC Admin,Gan vai tro khong chon phong ban,Role without dept,Hien thi loi,,
-TC_RBAC_14,RBAC Admin,Tim kiem khong ket qua,Nonexistent name,Empty state,,
-TC_RBAC_15,RBAC Admin,Tao vai tro ky tu dac biet,Special chars,Luu thanh cong hoac loi,,
-TC_RBAC_16,RBAC Admin,Sua vai tro va cap nhat quyen,Edit + permissions change,Ca hai luu thanh cong,,
-TC_DEPT_01,Departments,Xem danh sach don vi,Navigate to departments,Tree view hien thi,,
-TC_DEPT_02,Departments,Tao don vi moi,code=DV_TEST; name=Don Vi Test; type=BO_MON,Toast thanh cong va hien thi trong tree,,
-TC_DEPT_03,Departments,Sua don vi,Cap nhat ten,Toast thanh cong,,
-TC_DEPT_04,Departments,Tao don vi con,Set parent,Don vi con hien thi duoi parent,,
-TC_DEPT_05,Departments,Tao don vi trong ma,code=empty,Hien thi loi trong modal,,
-TC_DEPT_06,Departments,Tao don vi trung ma,code=duplicate,Hien thi loi,,
-TC_DEPT_07,Departments,Xoa don vi co don vi con,Parent with children,Hien thi loi,,
-TC_DEPT_08,Departments,Tao don vi ky tu dac biet,Special chars trong name,Luu thanh cong,,
-TC_DEPT_09,Departments,Tao don vi ten cuc dai,300 ky tu name,Luu thanh cong hoac loi,,
-TC_AUDIT_01,Audit Logs,Xem nhat ky he thong,Navigate to audit logs,Bang log entries hien thi,,
-TC_AUDIT_02,Audit Logs,Phan trang nhat ky,Click next page,Trang moi hien thi,,
-TC_AUDIT_03,Audit Logs,Hien thi badge mau theo action,View logs,POST=xanh; PUT=cam; DELETE=do,,
-TC_AUDIT_04,Audit Logs,Xem audit khi khong co quyen,Non-admin user,Trang khong hien thi,,
-TC_AUDIT_05,Audit Logs,Phan trang khi het data,Click next at last page,Button disabled hoac khong co data,,
-TC_ASSIGN_01,My Assignments,Xem danh sach phan cong,Navigate as teacher,Bang assignments hien thi,,
-TC_ASSIGN_02,My Assignments,Tao de cuong tu phan cong,Click create syllabus,Syllabus editor mo,,
-TC_ASSIGN_03,My Assignments,Hien thi deadline va mau sac,View assignments,Deadlines co mau tuong ung,,
-TC_ASSIGN_04,My Assignments,Xem khi khong co phan cong,User khong co assignments,Hien thi empty state,,
-TC_ASSIGN_05,My Assignments,Tao de cuong khi da ton tai,Duplicate create,Hien thi loi hoac mo existing,,
-TC_ASSIGN_06,My Assignments,Hien thi deadline qua han,Overdue assignment,Hien thi mau do,,
-TC_IMPORT_01,Import Word,Upload file Word,.docx file,File duoc parse va preview hien thi,,
-TC_IMPORT_02,Import Word,Luu du lieu tu Word,Confirm import,Program/version tao thanh cong,,
-TC_IMPORT_03,Import Word,Preview truoc khi luu,After upload,Du lieu parse hien thi de review,,
-TC_IMPORT_04,Import Word,Upload file khong phai Word,.pdf file,Hien thi loi,,
-TC_IMPORT_05,Import Word,Upload file Word rong,Empty .docx,Hien thi loi hoac preview trong,,
-TC_IMPORT_06,Import Word,Upload file qua lon,>10MB file,Hien thi loi,,
-TC_IMPORT_07,Import Word,Word voi format khong chuan,Badly formatted doc,Parse mot phan hoac hien thi loi,,
-TC_IMPORT_08,Import Word,Word voi ky tu dac biet,Special chars trong content,Parse thanh cong,,
-TC_FLOW_01,Flowchart,Xem so do chuong trinh,Mo tab flowchart,SVG diagram render,,
-TC_FLOW_02,Flowchart,Tuong tac voi node,Click course node,Node highlighted hoac info hien thi,,
-TC_FLOW_03,Flowchart,Flowchart khong co du lieu,Version khong co courses,Empty state hoac message,,
-TC_FLOW_04,Flowchart,Flowchart voi nhieu HP,50+ courses,Render khong bi performance issue,,
+TC_DASH_01,Dashboard,Hien thi dashboard sau login,Login as admin,6 metric cards hien thi,Pass,2026-04-04
+TC_DASH_02,Dashboard,Hien thi hoat dong gan day,Login as admin,Bang hoat dong co du lieu,Pass,2026-04-04
+TC_DASH_03,Dashboard,Dashboard khi khong co quyen,Login as basic user,Metrics gioi han hoac trong,Skip,2026-04-04
+TC_DASH_04,Dashboard,Dashboard voi DB trong,Fresh database,Cards hien thi 0 va khong crash,Pass,2026-04-04
+TC_PROG_01,Programs,Xem danh sach CTDT,Navigate to programs,Danh sach chuong trinh hien thi,Pass,2026-04-04
+TC_PROG_02,Programs,Tao CTDT moi thanh cong,code=TEST001; name=Test Program; dept=select,Toast thanh cong va program trong list,Pass,2026-04-04
+TC_PROG_03,Programs,Sua CTDT thanh cong,Update ten chuong trinh,Toast thanh cong,Pass,2026-04-04
+TC_PROG_04,Programs,Xoa CTDT draft,Xoa chuong trinh draft,Toast thanh cong va xoa khoi list,Pass,2026-04-04
+TC_PROG_05,Programs,Archive CTDT,Click archive,Chuong trinh chuyen sang tab archived,Pass,2026-04-04
+TC_PROG_06,Programs,Tao version moi,Chon nam hoc,Toast thanh cong va version duoc tao,Pass,2026-04-04
+TC_PROG_07,Programs,Tao CTDT trong ma,code=empty,Hien thi loi trong modal,Pass,2026-04-04
+TC_PROG_08,Programs,Tao CTDT trong ten,name=empty,Hien thi loi trong modal,Pass,2026-04-04
+TC_PROG_09,Programs,Tao CTDT trung ma,code=duplicate,Hien thi loi trung ma,Pass,2026-04-04
+TC_PROG_10,Programs,Xoa CTDT khong phai draft,Non-draft program,Hien thi loi hoac button disabled,Skip,2026-04-04
+TC_PROG_11,Programs,Tao version trung nam,Duplicate year,Hien thi loi,Pass,2026-04-04
+TC_PROG_12,Programs,Tao CTDT ky tu dac biet,"name=<>&""'",Luu thanh cong va khong bi XSS,Pass,2026-04-04
+TC_PROG_13,Programs,Tao CTDT ten cuc dai,name=500 ky tu,Luu thanh cong hoac hien thi loi,Pass,2026-04-04
+TC_PROG_14,Programs,Unarchive CTDT,Click unarchive,Chuong trinh tro lai danh sach active,Pass,2026-04-04
+TC_VER_01,Version Editor,Xem thong tin version,Mo version editor,Tab thong tin load voi du lieu,Pass,2026-04-04
+TC_VER_02,Version Editor,Cap nhat thong tin version,Sua mo ta,Toast thanh cong,Pass,2026-04-04
+TC_VER_03,Version Editor,Cap nhat voi field trong,Xoa field bat buoc,Hien thi loi,Pass,2026-04-04
+TC_VER_04,Version Editor,Cap nhat voi HTML content,Nhap <b>bold</b> vao field,Luu ma khong render HTML,Pass,2026-04-04
+TC_VER_05,Version Editor,Them PO moi,code + description,PO hien thi trong danh sach,Pass,2026-04-04
+TC_VER_06,Version Editor,Sua PO,Cap nhat mo ta,Toast thanh cong,Pass,2026-04-04
+TC_VER_07,Version Editor,Xoa PO,Xoa PO,Xoa khoi danh sach,Pass,2026-04-04
+TC_VER_08,Version Editor,Them PO trong ma,code=empty,Hien thi loi,Pass,2026-04-04
+TC_VER_09,Version Editor,Them PO trung ma,code=duplicate,Hien thi loi,Pass,2026-04-04
+TC_VER_10,Version Editor,Them PLO moi,code + description,PLO hien thi trong danh sach,Pass,2026-04-04
+TC_VER_11,Version Editor,Sua PLO,Cap nhat mo ta,Toast thanh cong,Pass,2026-04-04
+TC_VER_12,Version Editor,Xoa PLO,Xoa PLO,Xoa khoi danh sach,Pass,2026-04-04
+TC_VER_13,Version Editor,Them PLO trong ma,code=empty,Hien thi loi,Pass,2026-04-04
+TC_VER_14,Version Editor,Them PLO trung ma,code=duplicate,Hien thi loi,Pass,2026-04-04
+TC_VER_15,Version Editor,Them PI cho PLO,Chon PLO va them PI,PI hien thi duoi PLO,Pass,2026-04-04
+TC_VER_16,Version Editor,Sua PI,Cap nhat mo ta,Toast thanh cong,Pass,2026-04-04
+TC_VER_17,Version Editor,Xoa PI,Xoa PI,Xoa khoi danh sach,Pass,2026-04-04
+TC_VER_18,Version Editor,Them PI trong noi dung,description=empty,Hien thi loi,Pass,2026-04-04
+TC_VER_19,Version Editor,Map PO voi PLO,Check checkbox trong matrix,Toast thanh cong khi luu,Pass,2026-04-04
+TC_VER_20,Version Editor,Unmap PO-PLO,Uncheck checkbox,Toast thanh cong khi luu,Pass,2026-04-04
+TC_VER_21,Version Editor,Map tat ca PO voi 1 PLO,Check tat ca trong cot,Luu thanh cong,Pass,2026-04-04
+TC_VER_22,Version Editor,Tao khoi kien thuc,name + type,Khoi hien thi trong danh sach,Pass,2026-04-04
+TC_VER_23,Version Editor,Gan hoc phan vao khoi,Assign courses,Hoc phan liet ke duoi khoi,Pass,2026-04-04
+TC_VER_24,Version Editor,Tao khoi trong ten,name=empty,Hien thi loi,Pass,2026-04-04
+TC_VER_25,Version Editor,Xoa khoi kien thuc,Xoa khoi,Xoa khoi danh sach,Pass,2026-04-04
+TC_VER_26,Version Editor,Them hoc phan vao version,Chon hoc phan,Hoc phan duoc them vao list,Pass,2026-04-04
+TC_VER_27,Version Editor,Xoa hoc phan khoi version,Xoa hoc phan,Xoa khoi list,Pass,2026-04-04
+TC_VER_28,Version Editor,Them hoc phan da ton tai,Duplicate course,Hien thi loi,Pass,2026-04-04
+TC_VER_29,Version Editor,Cap nhat thong tin HP trong version,Sua hoc ky/loai,Toast thanh cong,Pass,2026-04-04
+TC_VER_30,Version Editor,Map HP voi PLO,Set level trong matrix,Toast thanh cong khi luu,Pass,2026-04-04
+TC_VER_31,Version Editor,Unmap HP-PLO,Clear level,Toast thanh cong khi luu,Pass,2026-04-04
+TC_VER_32,Version Editor,Map tat ca HP voi 1 PLO,Fill toan bo cot,Luu thanh cong,Pass,2026-04-04
+TC_VER_33,Version Editor,Map HP voi PI,Check trong matrix,Toast thanh cong,Pass,2026-04-04
+TC_VER_34,Version Editor,Unmap HP-PI,Uncheck,Toast thanh cong,Pass,2026-04-04
+TC_VER_35,Version Editor,Cap nhat ke hoach giang day,Set hoc ky cho HP,Toast thanh cong,Pass,2026-04-04
+TC_VER_36,Version Editor,Thiet lap tien quyet HP,Set prerequisite,Toast thanh cong,Pass,2026-04-04
+TC_VER_37,Version Editor,Xem so do tien trinh,Mo tab flowchart,SVG diagram render,Pass,2026-04-04
+TC_VER_38,Version Editor,Flowchart khi khong co HP,Version khong co courses,Hien thi empty state hoac message,Pass,2026-04-04
+TC_COURSE_01,Courses,Xem danh sach hoc phan,Navigate to courses,Bang hoc phan hien thi,Pass,2026-04-04
+TC_COURSE_02,Courses,Tim kiem hoc phan theo ma,Search by code,Ket qua loc,Pass,2026-04-04
+TC_COURSE_03,Courses,Tim kiem hoc phan theo ten,Search by name,Ket qua loc,Pass,2026-04-04
+TC_COURSE_04,Courses,Them hoc phan moi,code=HP_TEST; name=Test Course; credits=3; dept=select,Toast thanh cong va course trong list,Pass,2026-04-04
+TC_COURSE_05,Courses,Sua hoc phan,Cap nhat ten,Toast thanh cong,Pass,2026-04-04
+TC_COURSE_06,Courses,Them HP trong ma,code=empty,Hien thi loi trong modal,Pass,2026-04-04
+TC_COURSE_07,Courses,Them HP trong ten,name=empty,Hien thi loi trong modal,Pass,2026-04-04
+TC_COURSE_08,Courses,Them HP trung ma,code=duplicate,Hien thi loi,Pass,2026-04-04
+TC_COURSE_09,Courses,Them HP tin chi bang 0,credits=0,Hien thi loi,Pass,2026-04-04
+TC_COURSE_10,Courses,Xoa HP dang su dung,Course used in version,Hien thi loi,Pass,2026-04-04
+TC_COURSE_11,Courses,Them HP ky tu dac biet,"name=<>&""'",Luu thanh cong,Pass,2026-04-04
+TC_COURSE_12,Courses,Them HP ten cuc dai,name=500 ky tu,Luu thanh cong hoac hien thi loi,Pass,2026-04-04
+TC_COURSE_13,Courses,Tim kiem khong co ket qua,Search nonexistent,Hien thi empty state,Pass,2026-04-04
+TC_SYL_01,Syllabus Editor,Mo editor de cuong,Click syllabus,Editor load voi du lieu,Skip,2026-04-04
+TC_SYL_02,Syllabus Editor,Cap nhat thong tin chung,Sua mo ta,Toast thanh cong,Skip,2026-04-04
+TC_SYL_03,Syllabus Editor,Them CLO moi,code + description + level,CLO trong list,Skip,2026-04-04
+TC_SYL_04,Syllabus Editor,Sua CLO,Cap nhat mo ta,Toast thanh cong,Skip,2026-04-04
+TC_SYL_05,Syllabus Editor,Xoa CLO,Xoa CLO,Xoa khoi list,Skip,2026-04-04
+TC_SYL_06,Syllabus Editor,Map CLO voi PLO,Set mapping,Toast thanh cong,Skip,2026-04-04
+TC_SYL_07,Syllabus Editor,Import PDF de cuong,Upload PDF file,Noi dung duoc parse va dien vao,Skip,2026-04-04
+TC_SYL_08,Syllabus Editor,Luu de cuong,Click save,Toast thanh cong,Skip,2026-04-04
+TC_SYL_09,Syllabus Editor,Them CLO trong ma,code=empty,Hien thi loi,Skip,2026-04-04
+TC_SYL_10,Syllabus Editor,Them CLO trung ma,code=duplicate,Hien thi loi,Skip,2026-04-04
+TC_SYL_11,Syllabus Editor,Import file khong phai PDF,Upload .txt file,Hien thi loi,Skip,2026-04-04
+TC_SYL_12,Syllabus Editor,Import PDF rong,Empty PDF,Hien thi loi hoac noi dung trong,Skip,2026-04-04
+TC_SYL_13,Syllabus Editor,Luu de cuong voi field bat buoc trong,Clear required field,Hien thi loi,Skip,2026-04-04
+TC_SYL_14,Syllabus Editor,CLO voi mo ta cuc dai,1000 ky tu description,Luu thanh cong hoac hien thi loi,Skip,2026-04-04
+TC_SYL_15,Syllabus Editor,CLO voi ky tu dac biet,<script> trong mo ta,Luu ma khong bi XSS,Skip,2026-04-04
+TC_SYL_16,Syllabus Editor,Import PDF cuc lon,Large PDF file,Timeout hoac xu ly gracefully,Skip,2026-04-04
+TC_APPR_01,Approval,Submit version de duyet,Click submit,Toast thanh cong va status=submitted,Pass,2026-04-04
+TC_APPR_02,Approval,Duyet version cap Khoa,Approve as LANH_DAO_KHOA,Status=approved_khoa,Skip,2026-04-04
+TC_APPR_03,Approval,Duyet version cap PDT,Approve as PHONG_DAO_TAO,Status=approved_pdt,Skip,2026-04-04
+TC_APPR_04,Approval,Duyet version cap BGH,Approve as BAN_GIAM_HIEU,Status=approved_bgh,Skip,2026-04-04
+TC_APPR_05,Approval,Tu choi version,Reject with reason,Status=rejected va reason hien thi,Pass,2026-04-04
+TC_APPR_06,Approval,Submit version da submit,Re-submit,Hien thi loi hoac button disabled,Pass,2026-04-04
+TC_APPR_07,Approval,Duyet khi khong co quyen,Login as GIANG_VIEN,Nut duyet khong hien thi,Pass,2026-04-04
+TC_APPR_08,Approval,Tu choi khong co ly do,Reject voi notes trong,Hien thi loi,Pass,2026-04-04
+TC_APPR_09,Approval,Duyet version khong phai cua minh,Wrong department,Hien thi loi,Skip,2026-04-04
+TC_APPR_10,Approval,Xoa version bi tu choi,Delete rejected,Toast thanh cong va xoa khoi list,Skip,2026-04-04
+TC_APPR_11,Approval,Submit lai sau khi bi tu choi,Re-submit after fix,Status=submitted lai,Skip,2026-04-04
+TC_USER_01,Users,Xem danh sach users,Navigate to users,Bang users hien thi,Pass,2026-04-04
+TC_USER_02,Users,Tao user moi,username=testuser; password=Test123; display=Test User,Toast thanh cong va user trong list,Pass,2026-04-04
+TC_USER_03,Users,Sua user,Cap nhat display name,Toast thanh cong,Pass,2026-04-04
+TC_USER_04,Users,Gan vai tro cho user,Select role + dept,Role badge hien thi tren user,Pass,2026-04-04
+TC_USER_05,Users,Xoa vai tro khoi user,Remove role,Role bi xoa,Pass,2026-04-04
+TC_USER_06,Users,Tao user trong username,username=empty,Hien thi loi trong modal,Pass,2026-04-04
+TC_USER_07,Users,Tao user trong mat khau,password=empty,Hien thi loi trong modal,Pass,2026-04-04
+TC_USER_08,Users,Tao user trung username,username=duplicate,Hien thi loi,Pass,2026-04-04
+TC_USER_09,Users,Xoa user dang hoat dong,Delete active user,Hien thi loi hoac xac nhan,Pass,2026-04-04
+TC_USER_10,Users,Toggle user active/inactive,Toggle status,Status thay doi va toast thanh cong,Pass,2026-04-04
+TC_USER_11,Users,Tao user ky tu dac biet,Special chars trong name,Luu thanh cong,Pass,2026-04-04
+TC_RBAC_01,RBAC Admin,Xem tab Tai khoan,Click tab,Danh sach users hien thi,Pass,2026-04-04
+TC_RBAC_02,RBAC Admin,Tim kiem user,Search by name,Ket qua loc,Pass,2026-04-04
+TC_RBAC_03,RBAC Admin,Loc user theo vai tro,Select role filter,Ket qua loc,Pass,2026-04-04
+TC_RBAC_04,RBAC Admin,Xem tab Vai tro,Click tab,Danh sach roles hien thi,Pass,2026-04-04
+TC_RBAC_05,RBAC Admin,Tao vai tro moi,code + name + level,Toast thanh cong,Pass,2026-04-04
+TC_RBAC_06,RBAC Admin,Gan quyen cho vai tro,Check permissions,Toast thanh cong,Pass,2026-04-04
+TC_RBAC_07,RBAC Admin,Xem Ma tran quyen,Click tab,Bang matrix hien thi,Pass,2026-04-04
+TC_RBAC_08,RBAC Admin,Xem tab Don vi,Click tab,Danh sach departments hien thi,Pass,2026-04-04
+TC_RBAC_09,RBAC Admin,Tao vai tro trong ma,code=empty,Hien thi loi,Pass,2026-04-04
+TC_RBAC_10,RBAC Admin,Tao vai tro trung ma,code=duplicate,Hien thi loi,Pass,2026-04-04
+TC_RBAC_11,RBAC Admin,Xoa vai tro dang su dung,Role assigned to users,Hien thi loi,Pass,2026-04-04
+TC_RBAC_12,RBAC Admin,Truy cap RBAC khong phai admin,Login as non-admin,Trang khong hien thi hoac redirect,Pass,2026-04-04
+TC_RBAC_13,RBAC Admin,Gan vai tro khong chon phong ban,Role without dept,Hien thi loi,Pass,2026-04-04
+TC_RBAC_14,RBAC Admin,Tim kiem khong ket qua,Nonexistent name,Empty state,Pass,2026-04-04
+TC_RBAC_15,RBAC Admin,Tao vai tro ky tu dac biet,Special chars,Luu thanh cong hoac loi,Pass,2026-04-04
+TC_RBAC_16,RBAC Admin,Sua vai tro va cap nhat quyen,Edit + permissions change,Ca hai luu thanh cong,Pass,2026-04-04
+TC_DEPT_01,Departments,Xem danh sach don vi,Navigate to departments,Tree view hien thi,Pass,2026-04-04
+TC_DEPT_02,Departments,Tao don vi moi,code=DV_TEST; name=Don Vi Test; type=BO_MON,Toast thanh cong va hien thi trong tree,Pass,2026-04-04
+TC_DEPT_03,Departments,Sua don vi,Cap nhat ten,Toast thanh cong,Pass,2026-04-04
+TC_DEPT_04,Departments,Tao don vi con,Set parent,Don vi con hien thi duoi parent,Pass,2026-04-04
+TC_DEPT_05,Departments,Tao don vi trong ma,code=empty,Hien thi loi trong modal,Pass,2026-04-04
+TC_DEPT_06,Departments,Tao don vi trung ma,code=duplicate,Hien thi loi,Pass,2026-04-04
+TC_DEPT_07,Departments,Xoa don vi co don vi con,Parent with children,Hien thi loi,Pass,2026-04-04
+TC_DEPT_08,Departments,Tao don vi ky tu dac biet,Special chars trong name,Luu thanh cong,Pass,2026-04-04
+TC_DEPT_09,Departments,Tao don vi ten cuc dai,300 ky tu name,Luu thanh cong hoac loi,Pass,2026-04-04
+TC_AUDIT_01,Audit Logs,Xem nhat ky he thong,Navigate to audit logs,Bang log entries hien thi,Pass,2026-04-04
+TC_AUDIT_02,Audit Logs,Phan trang nhat ky,Click next page,Trang moi hien thi,Pass,2026-04-04
+TC_AUDIT_03,Audit Logs,Hien thi badge mau theo action,View logs,POST=xanh; PUT=cam; DELETE=do,Pass,2026-04-04
+TC_AUDIT_04,Audit Logs,Xem audit khi khong co quyen,Non-admin user,Trang khong hien thi,Pass,2026-04-04
+TC_AUDIT_05,Audit Logs,Phan trang khi het data,Click next at last page,Button disabled hoac khong co data,Pass,2026-04-04
+TC_ASSIGN_01,My Assignments,Xem danh sach phan cong,Navigate as teacher,Bang assignments hien thi,Pass,2026-04-04
+TC_ASSIGN_02,My Assignments,Tao de cuong tu phan cong,Click create syllabus,Syllabus editor mo,Skip,2026-04-04
+TC_ASSIGN_03,My Assignments,Hien thi deadline va mau sac,View assignments,Deadlines co mau tuong ung,Pass,2026-04-04
+TC_ASSIGN_04,My Assignments,Xem khi khong co phan cong,User khong co assignments,Hien thi empty state,Pass,2026-04-04
+TC_ASSIGN_05,My Assignments,Tao de cuong khi da ton tai,Duplicate create,Hien thi loi hoac mo existing,Skip,2026-04-04
+TC_ASSIGN_06,My Assignments,Hien thi deadline qua han,Overdue assignment,Hien thi mau do,Pass,2026-04-04
+TC_IMPORT_01,Import Word,Upload file Word,.docx file,File duoc parse va preview hien thi,Skip,2026-04-04
+TC_IMPORT_02,Import Word,Luu du lieu tu Word,Confirm import,Program/version tao thanh cong,Skip,2026-04-04
+TC_IMPORT_03,Import Word,Preview truoc khi luu,After upload,Du lieu parse hien thi de review,Skip,2026-04-04
+TC_IMPORT_04,Import Word,Upload file khong phai Word,.pdf file,Hien thi loi,Skip,2026-04-04
+TC_IMPORT_05,Import Word,Upload file Word rong,Empty .docx,Hien thi loi hoac preview trong,Skip,2026-04-04
+TC_IMPORT_06,Import Word,Upload file qua lon,>10MB file,Hien thi loi,Skip,2026-04-04
+TC_IMPORT_07,Import Word,Word voi format khong chuan,Badly formatted doc,Parse mot phan hoac hien thi loi,Skip,2026-04-04
+TC_IMPORT_08,Import Word,Word voi ky tu dac biet,Special chars trong content,Parse thanh cong,Skip,2026-04-04
+TC_FLOW_01,Flowchart,Xem so do chuong trinh,Mo tab flowchart,SVG diagram render,Pass,2026-04-04
+TC_FLOW_02,Flowchart,Tuong tac voi node,Click course node,Node highlighted hoac info hien thi,Skip,2026-04-04
+TC_FLOW_03,Flowchart,Flowchart khong co du lieu,Version khong co courses,Empty state hoac message,Pass,2026-04-04
+TC_FLOW_04,Flowchart,Flowchart voi nhieu HP,50+ courses,Render khong bi performance issue,Skip,2026-04-04
