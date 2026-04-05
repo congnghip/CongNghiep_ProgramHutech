@@ -28,24 +28,24 @@ window.CoursesPage = {
             <form id="course-form">
               <input type="hidden" id="c-edit-id">
               <div class="input-group">
-                <label>Mã học phần <span style="color:var(--danger);">*</span></label>
+                <label>Mã học phần <span class="required-mark">*</span></label>
                 <input type="text" id="c-code" required placeholder="VD: CHN107">
               </div>
               <div class="input-group">
-                <label>Tên học phần <span style="color:var(--danger);">*</span></label>
+                <label>Tên học phần <span class="required-mark">*</span></label>
                 <input type="text" id="c-name" required placeholder="VD: Tiếng Trung 1">
               </div>
               <div class="input-group">
                 <label>Số tín chỉ</label>
                 <input type="number" id="c-credits" value="3" min="1" max="20">
               </div>
-              <div style="display:flex;gap:8px;">
+              <div class="flex-row">
                 <div class="input-group" style="flex:1;margin:0;"><label>LT</label><input type="number" id="c-lt" value="0" min="0"></div>
                 <div class="input-group" style="flex:1;margin:0;"><label>TH</label><input type="number" id="c-th" value="0" min="0"></div>
                 <div class="input-group" style="flex:1;margin:0;"><label>ĐA</label><input type="number" id="c-da" value="0" min="0"></div>
                 <div class="input-group" style="flex:1;margin:0;"><label>TT</label><input type="number" id="c-tt" value="0" min="0"></div>
               </div>
-              <div style="display:flex;gap:8px;">
+              <div class="flex-row">
                 <div class="input-group" style="flex:1;margin:0;">
                   <label>Khoa/Viện</label>
                   <select id="c-khoa"></select>

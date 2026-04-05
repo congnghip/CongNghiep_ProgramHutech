@@ -27,7 +27,7 @@ window.UsersPage = {
             <form id="user-form">
               <input type="hidden" id="u-edit-id">
               <div class="input-group">
-                <label>Tên đăng nhập <span style="color:var(--danger);">*</span></label>
+                <label>Tên đăng nhập <span class="required-mark">*</span></label>
                 <input type="text" id="u-username" required placeholder="VD: nguyenvana">
               </div>
               <div class="input-group">
@@ -35,7 +35,7 @@ window.UsersPage = {
                 <input type="password" id="u-password" placeholder="(bỏ trống nếu không đổi)">
               </div>
               <div class="input-group">
-                <label>Tên hiển thị <span style="color:var(--danger);">*</span></label>
+                <label>Tên hiển thị <span class="required-mark">*</span></label>
                 <input type="text" id="u-display" required placeholder="VD: Nguyễn Văn A">
               </div>
               <div class="input-group">
@@ -184,7 +184,7 @@ window.UsersPage = {
     list.innerHTML = roles.length === 0
       ? '<p class="text-muted" style="font-size:12px;">Chưa có vai trò nào</p>'
       : roles.map(r => `
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:var(--bg-secondary);border-radius:6px;margin-bottom:4px;font-size:12px;">
+          <div class="flex-between" style="padding:6px 10px;background:var(--bg-secondary);border-radius:6px;margin-bottom:4px;font-size:12px;">
             <span><span class="badge badge-primary">${r.role_name}</span> <span class="text-muted">@ ${r.dept_name}</span></span>
             <button class="btn btn-secondary btn-sm" style="color:var(--danger);padding:2px 6px;" onclick="window.UsersPage.removeRole(${userId},'${r.role_code}',${r.dept_id || 0})">✕</button>
           </div>

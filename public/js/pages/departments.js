@@ -22,11 +22,11 @@ window.DepartmentsPage = {
                 <select id="dept-parent"></select>
               </div>
               <div class="input-group">
-                <label>Mã đơn vị <span style="color:var(--danger);">*</span></label>
+                <label>Mã đơn vị <span class="required-mark">*</span></label>
                 <input type="text" id="dept-code" required placeholder="VD: K.CNTT">
               </div>
               <div class="input-group">
-                <label>Tên đơn vị <span style="color:var(--danger);">*</span></label>
+                <label>Tên đơn vị <span class="required-mark">*</span></label>
                 <input type="text" id="dept-name" required placeholder="VD: Khoa CNTT">
               </div>
               <div class="input-group">
@@ -75,13 +75,13 @@ window.DepartmentsPage = {
       const indent = depth * 28;
       return `
         <div class="tree-node" style="margin-left:${indent}px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div class="flex-between">
             <div>
               <div style="font-weight:500;font-size:14px;">${node.name}</div>
-              <div style="font-size:11px;color:var(--text-muted);">${node.code} · <span class="badge ${badges[node.type] || 'badge-neutral'}">${typeLabels[node.type] || node.type}</span></div>
+              <div class="text-muted" style="font-size:11px;">${node.code} · <span class="badge ${badges[node.type] || 'badge-neutral'}">${typeLabels[node.type] || node.type}</span></div>
             </div>
             </div>
-            <div style="display:flex;gap:4px;">
+            <div class="flex-row" style="gap:4px;">
               ${node.type !== 'ROOT' ? `<button class="btn btn-secondary btn-sm" onclick="window.DepartmentsPage.openEditModal(${node.id})">Sửa</button>` : ''}
               <button class="btn btn-secondary btn-sm" onclick="window.DepartmentsPage.openAddModal(${node.id})">+ Con</button>
             </div>
