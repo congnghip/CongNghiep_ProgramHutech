@@ -65,38 +65,38 @@ window.SyllabusEditorPage = {
     const editable = s.status === 'draft';
 
     container.innerHTML = `
-      <div style="margin-bottom:24px;">
-        <nav style="display:flex;align-items:center;gap:6px;font-size:13px;margin-bottom:12px;flex-wrap:wrap;">
+      <div class="page-header">
+        <nav class="breadcrumb-nav mb-3">
           ${s.author_id === window.App.currentUser?.id
-            ? `<a href="#" onclick="event.preventDefault();window.App.navigate('my-assignments')" style="color:var(--text-muted);text-decoration:none;cursor:pointer;" onmouseenter="this.style.textDecoration='underline'" onmouseleave="this.style.textDecoration='none'">Đề cương của tôi</a>`
-            : `<a href="#" onclick="event.preventDefault();window.App.navigate('approval')" style="color:var(--text-muted);text-decoration:none;cursor:pointer;" onmouseenter="this.style.textDecoration='underline'" onmouseleave="this.style.textDecoration='none'">Phê duyệt</a>`
+            ? `<a href="#" onclick="event.preventDefault();window.App.navigate('my-assignments')" class="breadcrumb-link">Đề cương của tôi</a>`
+            : `<a href="#" onclick="event.preventDefault();window.App.navigate('approval')" class="breadcrumb-link">Phê duyệt</a>`
           }
-          <span style="color:var(--text-muted);">›</span>
-          <span style="color:var(--text);font-weight:600;">${s.course_code} — ${s.course_name}</span>
+          <span class="breadcrumb-sep">›</span>
+          <span class="breadcrumb-current">${s.course_code} — ${s.course_name}</span>
         </nav>
-        <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div class="flex-between">
           <div>
-            <h1 style="font-size:22px;font-weight:700;letter-spacing:-0.3px;">${s.course_name}</h1>
-            <div style="display:flex;gap:8px;align-items:center;margin-top:4px;">
+            <h1 class="page-title" style="font-size:22px;">${s.course_name}</h1>
+            <div class="page-header-meta">
               <span class="badge badge-info">${statusLabels[s.status] || s.status}</span>
-              <span style="color:var(--text-muted);font-size:12px;">${s.credits} TC · ${s.author_name || '?'}</span>
+              <span class="text-muted-sm">${s.credits} TC · ${s.author_name || '?'}</span>
             </div>
           </div>
-          <div style="display:flex;gap:8px;">
+          <div class="page-header-actions">
             ${editable ? '<button class="btn btn-secondary btn-sm" onclick="window.SyllabusEditorPage.importPdf()">Import từ PDF</button>' : ''}
             ${editable ? '<button class="btn btn-primary btn-sm" onclick="window.SyllabusEditorPage.submitForApproval()">Nộp duyệt</button>' : ''}
           </div>
         </div>
       </div>
       ${s.is_rejected ? `
-        <div style="background:rgba(227, 179, 65, 0.12);border:1px solid #e3a008;border-radius:var(--radius-lg);padding:16px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
-          <div style="display:flex;align-items:center;gap:12px;">
+        <div class="rejection-banner">
+          <div class="rejection-banner-content">
             <span class="badge badge-warning" style="padding:4px 8px;font-weight:600;">Bị từ chối</span>
-            <div style="font-size:13px;color:#92600a;font-weight:500;">Yêu cầu chỉnh sửa từ người phê duyệt</div>
+            <div class="rejection-banner-label">Yêu cầu chỉnh sửa từ người phê duyệt</div>
           </div>
-          <button class="btn btn-sm" style="background:#e3a008;color:#fff;border:none;" onclick="window.SyllabusEditorPage.toggleRejectionReason()">Lý do từ chối</button>
+          <button class="btn btn-sm btn-warning" onclick="window.SyllabusEditorPage.toggleRejectionReason()">Lý do từ chối</button>
         </div>
-        <div id="syl-rejection-panel" style="display:none;background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;margin-bottom:24px;">
+        <div id="syl-rejection-panel" class="rejection-panel">
           <h4 style="font-size:13px;font-weight:600;margin-bottom:8px;">Lý do chi tiết:</h4>
           <div style="font-size:13px;line-height:1.5;white-space:pre-wrap;">${s.rejection_reason || 'Chưa có lý do cụ thể.'}</div>
         </div>
