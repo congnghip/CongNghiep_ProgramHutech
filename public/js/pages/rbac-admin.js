@@ -6,7 +6,7 @@ window.RBACAdminPage = {
 
   async render(container) {
     container.innerHTML = `
-      <h1 style="font-size:24px;font-weight:700;letter-spacing:-0.3px;margin-bottom:24px;">Phân quyền hệ thống</h1>
+      <h1 class="page-title mb-6">Phân quyền hệ thống</h1>
       <div class="tab-bar" id="rbac-tabs">
         <div class="tab-item active" data-tab="0">Tài khoản</div>
         <div class="tab-item" data-tab="1">Vai trò</div>
@@ -52,8 +52,8 @@ window.RBACAdminPage = {
   // ===== TAB 1: Tài khoản =====
   renderUsersTab(body) {
     body.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-        <div style="display:flex;gap:10px;align-items:center;">
+      <div class="flex-between mb-4">
+        <div class="flex-row" style="gap:10px;">
           <input type="text" id="user-search" placeholder="Tìm kiếm..." style="padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;width:220px;">
           <select id="user-filter-role" style="padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;">
             <option value="">Tất cả vai trò</option>
@@ -73,9 +73,9 @@ window.RBACAdminPage = {
           <div class="modal-body">
             <form id="user-form">
               <input type="hidden" id="u-edit-id">
-              <div class="input-group"><label>Tên đăng nhập <span style="color:var(--danger);">*</span></label><input type="text" id="u-username" required placeholder="username"></div>
+              <div class="input-group"><label>Tên đăng nhập <span class="required-mark">*</span></label><input type="text" id="u-username" required placeholder="username"></div>
               <div class="input-group"><label>Mật khẩu</label><input type="password" id="u-password" placeholder="(bỏ trống nếu không đổi)"></div>
-              <div class="input-group"><label>Tên hiển thị <span style="color:var(--danger);">*</span></label><input type="text" id="u-display" required placeholder="Họ tên"></div>
+              <div class="input-group"><label>Tên hiển thị <span class="required-mark">*</span></label><input type="text" id="u-display" required placeholder="Họ tên"></div>
               <div class="input-group"><label>Email</label><input type="email" id="u-email" placeholder="email@hutech.edu.vn"></div>
               <div class="modal-error" id="u-error"></div>
               <div class="modal-footer">
@@ -93,7 +93,7 @@ window.RBACAdminPage = {
           <div class="modal-body">
             <input type="hidden" id="ra-user-id">
             <div id="ra-current" style="margin-bottom:16px;"></div>
-            <div style="display:flex;gap:8px;align-items:end;">
+            <div class="flex-row" style="align-items:flex-end;gap:8px;">
               <div class="input-group" style="flex:1;margin:0;"><label>Vai trò</label><select id="ra-role"></select></div>
               <div class="input-group" style="flex:1;margin:0;"><label>Khoa</label><select id="ra-dept"></select></div>
               <div class="input-group" style="flex:1;margin:0;"><label>Ngành</label><select id="ra-nganh"><option value="">— Toàn khoa —</option></select></div>
@@ -219,13 +219,13 @@ window.RBACAdminPage = {
     document.getElementById('ra-user-id').value = userId;
     const roles = u.roles?.length && u.roles[0]?.role_code ? u.roles : [];
     document.getElementById('ra-current').innerHTML = roles.length === 0
-      ? '<p style="color:var(--text-muted);font-size:12px;">Chưa có vai trò</p>'
+      ? '<p class="text-muted-sm">Chưa có vai trò</p>'
       : roles.map(r => `
         <div
           data-role-assignment-item="true"
           data-role-code="${r.role_code}"
           data-department-id="${r.department_id}"
-          style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px;background:var(--bg-secondary);border:1px solid transparent;border-radius:var(--radius);margin-bottom:4px;font-size:12px;cursor:pointer;transition:background .15s ease,border-color .15s ease;"
+          class="role-item"
           title="Bấm để đổ lại xuống form bên dưới"
         >
           <span><span class="badge badge-primary">${r.role_name}</span> <span class="text-muted">@ ${r.parent_dept_name ? r.parent_dept_name + ' > ' : ''}${r.dept_name}</span></span>
@@ -273,8 +273,9 @@ window.RBACAdminPage = {
   highlightRoleAssignmentDraft() {
     document.querySelectorAll('[data-role-assignment-item="true"]').forEach(item => {
       const isActive = `${item.dataset.roleCode}:${item.dataset.departmentId}` === this.roleAssignDraftKey;
-      item.style.background = isActive ? 'rgba(59, 91, 219, 0.08)' : 'var(--bg-secondary)';
-      item.style.borderColor = isActive ? 'rgba(59, 91, 219, 0.25)' : 'transparent';
+      item.classList.toggle('active', isActive);
+      item.style.background = '';
+      item.style.borderColor = '';
     });
   },
 
@@ -355,8 +356,8 @@ window.RBACAdminPage = {
   // ===== TAB 2: Vai trò =====
   renderRolesTab(body) {
     body.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-        <h3 style="font-size:15px;font-weight:600;">Danh sách vai trò</h3>
+      <div class="flex-between mb-4">
+        <h3 class="section-title">Danh sách vai trò</h3>
       </div>
       <table class="data-table">
         <thead><tr><th>Mã</th><th>Tên</th><th>Level</th><th>Users</th><th>Quyền</th><th>Loại</th><th></th></tr></thead>
@@ -381,8 +382,8 @@ window.RBACAdminPage = {
           <div class="modal-header"><h2 id="role-modal-title">Tạo vai trò</h2></div>
           <div class="modal-body">
             <input type="hidden" id="r-edit-id">
-            <div class="input-group"><label>Mã vai trò <span style="color:var(--danger);">*</span></label><input type="text" id="r-code" required placeholder="MY_ROLE"></div>
-            <div class="input-group"><label>Tên <span style="color:var(--danger);">*</span></label><input type="text" id="r-name" required placeholder="Tên vai trò"></div>
+            <div class="input-group"><label>Mã vai trò <span class="required-mark">*</span></label><input type="text" id="r-code" required placeholder="MY_ROLE"></div>
+            <div class="input-group"><label>Tên <span class="required-mark">*</span></label><input type="text" id="r-name" required placeholder="Tên vai trò"></div>
             <div class="input-group"><label>Level</label><input type="number" id="r-level" min="1" max="99" value="1"></div>
             <div class="modal-error" id="r-error"></div>
             <div class="modal-footer">
@@ -480,11 +481,11 @@ window.RBACAdminPage = {
     };
 
     body.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-        <h3 style="font-size:15px;font-weight:600;">Ma trận phân quyền</h3>
+      <div class="flex-between mb-4">
+        <h3 class="section-title">Ma trận phân quyền</h3>
         <button class="btn btn-primary btn-sm" id="save-perm-matrix">Lưu thay đổi</button>
       </div>
-      <p style="color:var(--text-muted);font-size:12px;margin-bottom:12px;">✓ = Đã gán quyền. Click vào ô để bật/tắt.</p>
+      <p class="text-muted-sm" style="margin-bottom:12px;">✓ = Đã gán quyền. Click vào ô để bật/tắt.</p>
       <div style="overflow-x:auto; border-radius: var(--radius); border: 1px solid var(--border);">
         <table class="perm-matrix-table" id="perm-matrix">
           <thead>
@@ -569,8 +570,8 @@ window.RBACAdminPage = {
     };
 
     body.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-        <h3 style="font-size:15px;font-weight:600;">Cây đơn vị tổ chức</h3>
+      <div class="flex-between mb-4">
+        <h3 class="section-title">Cây đơn vị tổ chức</h3>
         <button class="btn btn-primary btn-sm" onclick="window.RBACAdminPage.openDeptModal()">+ Tạo đơn vị</button>
       </div>
       ${tree.map(n => renderNode(n)).join('')}
@@ -581,8 +582,8 @@ window.RBACAdminPage = {
           <div class="modal-body">
             <input type="hidden" id="d-edit-id">
             <div class="input-group"><label>Đơn vị cha</label><select id="d-parent"><option value="">— Gốc —</option>${this.departments.map(d => `<option value="${d.id}">${d.name}</option>`).join('')}</select></div>
-            <div class="input-group"><label>Mã <span style="color:var(--danger);">*</span></label><input type="text" id="d-code" required placeholder="K.ABC"></div>
-            <div class="input-group"><label>Tên <span style="color:var(--danger);">*</span></label><input type="text" id="d-name" required placeholder="Tên đơn vị"></div>
+            <div class="input-group"><label>Mã <span class="required-mark">*</span></label><input type="text" id="d-code" required placeholder="K.ABC"></div>
+            <div class="input-group"><label>Tên <span class="required-mark">*</span></label><input type="text" id="d-name" required placeholder="Tên đơn vị"></div>
             <div class="input-group"><label>Loại</label>
               <select id="d-type"><option value="KHOA">Khoa</option><option value="VIEN">Viện</option><option value="TRUNG_TAM">Trung tâm</option><option value="BO_MON">Ngành</option><option value="PHONG">Phòng ban</option></select>
             </div>
