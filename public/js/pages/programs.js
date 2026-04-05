@@ -10,7 +10,7 @@ window.ProgramsPage = {
       <div class="card">
         <div class="card-header">
           <div class="card-title">Chương trình Đào tạo</div>
-          <div style="display:flex;gap:8px;align-items:center;">
+          <div class="flex-row">
             ${window.App.isAdmin ? `<button id="archive-tab-btn" class="btn ${this.showArchived ? 'btn-warning' : 'btn-outline-secondary'} btn-sm" onclick="window.ProgramsPage.toggleArchived()">${this.showArchived ? '📦 Đang xem: Đã lưu trữ' : '📦 Đã lưu trữ'}</button>` : ''}
             ${window.App.hasPerm('programs.import_word') ? `<button class="btn btn-outline-primary" onclick="window.App.navigate('import-word')">Import Word</button>` : ''}
             ${!this.showArchived && window.App.hasPerm('programs.create') ? `<button class="btn btn-primary" onclick="window.ProgramsPage.openAddModal()">+ Tạo CTĐT</button>` : ''}
@@ -26,15 +26,15 @@ window.ProgramsPage = {
           <div class="modal-body" style="overflow-y:auto;flex:1;">
             <form id="prog-form">
               <input type="hidden" id="prog-edit-id">
-              <p style="font-weight:600;margin-bottom:8px;">Thông tin cơ bản</p>
-              <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">Các trường có dấu * là bắt buộc.</p>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <p class="section-title mb-2" style="font-size:14px;">Thông tin cơ bản</p>
+              <p class="text-muted mb-3" style="font-size:12px;">Các trường có dấu * là bắt buộc.</p>
+              <div class="grid-2col">
                 <div class="input-group">
-                  <label>Mã chương trình <span style="color:var(--danger);">*</span></label>
+                  <label>Mã chương trình <span class="required-mark">*</span></label>
                   <input type="text" id="prog-code" required placeholder="VD: 7220204">
                 </div>
                 <div class="input-group">
-                  <label>Khoa quản lý <span style="color:var(--danger);">*</span></label>
+                  <label>Khoa quản lý <span class="required-mark">*</span></label>
                   <select id="prog-dept" required></select>
                 </div>
                 <div class="input-group">
@@ -50,11 +50,11 @@ window.ProgramsPage = {
                   </select>
                 </div>
                 <div class="input-group">
-                  <label>Tên chương trình (Tiếng Việt) <span style="color:var(--danger);">*</span></label>
+                  <label>Tên chương trình (Tiếng Việt) <span class="required-mark">*</span></label>
                   <input type="text" id="prog-name" required placeholder="VD: Ngôn ngữ Trung Quốc" maxlength="255">
                 </div>
                 <div class="input-group">
-                  <label>Tên chương trình (Tiếng Anh) <span style="color:var(--danger);">*</span></label>
+                  <label>Tên chương trình (Tiếng Anh) <span class="required-mark">*</span></label>
                   <input type="text" id="prog-name-en" required placeholder="VD: Chinese Language" maxlength="255">
                 </div>
                 <div class="input-group">
@@ -64,9 +64,9 @@ window.ProgramsPage = {
               </div>
 
               <hr style="border:none;border-top:2px dashed var(--border);margin:16px 0;">
-              <p style="font-weight:600;margin-bottom:8px;">Thông tin bổ sung</p>
-              <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">Cung cấp thêm thông tin để đội ngũ tuyển sinh và đào tạo nắm rõ đặc điểm chương trình.</p>
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <p class="section-title mb-2" style="font-size:14px;">Thông tin bổ sung</p>
+              <p class="text-muted mb-3" style="font-size:12px;">Cung cấp thêm thông tin để đội ngũ tuyển sinh và đào tạo nắm rõ đặc điểm chương trình.</p>
+              <div class="grid-2col">
                 <div class="input-group">
                   <label>Cơ sở cấp bằng</label>
                   <input type="text" id="prog-institution" placeholder="VD: Trường Đại học Công nghệ TP.HCM">
@@ -108,7 +108,7 @@ window.ProgramsPage = {
           <div class="modal-body">
             <input type="hidden" id="ver-program-id">
             <div class="input-group">
-              <label>Năm học <span style="color:var(--danger);">*</span></label>
+              <label>Năm học <span class="required-mark">*</span></label>
               <input type="text" id="ver-year" required placeholder="VD: 2025-2026">
             </div>
             <div class="input-group">
@@ -133,9 +133,9 @@ window.ProgramsPage = {
               <input type="hidden" id="ver-edit-id">
               <input type="hidden" id="ver-edit-program-id">
               <input type="hidden" id="ver-edit-program-name">
-              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+              <div class="grid-2col">
                 <div class="input-group">
-                  <label>Số Phiên Bản <span style="color:var(--danger);">*</span></label>
+                  <label>Số Phiên Bản <span class="required-mark">*</span></label>
                   <input type="text" id="ver-edit-year" required placeholder="VD: 2025-2026">
                 </div>
                 <div class="input-group">
@@ -306,9 +306,7 @@ window.ProgramsPage = {
     });
 
     const renderProg = (p) => `
-      <div class="tree-node" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;padding:10px 12px;border-radius:8px;transition:background .15s;"
-           onmouseenter="this.style.background='var(--bg-hover, #f5f5f5)'"
-           onmouseleave="this.style.background=''"
+      <div class="tree-node flex-between" style="cursor:pointer;"
            onclick="window.ProgramsPage.viewVersions(${p.id},'${p.name.replace(/'/g,"\\'")}')">
         <div style="flex:1;min-width:0;">
           <div style="font-weight:600;font-size:14px;">${p.name}</div>
@@ -317,13 +315,13 @@ window.ProgramsPage = {
             <span class="badge badge-neutral">${p.version_count} phiên bản</span>
           </div>
         </div>
-        <div style="display:flex;gap:6px;flex-shrink:0;" onclick="event.stopPropagation()">
+        <div class="flex-row" style="flex-shrink:0;" onclick="event.stopPropagation()">
           ${p.archived_at ? `
             ${window.App.isAdmin ? `<button class="btn btn-sm btn-outline-primary" style="font-size:12px;" onclick="window.ProgramsPage.unarchiveProgram(${p.id}, '${p.name.replace(/'/g, "\\'")}')">Khôi phục</button>` : ''}
           ` : `
-            ${window.App.hasPerm('programs.edit') ? `<button class="btn btn-sm" style="background:none;border:1px solid var(--border);color:var(--text);font-size:12px;" onclick="window.ProgramsPage.openEditModal(${p.id})">Chỉnh sửa</button>` : ''}
-            ${window.App.hasPerm('programs.delete_draft') ? `<button class="btn btn-sm" style="background:none;border:none;color:var(--danger);font-size:12px;font-weight:500;" onclick="window.ProgramsPage.deleteProgram(${p.id}, '${p.name.replace(/'/g, "\\'")}')">Xóa</button>` : ''}
-            ${window.App.isAdmin && parseInt(p.version_count) > 0 ? `<button class="btn btn-sm" style="background:none;border:none;color:var(--warning, #e67e22);font-size:12px;font-weight:500;" onclick="window.ProgramsPage.archiveProgram(${p.id}, '${p.name.replace(/'/g, "\\'")}')">Lưu trữ</button>` : ''}
+            ${window.App.hasPerm('programs.edit') ? `<button class="btn btn-sm btn-outline-secondary" onclick="window.ProgramsPage.openEditModal(${p.id})">Chỉnh sửa</button>` : ''}
+            ${window.App.hasPerm('programs.delete_draft') ? `<button class="btn btn-sm btn-ghost" style="color:var(--danger);" onclick="window.ProgramsPage.deleteProgram(${p.id}, '${p.name.replace(/'/g, "\\'")}')">Xóa</button>` : ''}
+            ${window.App.isAdmin && parseInt(p.version_count) > 0 ? `<button class="btn btn-sm btn-ghost" style="color:var(--warning);" onclick="window.ProgramsPage.archiveProgram(${p.id}, '${p.name.replace(/'/g, "\\'")}')">Lưu trữ</button>` : ''}
           `}
         </div>
       </div>
@@ -331,11 +329,11 @@ window.ProgramsPage = {
 
     content.innerHTML = Object.entries(tree).map(([khoa, data]) => `
       <div style="margin-bottom:24px;">
-        <h3 style="font-size:15px;font-weight:700;margin-bottom:10px;color:var(--text);border-bottom:2px solid var(--border);padding-bottom:6px;">${khoa}</h3>
+        <h3 class="section-title" style="font-weight:700;margin-bottom:10px;border-bottom:2px solid var(--border);padding-bottom:6px;">${khoa}</h3>
         ${data.directProgs.length ? `<div style="display:grid;gap:8px;margin-bottom:12px;">${data.directProgs.map(renderProg).join('')}</div>` : ''}
         ${Object.entries(data.nganhs).map(([nganh, progs]) => `
           <div style="margin-left:20px;margin-bottom:14px;">
-            <h4 style="font-size:13px;font-weight:600;margin-bottom:8px;color:var(--text-muted);">${nganh}</h4>
+            <h4 class="mb-2" style="font-size:13px;font-weight:600;color:var(--text-muted);">${nganh}</h4>
             <div style="display:grid;gap:8px;">
               ${progs.map(renderProg).join('')}
             </div>
@@ -579,17 +577,15 @@ window.ProgramsPage = {
       const statusLabels = { draft: 'Bản nháp', submitted: 'Đã nộp', approved_khoa: 'Duyệt Khoa ✓', approved_pdt: 'Duyệt PĐT ✓', published: 'Đã công bố' };
 
       content.innerHTML = `
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+        <div class="flex-row mb-4" style="gap:10px;">
           <button class="btn btn-secondary btn-sm" onclick="window.ProgramsPage.backToList()">← Quay lại</button>
-          <h3 style="font-size:15px;font-weight:600;">Phiên bản: ${programName}</h3>
+          <h3 class="section-title">Phiên bản: ${programName}</h3>
         </div>
         ${versions.length === 0
           ? '<div class="empty-state"><div class="icon">📭</div><p>Chưa có phiên bản nào</p></div>'
           : `<div style="display:grid;gap:10px;">
             ${versions.map(v => `
-              <div class="tree-node" style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;padding:10px 12px;border-radius:8px;transition:background .15s;${v.is_locked ? 'opacity:0.7;' : ''}"
-                   onmouseenter="this.style.background='var(--bg-hover, #f5f5f5)'"
-                   onmouseleave="this.style.background=''"
+              <div class="tree-node flex-between" style="cursor:pointer;${v.is_locked ? 'opacity:0.7;' : ''}"
                    onclick="window.App.navigate('version-editor',{versionId:${v.id}})">
                 <div style="flex:1;min-width:0;">
                   <div style="font-weight:600;font-size:15px;">
@@ -604,10 +600,10 @@ window.ProgramsPage = {
                     ${v.copied_from_id ? ' · Copy từ phiên bản trước' : ''}
                   </div>
                 </div>
-                <div style="display:flex;gap:6px;flex-shrink:0;" onclick="event.stopPropagation()">
+                <div class="flex-row" style="flex-shrink:0;" onclick="event.stopPropagation()">
                   ${window.App.hasPerm('programs.create_version') && v.status === 'published' ? `<button class="btn btn-secondary btn-sm" title="Nhân bản phiên bản này" onclick="window.ProgramsPage.cloneVersion(${programId}, ${v.id}, '${v.academic_year}')">📋 Nhân bản</button>` : ''}
-                  ${window.App.hasPerm('programs.edit') && v.status === 'draft' ? `<button class="btn btn-sm" style="background:none;border:1px solid var(--border);color:var(--text);font-size:12px;" onclick="window.ProgramsPage.openVersionEditModal(${v.id}, ${programId}, '${programName.replace(/'/g, "\\'")}')">Chỉnh sửa</button>` : ''}
-                  ${window.App.hasPerm('programs.delete_draft') && v.status === 'draft' ? `<button class="btn btn-sm" style="background:none;border:none;color:var(--danger);font-size:12px;font-weight:500;" onclick="window.ProgramsPage.deleteVersion(${v.id}, '${v.academic_year}', ${programId}, '${programName.replace(/'/g, "\\'")}')">Xóa</button>` : ''}
+                  ${window.App.hasPerm('programs.edit') && v.status === 'draft' ? `<button class="btn btn-sm btn-outline-secondary" onclick="window.ProgramsPage.openVersionEditModal(${v.id}, ${programId}, '${programName.replace(/'/g, "\\'")}')">Chỉnh sửa</button>` : ''}
+                  ${window.App.hasPerm('programs.delete_draft') && v.status === 'draft' ? `<button class="btn btn-sm btn-ghost" style="color:var(--danger);" onclick="window.ProgramsPage.deleteVersion(${v.id}, '${v.academic_year}', ${programId}, '${programName.replace(/'/g, "\\'")}')">Xóa</button>` : ''}
                 </div>
               </div>
             `).join('')}
