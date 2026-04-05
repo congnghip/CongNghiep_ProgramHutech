@@ -703,7 +703,7 @@ a:hover { text-decoration: underline; }
 }
 .rejection-banner {
   background: rgba(227, 179, 65, 0.12);
-  border: 1px solid var(--warning);
+  border: 1px solid #e3a008;
   border-radius: var(--radius-lg);
   padding: var(--space-4);
   margin-bottom: var(--space-6);
@@ -739,7 +739,7 @@ a:hover { text-decoration: underline; }
   align-items: center;
   margin-top: var(--space-1);
 }
-.page-header-meta .text-muted-sm {
+.text-muted-sm {
   color: var(--text-muted);
   font-size: 12px;
 }

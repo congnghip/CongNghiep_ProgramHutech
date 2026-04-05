@@ -642,7 +642,7 @@ window.SyllabusEditorPage = {
       const btn = document.querySelector('button[onclick*="toggleRejectionReason"]');
       if (btn) {
         btn.textContent = isVisible ? 'Lý do từ chối' : 'Ẩn lý do';
-        if (isVisible) { btn.style.background = '#e3a008'; btn.style.color = '#fff'; }
+        if (isVisible) { btn.style.background = ''; btn.style.color = ''; btn.className = 'btn btn-sm btn-warning'; }
         else { btn.style.background = ''; btn.style.color = ''; btn.className = 'btn btn-secondary btn-sm'; }
       }
     }
