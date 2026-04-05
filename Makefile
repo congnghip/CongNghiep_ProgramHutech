@@ -1,4 +1,4 @@
-.PHONY: help up down restart logs logs-app logs-db app-shell db-shell dev start
+.PHONY: help up down restart logs logs-app logs-db app-shell db-shell dev start test test-headed test-one test-module test-report test-excel
 
 # Variables
 APP_CONTAINER = program-app
@@ -8,6 +8,8 @@ DB_NAME = program_db
 
 help: ## Hiển thị các lệnh hỗ trợ
 	@echo "Các lệnh hỗ trợ:"
+	@echo ""
+	@echo "  Docker:"
 	@echo "  make up          - Chạy chương trình với Docker Compose (chế độ ẩn)"
 	@echo "  make down        - Dừng và xóa các container"
 	@echo "  make restart     - Khởi động lại các container"
@@ -16,8 +18,18 @@ help: ## Hiển thị các lệnh hỗ trợ
 	@echo "  make logs-db     - Xem logs của database container"
 	@echo "  make app-shell   - Truy cập vào shell của application container"
 	@echo "  make db-shell    - Truy cập vào PostgreSQL terminal"
+	@echo ""
+	@echo "  App:"
 	@echo "  make dev         - Chạy chương trình ở môi trường dev local (npm run dev)"
 	@echo "  make start       - Chạy chương trình ở môi trường production local (npm start)"
+	@echo ""
+	@echo "  Test:"
+	@echo "  make test                    - Chạy toàn bộ 166 test cases"
+	@echo "  make test-headed             - Chạy test với browser hiển thị"
+	@echo "  make test-one TC=TC_AUTH_01  - Chạy 1 test case"
+	@echo "  make test-module M=Approval  - Chạy 1 module"
+	@echo "  make test-report             - Mở HTML report"
+	@echo "  make test-excel              - Xuất kết quả ra TestReport.xlsx"
 
 # --- Docker commands ---
 up:
@@ -51,3 +63,22 @@ dev:
 
 start:
 	npm start
+
+# --- Test commands ---
+test:
+	npx playwright test
+
+test-headed:
+	npx playwright test --headed
+
+test-one:
+	npx playwright test -g "$(TC)"
+
+test-module:
+	npx playwright test -g "$(M)"
+
+test-report:
+	npx playwright show-report
+
+test-excel:
+	node tests/generate-excel-report.js
