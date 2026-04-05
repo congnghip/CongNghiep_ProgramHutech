@@ -10,11 +10,11 @@ window.ImportWordPage = {
 
     container.innerHTML = `
       <div style="margin-bottom:24px;">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <div class="flex-row mb-2">
           <button class="btn btn-secondary btn-sm" onclick="window.App.navigate('programs')">← Quay lại</button>
-          <span style="color:var(--text-muted);">/ Import</span>
+          <span class="text-muted">/ Import</span>
         </div>
-        <h1 style="font-size:24px;font-weight:700;letter-spacing:-0.3px;">Import Chương trình từ Word</h1>
+        <h1 class="page-title">Import Chương trình từ Word</h1>
       </div>
       <div id="iw-body">
         ${this._uploadStepHTML()}
@@ -210,7 +210,7 @@ window.ImportWordPage = {
       <!-- Save area -->
       <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;">${this.existingProgram ? 'Tạo phiên bản mới' : 'Tạo bản nháp CTĐT'}</h3>
       <div style="padding:16px;background:var(--bg-secondary);border-radius:var(--radius-lg);">
-        <div style="display:flex;gap:10px;align-items:end;flex-wrap:wrap;">
+        <div class="flex-row" style="gap:10px;align-items:flex-end;flex-wrap:wrap;">
           ${this.existingProgram ? '' : `
           <div class="input-group" style="min-width:180px;flex:1;margin:0;">
             <label>Khoa quản lý <span style="color:var(--danger);">*</span></label>
@@ -226,7 +226,7 @@ window.ImportWordPage = {
             <input type="text" id="iw-year-input" placeholder="2024-2025" value="${this._escAttr(ver.academic_year || d.academic_year || '')}">
           </div>
         </div>
-        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">
+        <div class="flex-row mt-4" style="justify-content:flex-end;">
           <button class="btn btn-secondary btn-sm" onclick="window.ImportWordPage._backToUpload()">← Chọn lại file</button>
           <button class="btn btn-primary btn-sm" id="iw-save-btn" ${errCount > 0 ? 'disabled' : ''} onclick="window.ImportWordPage._confirmSave()">
             ${this.existingProgram ? 'Tạo phiên bản & Chỉnh sửa' : 'Tạo bản nháp & Chỉnh sửa'}

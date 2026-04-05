@@ -153,7 +153,7 @@ window.CourseFlowchart = {
 
   renderToolbar() {
     return `
-      <div id="flowchart-toolbar" style="display:flex;gap:8px;align-items:center;padding:12px 0;margin-bottom:8px;flex-wrap:wrap;">
+      <div id="flowchart-toolbar" class="flex-row" style="padding:12px 0;margin-bottom:8px;flex-wrap:wrap;">
         <button class="btn btn-sm" style="font-size:12px;" onclick="window.CourseFlowchart.zoom(0.1)">🔍 +</button>
         <button class="btn btn-sm" style="font-size:12px;" onclick="window.CourseFlowchart.zoom(-0.1)">🔍 −</button>
         <button class="btn btn-sm" style="font-size:12px;" onclick="window.CourseFlowchart.resetZoom()">↺ Reset</button>
@@ -241,12 +241,12 @@ window.CourseFlowchart = {
 
   renderLegend() {
     return `
-      <div style="display:flex;gap:24px;padding:12px 0;margin-top:8px;">
-        <div style="display:flex;align-items:center;gap:8px;">
+      <div class="flex-row" style="gap:24px;padding:12px 0;margin-top:8px;">
+        <div class="flex-row">
           <svg width="36" height="12"><line x1="0" y1="6" x2="26" y2="6" stroke="#2563eb" stroke-width="2"/><polygon points="26,2 34,6 26,10" fill="#2563eb"/></svg>
           <span style="font-size:12px;font-weight:500;">Tiên quyết</span>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;">
+        <div class="flex-row">
           <svg width="36" height="12"><line x1="0" y1="6" x2="26" y2="6" stroke="#ea580c" stroke-width="2" stroke-dasharray="6 4"/><polygon points="26,2 34,6 26,10" fill="#ea580c"/></svg>
           <span style="font-size:12px;font-weight:500;">Song hành</span>
         </div>
