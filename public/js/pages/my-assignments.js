@@ -53,7 +53,7 @@ window.MyAssignmentsPage = {
     };
 
     if (!this.assignments.length) {
-      tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text-muted);">Chưa có phân công nào.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="text-muted" style="text-align:center;">Chưa có phân công nào.</td></tr>';
       return;
     }
 
@@ -91,9 +91,7 @@ window.MyAssignmentsPage = {
         ? `window.App.navigate('syllabus-editor',{syllabusId:${a.syllabus_id}})`
         : `window.MyAssignmentsPage.createAndOpen(${a.assignment_id})`;
 
-      return `<tr style="cursor:pointer;transition:background .15s;"
-                  onmouseenter="this.style.background='var(--bg-hover, #f5f5f5)'"
-                  onmouseleave="this.style.background=''"
+      return `<tr style="cursor:pointer;"
                   onclick="${rowClick}">
         <td><strong>${a.course_code}</strong></td>
         <td>${a.course_name}</td>

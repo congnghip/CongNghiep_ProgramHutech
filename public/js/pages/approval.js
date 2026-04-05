@@ -39,11 +39,11 @@ window.ApprovalPage = {
       };
 
       container.innerHTML = `
-        <h1 style="font-size:24px;font-weight:700;letter-spacing:-0.3px;margin-bottom:24px;">Phê duyệt</h1>
+        <h1 class="page-title mb-6">Phê duyệt</h1>
 
-        <div style="margin-bottom:32px;">
-          <h3 style="font-size:15px;font-weight:600;margin-bottom:12px;">Chương trình ĐT</h3>
-          ${(data.programs || []).length === 0 ? '<p style="color:var(--text-muted);font-size:13px;">Không có CTĐT nào.</p>' : `
+        <div class="mb-8">
+          <h3 class="section-title mb-3">Chương trình ĐT</h3>
+          ${(data.programs || []).length === 0 ? '<p class="text-muted" style="font-size:13px;">Không có CTĐT nào.</p>' : `
             <table class="data-table">
               <thead><tr><th>Chương trình</th><th>Năm học</th><th>Khoa</th><th>Trạng thái</th><th></th></tr></thead>
               <tbody>
@@ -53,9 +53,9 @@ window.ApprovalPage = {
                   return `<tr style="cursor:pointer;" onclick="window.App.navigate('version-editor',{versionId:${p.id}})">
                     <td style="font-weight:500;color:var(--primary);">${p.program_name}</td>
                     <td>${p.academic_year}</td>
-                    <td style="color:var(--text-muted);">${p.dept_name || ''}</td>
+                    <td class="text-muted">${p.dept_name || ''}</td>
                     <td><span class="badge ${p.is_rejected ? 'badge-danger' : (p.status === 'published' ? 'badge-success' : 'badge-info')}">${p.is_rejected ? 'Bị từ chối' : (statusLabels[p.status] || p.status)}</span>
-                      ${p.is_rejected && p.rejection_reason ? `<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${p.rejection_reason}</div>` : ''}
+                      ${p.is_rejected && p.rejection_reason ? `<div class="text-muted mt-2" style="font-size:11px;">${p.rejection_reason}</div>` : ''}
                     </td>
                     <td style="white-space:nowrap;" onclick="event.stopPropagation()">
                       ${p.is_rejected ? `
@@ -72,9 +72,9 @@ window.ApprovalPage = {
           `}
         </div>
 
-        <div style="margin-bottom:32px;">
-          <h3 style="font-size:15px;font-weight:600;margin-bottom:12px;">Đề cương</h3>
-          ${(data.syllabi || []).length === 0 ? '<p style="color:var(--text-muted);font-size:13px;">Không có đề cương nào.</p>' : `
+        <div class="mb-8">
+          <h3 class="section-title mb-3">Đề cương</h3>
+          ${(data.syllabi || []).length === 0 ? '<p class="text-muted" style="font-size:13px;">Không có đề cương nào.</p>' : `
             <table class="data-table">
               <thead><tr><th>Mã</th><th>Tên HP</th><th>CTĐT</th><th>Tác giả</th><th>Trạng thái</th><th></th></tr></thead>
               <tbody>
@@ -85,9 +85,9 @@ window.ApprovalPage = {
                     <td><strong>${s.course_code || ''}</strong></td>
                     <td style="color:var(--primary);">${s.course_name || ''}</td>
                     <td style="font-size:12px;color:var(--text-muted);">${s.program_name || ''}${s.academic_year ? ` (${s.academic_year})` : ''}</td>
-                    <td style="color:var(--text-muted);">${s.author_name || '?'}</td>
+                    <td class="text-muted">${s.author_name || '?'}</td>
                     <td><span class="badge ${s.is_rejected ? 'badge-danger' : 'badge-info'}">${s.is_rejected ? 'Bị từ chối' : (statusLabels[s.status] || s.status)}</span>
-                      ${s.is_rejected && s.rejection_reason ? `<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${s.rejection_reason}</div>` : ''}
+                      ${s.is_rejected && s.rejection_reason ? `<div class="text-muted mt-2" style="font-size:11px;">${s.rejection_reason}</div>` : ''}
                     </td>
                     <td style="white-space:nowrap;" onclick="event.stopPropagation()">
                       ${s.is_rejected ? `
