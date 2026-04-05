@@ -52,40 +52,40 @@ window.VersionEditorPage = {
     this.visibleTabs = this.tabs.filter(t => window.App.hasPerm(statusPerm));
 
     container.innerHTML = `
-      <div style="margin-bottom:24px;">
-        <nav style="display:flex;align-items:center;gap:6px;font-size:13px;margin-bottom:12px;flex-wrap:wrap;">
-          <a href="#" onclick="event.preventDefault();window.App.navigate('programs')" style="color:var(--text-muted);text-decoration:none;cursor:pointer;" onmouseenter="this.style.textDecoration='underline'" onmouseleave="this.style.textDecoration='none'">Chương trình Đào tạo</a>
-          <span style="color:var(--text-muted);">›</span>
-          <a href="#" onclick="event.preventDefault();window.App.navigate('programs',{deptId:${this.version.department_id || 'null'},deptName:'${(this.version.dept_name || '').replace(/'/g, "\\'")}'})  " style="color:var(--text-muted);text-decoration:none;cursor:pointer;" onmouseenter="this.style.textDecoration='underline'" onmouseleave="this.style.textDecoration='none'">${this.version.dept_name || ''}</a>
-          <span style="color:var(--text-muted);">›</span>
-          <a href="#" onclick="event.preventDefault();window.App.navigate('programs',{programId:${this.version.program_id},programName:'${(this.version.program_name || '').replace(/'/g, "\\'")}'})  " style="color:var(--text-muted);text-decoration:none;cursor:pointer;" onmouseenter="this.style.textDecoration='underline'" onmouseleave="this.style.textDecoration='none'">${this.version.program_name}</a>
-          <span style="color:var(--text-muted);">›</span>
-          <span style="color:var(--text);font-weight:600;">${this.version.academic_year}</span>
+      <div class="page-header">
+        <nav class="breadcrumb-nav mb-3">
+          <a href="#" onclick="event.preventDefault();window.App.navigate('programs')" class="breadcrumb-link">Chương trình Đào tạo</a>
+          <span class="breadcrumb-sep">›</span>
+          <a href="#" onclick="event.preventDefault();window.App.navigate('programs',{deptId:${this.version.department_id || 'null'},deptName:'${(this.version.dept_name || '').replace(/'/g, "\\'")}'})  " class="breadcrumb-link">${this.version.dept_name || ''}</a>
+          <span class="breadcrumb-sep">›</span>
+          <a href="#" onclick="event.preventDefault();window.App.navigate('programs',{programId:${this.version.program_id},programName:'${(this.version.program_name || '').replace(/'/g, "\\'")}'})  " class="breadcrumb-link">${this.version.program_name}</a>
+          <span class="breadcrumb-sep">›</span>
+          <span class="breadcrumb-current">${this.version.academic_year}</span>
         </nav>
-        <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div class="flex-between">
           <div>
-            <h1 style="font-size:24px;font-weight:700;letter-spacing:-0.3px;">${this.version.academic_year}</h1>
-            <div style="display:flex;gap:8px;align-items:center;margin-top:4px;">
+            <h1 class="page-title">${this.version.academic_year}</h1>
+            <div class="page-header-meta">
               ${locked ? '<span class="badge badge-danger">Đã khóa</span>' : `<span class="badge badge-warning">${this.version.status}</span>`}
               ${isRejected ? '<span class="badge badge-danger">Bị từ chối</span>' : ''}
-              <span style="color:var(--text-muted);font-size:12px;">Hoàn thành ${this.version.completion_pct || 0}%</span>
+              <span class="text-muted-sm">Hoàn thành ${this.version.completion_pct || 0}%</span>
             </div>
           </div>
-          <div style="display:flex;gap:6px;">
+          <div class="page-header-actions">
             <button class="btn btn-secondary btn-sm" onclick="window.VersionEditorPage.exportVersion()">Xuất JSON</button>
             ${(isDraft && !locked && window.App.hasPerm('programs.submit')) ? '<button class="btn btn-primary btn-sm" onclick="window.VersionEditorPage.submitVersion()">Nộp duyệt</button>' : ''}
           </div>
         </div>
       </div>
       ${isRejected ? `
-        <div style="background:rgba(227, 179, 65, 0.12);border:1px solid #e3a008;border-radius:var(--radius-lg);padding:16px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;gap:12px;">
-          <div style="display:flex;align-items:center;gap:12px;">
+        <div class="rejection-banner">
+          <div class="rejection-banner-content">
             <span class="badge badge-warning" style="padding:4px 8px;font-weight:600;">Bị từ chối</span>
-            <div style="font-size:13px;color:#92600a;font-weight:500;">Yêu cầu chỉnh sửa từ người phê duyệt</div>
+            <div class="rejection-banner-label">Yêu cầu chỉnh sửa từ người phê duyệt</div>
           </div>
-          <button class="btn btn-sm" style="background:#e3a008;color:#fff;border:none;" onclick="window.VersionEditorPage.showRejectionReason()">Lý do từ chối</button>
+          <button class="btn btn-sm btn-warning" onclick="window.VersionEditorPage.showRejectionReason()">Lý do từ chối</button>
         </div>
-        <div id="rejection-panel" style="display:none;background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;margin-bottom:24px;">
+        <div id="rejection-panel" class="rejection-panel">
           <h4 style="font-size:13px;font-weight:600;margin-bottom:8px;">Lý do chi tiết:</h4>
           <div style="font-size:13px;line-height:1.5;white-space:pre-wrap;">${rejectionReason || 'Chưa có lý do cụ thể.'}</div>
         </div>
