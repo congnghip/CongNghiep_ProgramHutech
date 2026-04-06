@@ -114,6 +114,30 @@ window.SyllabusEditorPage = {
         <div class="tab-item" data-tab="5">Tài liệu</div>
       </div>
       <div id="syl-tab-content"><div class="spinner"></div></div>
+
+      <!-- Add CLO Modal -->
+      <div id="clo-add-modal" class="modal-overlay">
+        <div class="modal">
+          <div class="modal-header"><h2>Thêm CLO</h2></div>
+          <div class="modal-body">
+            <form id="clo-add-form">
+              <div class="input-group">
+                <label>Mã CLO <span class="required-mark">*</span></label>
+                <input type="text" id="clo-add-code" required placeholder="CLO1">
+              </div>
+              <div class="input-group">
+                <label>Mô tả</label>
+                <textarea id="clo-add-desc" rows="3" placeholder="Mô tả CLO..."></textarea>
+              </div>
+              <div class="modal-error" id="clo-add-error"></div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="window.SyllabusEditorPage.closeAddCLOModal()">Hủy</button>
+                <button type="submit" class="btn btn-primary">Thêm</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
     `;
 
     document.querySelectorAll('#syl-tabs .tab-item').forEach(el => {
@@ -125,6 +149,12 @@ window.SyllabusEditorPage = {
         this.renderSylTab();
       });
     });
+
+    document.getElementById('clo-add-form')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await this.submitAddCLO();
+    });
+
     this.renderSylTab();
   },
 
