@@ -279,39 +279,43 @@ window.SyllabusEditorPage = {
     this.renderSylTab();
   },
 
-  async saveImportedClos() {
+  async _persistImportedClos() {
     if (!this.importedClos) return;
-    try {
-      // Step 1: Delete existing CLOs
-      const existingClos = await fetch(`/api/syllabi/${this.syllabusId}/clos`).then(r => r.json());
-      for (const c of existingClos) {
-        await fetch(`/api/clos/${c.id}`, { method: 'DELETE' });
-      }
-      // Step 2: Create new CLOs and collect IDs
-      const cloIdMap = {}; // code → new DB id
-      for (const c of this.importedClos) {
-        const res = await fetch(`/api/syllabi/${this.syllabusId}/clos`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code: c.code, description: c.description })
+    // Step 1: Delete existing CLOs
+    const existingClos = await fetch(`/api/syllabi/${this.syllabusId}/clos`).then(r => r.json());
+    for (const c of existingClos) {
+      await fetch(`/api/clos/${c.id}`, { method: 'DELETE' });
+    }
+    // Step 2: Create new CLOs and collect ID map
+    const cloIdMap = {}; // code → new DB id
+    for (const c of this.importedClos) {
+      const res = await fetch(`/api/syllabi/${this.syllabusId}/clos`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: c.code, description: c.description }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error);
+      const created = await res.json();
+      cloIdMap[c.code] = created.id;
+    }
+    // Step 3: Save CLO-PLO mappings
+    if (this.importedMappings && this.importedMappings.length) {
+      const mappings = this.importedMappings
+        .filter(m => cloIdMap[m.clo_code] && m.plo_id)
+        .map(m => ({ clo_id: cloIdMap[m.clo_code], plo_id: m.plo_id, contribution_level: m.contribution_level }));
+      if (mappings.length) {
+        await fetch(`/api/syllabi/${this.syllabusId}/clo-plo-map`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mappings }),
         });
-        if (!res.ok) throw new Error((await res.json()).error);
-        const created = await res.json();
-        cloIdMap[c.code] = created.id;
       }
-      // Step 3: Save CLO-PLO mappings
-      if (this.importedMappings && this.importedMappings.length) {
-        const mappings = this.importedMappings
-          .filter(m => cloIdMap[m.clo_code] && m.plo_id)
-          .map(m => ({ clo_id: cloIdMap[m.clo_code], plo_id: m.plo_id, contribution_level: m.contribution_level }));
-        if (mappings.length) {
-          await fetch(`/api/syllabi/${this.syllabusId}/clo-plo-map`, {
-            method: 'PUT', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ mappings })
-          });
-        }
-      }
-      this.importedClos = null;
-      this.importedMappings = null;
+    }
+    this.importedClos = null;
+    this.importedMappings = null;
+  },
+
+  async saveImportedClos() {
+    try {
+      await this._persistImportedClos();
       window.toast.success('Đã lưu CLO và CLO-PLO mapping');
       this.renderSylTab();
     } catch (e) { window.toast.error(e.message); }
