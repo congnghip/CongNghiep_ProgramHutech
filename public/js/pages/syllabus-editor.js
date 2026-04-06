@@ -46,11 +46,13 @@ window.SyllabusEditorPage = {
   activeTab: 0,
   importedClos: null,
   importedMappings: null,
+  dirtyMapChanges: null,
 
   async render(container, syllabusId) {
     this.syllabusId = syllabusId;
     this.importedClos = null;
     this.importedMappings = null;
+    this.dirtyMapChanges = null;
     container.innerHTML = '<div class="spinner"></div>';
     try {
       this.syllabus = await fetch(`/api/syllabi/${syllabusId}`).then(r => r.json());
