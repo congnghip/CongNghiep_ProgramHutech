@@ -403,8 +403,10 @@ window.SyllabusEditorPage = {
     container.insertAdjacentHTML('beforeend', this._outlineRowHtml(emptyRow, idx, true));
   },
 
-  async saveOutline() {
-    const rows = document.querySelectorAll('#outline-container .outline-row');
+  _collectOutline() {
+    const container = document.getElementById('outline-container');
+    if (!container) return; // Tab 3 not mounted
+    const rows = container.querySelectorAll('.outline-row');
     const course_outline = Array.from(rows).map((r, i) => ({
       lesson: i + 1,
       title: r.querySelector('[data-field="title"]').value,
@@ -413,10 +415,13 @@ window.SyllabusEditorPage = {
       teaching_methods: r.querySelector('[data-field="teaching_methods"]').value,
       clos: r.querySelector('[data-field="clos"]').value.split(',').map(s => s.trim()).filter(Boolean),
     }));
-    const content = { ...this.syllabus.content, course_outline };
+    this.syllabus.content = { ...this.syllabus.content, course_outline };
+  },
+
+  async saveOutline() {
+    this._collectOutline();
     try {
-      await fetch(`/api/syllabi/${this.syllabusId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content }) });
-      this.syllabus.content = content;
+      await fetch(`/api/syllabi/${this.syllabusId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: this.syllabus.content }) });
       window.toast.success('Đã lưu');
     } catch (e) { window.toast.error(e.message); }
   },
