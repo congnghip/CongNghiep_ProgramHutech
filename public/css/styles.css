@@ -328,6 +328,10 @@ a:hover { text-decoration: underline; }
 .modal-overlay.active {
   opacity: 1;
   pointer-events: auto;
+  overflow-y: auto;
+}
+body.modal-open {
+  overflow: hidden;
 }
 .modal {
   background: var(--bg);

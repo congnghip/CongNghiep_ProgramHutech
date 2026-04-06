@@ -10,6 +10,7 @@
     async init() {
       this.initToast();
       this.initDialog();
+      this.initModalScrollLock();
       try {
         const res = await fetch('/api/auth/me');
         if (res.ok) {
@@ -164,6 +165,7 @@
       document.querySelectorAll('.nav-item[data-page]').forEach(item => {
         item.addEventListener('click', () => this.navigate(item.dataset.page));
       });
+
       this.navigate('dashboard');
     },
 
@@ -251,6 +253,7 @@
       document.getElementById('chpw-confirm').value = '';
       document.getElementById('chpw-error').classList.remove('show');
       document.getElementById('chpw-modal').classList.add('active');
+      App.modalGuard('chpw-modal', () => App.submitChangePassword());
     },
 
     async submitChangePassword() {
@@ -275,6 +278,15 @@
         errEl.textContent = e.message;
         errEl.classList.add('show');
       }
+    },
+
+    // ====== MODAL SCROLL LOCK ======
+    initModalScrollLock() {
+      const observer = new MutationObserver(() => {
+        const hasActiveModal = document.querySelector('.modal-overlay.active');
+        document.body.classList.toggle('modal-open', !!hasActiveModal);
+      });
+      observer.observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class'] });
     },
 
     // ====== TOAST ======
@@ -324,6 +336,7 @@
             <div class="modal-error" id="ui-dialog-error"></div>
             <div class="modal-footer ui-dialog-footer">
               <button type="button" class="btn btn-secondary" id="ui-dialog-cancel">Hủy</button>
+              <button type="button" class="btn btn-secondary" id="ui-dialog-discard" style="display:none"></button>
               <button type="button" class="btn btn-primary" id="ui-dialog-confirm">Xác nhận</button>
             </div>
           </div>
@@ -339,6 +352,7 @@
       const inputEl = document.getElementById('ui-dialog-input');
       const errorEl = document.getElementById('ui-dialog-error');
       const cancelBtn = document.getElementById('ui-dialog-cancel');
+      const discardBtn = document.getElementById('ui-dialog-discard');
       const confirmBtn = document.getElementById('ui-dialog-confirm');
 
       const queue = [];
@@ -407,6 +421,11 @@
         finish(activeRequest.mode === 'prompt' ? null : false);
       };
 
+      const discard = () => {
+        if (!activeRequest) return;
+        finish('discard');
+      };
+
       const submit = () => {
         if (!activeRequest) return;
 
@@ -459,6 +478,8 @@
 
         cancelBtn.style.display = activeRequest.mode === 'alert' ? 'none' : '';
         cancelBtn.textContent = activeRequest.cancelText || 'Hủy';
+        discardBtn.style.display = activeRequest.discardText ? '' : 'none';
+        if (activeRequest.discardText) discardBtn.textContent = activeRequest.discardText;
         confirmBtn.textContent = activeRequest.confirmText || 'Xác nhận';
         confirmBtn.className = `btn ${activeRequest.confirmVariant === 'danger' || activeRequest.tone === 'danger' ? 'btn-danger' : 'btn-primary'}`;
 
@@ -488,6 +509,7 @@
         cancel();
       });
       cancelBtn.addEventListener('click', cancel);
+      discardBtn.addEventListener('click', discard);
       confirmBtn.addEventListener('click', submit);
       inputEl.addEventListener('input', () => showError(''));
       document.addEventListener('keydown', (e) => {
@@ -516,6 +538,55 @@
           return open('prompt', { ...options, message: String(messageOrOptions ?? ''), inputValue: defaultValue ?? '' });
         },
       };
+    },
+
+    // ====== MODAL GUARD (unsaved changes) ======
+    modalGuard(modalId, saveCallback) {
+      const modal = document.getElementById(modalId);
+      if (!modal) return;
+
+      // Snapshot current form values
+      const snapshot = new Map();
+      modal.querySelectorAll('input:not([type=hidden]), select, textarea').forEach(el => {
+        snapshot.set(el, el.type === 'checkbox' || el.type === 'radio' ? el.checked : el.value);
+      });
+
+      // Remove previous guard listener
+      if (modal._guardListener) modal.removeEventListener('click', modal._guardListener);
+
+      modal._guardListener = async (e) => {
+        if (e.target !== modal) return;
+
+        // Check dirty
+        let dirty = false;
+        for (const [el, val] of snapshot) {
+          const cur = el.type === 'checkbox' || el.type === 'radio' ? el.checked : el.value;
+          if (cur !== val) { dirty = true; break; }
+        }
+
+        if (!dirty) {
+          modal.classList.remove('active');
+          return;
+        }
+
+        const result = await window.ui.confirm({
+          title: 'Thay đổi chưa lưu',
+          message: 'Bạn có muốn lưu các thay đổi?',
+          confirmText: 'Lưu',
+          cancelText: 'Hủy',
+          discardText: 'Không lưu',
+          tone: 'warning',
+          dismissible: false,
+        });
+
+        if (result === true) {
+          await saveCallback();
+        } else if (result === 'discard') {
+          modal.classList.remove('active');
+        }
+      };
+
+      modal.addEventListener('click', modal._guardListener);
     },
   };
 

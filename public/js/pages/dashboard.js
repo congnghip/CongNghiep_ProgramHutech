@@ -84,12 +84,40 @@ window.DashboardPage = {
 
   actionLabel(action) {
     if (!action) return '';
+    // Reuse audit-logs translation if available
+    if (window.AuditLogsPage && window.AuditLogsPage.translateAction) {
+      return window.AuditLogsPage.translateAction(action).desc;
+    }
+    // Fallback inline translation
     const parts = action.split(' ');
     const method = parts[0];
-    const path = parts.slice(1).join(' ');
-    const map = { POST: 'tạo mới', PUT: 'cập nhật', DELETE: 'xóa' };
-    const target = path?.replace('/api/', '').replace(/\/\d+/g, '').replace(/\//g, ' › ') || '';
-    return `${map[method] || method} ${target}`;
+    const path = (parts.slice(1).join(' ') || '').replace('/api/', '');
+    const methodLabels = { POST: 'Tạo', PUT: 'Cập nhật', DELETE: 'Xóa', GET: 'Xem' };
+    const methodLabel = methodLabels[method] || method;
+    const pathMap = {
+      'auth/login': 'Đăng nhập', 'auth/logout': 'Đăng xuất', 'auth/change-password': 'Đổi mật khẩu',
+      'programs': 'chương trình ĐT', 'courses': 'học phần', 'users': 'tài khoản',
+      'roles': 'vai trò', 'departments': 'đơn vị', 'approval/submit': 'nộp phê duyệt',
+      'approval/review': 'phê duyệt / từ chối',
+    };
+    const cleaned = path.replace(/\/\d+/g, '').replace(/\/$/, '');
+    if (pathMap[cleaned]) {
+      const label = pathMap[cleaned];
+      if (['Đăng nhập', 'Đăng xuất', 'Đổi mật khẩu', 'nộp phê duyệt', 'phê duyệt / từ chối'].includes(label)) {
+        return label.charAt(0).toUpperCase() + label.slice(1);
+      }
+      return `${methodLabel} ${label}`;
+    }
+    // Version sub-resources
+    const versionMatch = cleaned.match(/^versions\/(.+)$/);
+    if (versionMatch) {
+      const sub = { 'objectives': 'mục tiêu PO', 'plos': 'CĐR PLO', 'courses': 'học phần CTĐT',
+        'po-plo-map': 'ma trận PO↔PLO', 'course-plo-map': 'ma trận HP↔PLO', 'course-pi-map': 'ma trận HP↔PI',
+        'assessments': 'đánh giá CĐR', 'syllabi': 'đề cương', 'assignments': 'phân công đề cương',
+      }[versionMatch[1]] || versionMatch[1];
+      return `${methodLabel} ${sub}`;
+    }
+    return `${methodLabel} ${cleaned.replace(/\//g, ' › ') || ''}`;
   },
 
   timeAgo(date) {

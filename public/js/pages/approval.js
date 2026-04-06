@@ -150,6 +150,7 @@ window.ApprovalPage = {
     document.getElementById('reject-entity-type').value = type;
     document.getElementById('reject-notes').value = '';
     document.getElementById('reject-modal').classList.add('active');
+    App.modalGuard('reject-modal', () => ApprovalPage.confirmReject());
   },
 
   async confirmReject() {

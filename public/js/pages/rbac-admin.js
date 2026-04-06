@@ -157,6 +157,7 @@ window.RBACAdminPage = {
     document.getElementById('u-save-btn').textContent = u ? 'Cập nhật' : 'Tạo mới';
     document.getElementById('u-error').classList.remove('show');
     document.getElementById('user-modal').classList.add('active');
+    App.modalGuard('user-modal', () => RBACAdminPage.saveUser());
   },
 
   async saveUser() {
@@ -406,6 +407,7 @@ window.RBACAdminPage = {
     document.getElementById('r-level').value = r ? r.level : 1;
     document.getElementById('r-error').classList.remove('show');
     document.getElementById('role-modal').classList.add('active');
+    App.modalGuard('role-modal', () => RBACAdminPage.saveRole());
   },
 
   async saveRole() {
@@ -619,6 +621,7 @@ window.RBACAdminPage = {
     }
     document.getElementById('d-error').classList.remove('show');
     document.getElementById('dept-modal').classList.add('active');
+    App.modalGuard('dept-modal', () => RBACAdminPage.saveDept());
   },
 
   async saveDept() {

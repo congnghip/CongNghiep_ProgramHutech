@@ -127,6 +127,7 @@ window.UsersPage = {
     document.getElementById('u-error').classList.remove('show');
     document.getElementById('u-save-btn').textContent = 'Tạo mới';
     document.getElementById('user-modal').classList.add('active');
+    App.modalGuard('user-modal', () => UsersPage.saveUser());
   },
 
   openEditModal(id) {
@@ -143,6 +144,7 @@ window.UsersPage = {
     document.getElementById('u-error').classList.remove('show');
     document.getElementById('u-save-btn').textContent = 'Cập nhật';
     document.getElementById('user-modal').classList.add('active');
+    App.modalGuard('user-modal', () => UsersPage.saveUser());
   },
 
   closeModal() { document.getElementById('user-modal').classList.remove('active'); },

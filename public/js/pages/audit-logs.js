@@ -19,6 +19,7 @@ window.AuditLogsPage = {
       [/^auth\/login$/, 'Đăng nhập'],
       [/^auth\/logout$/, 'Đăng xuất'],
       [/^auth\/change-password$/, 'Đổi mật khẩu'],
+      [/^auth\/me$/, 'Xem thông tin cá nhân'],
       // Programs
       [/^programs$/, 'chương trình ĐT'],
       [/^programs\/\d+$/, 'chương trình ĐT'],
@@ -35,22 +36,42 @@ window.AuditLogsPage = {
       [/^versions\/(\d+)\/syllabi$/, 'đề cương'],
       [/^versions\/(\d+)\/assignments$/, 'phân công đề cương'],
       [/^versions\/(\d+)\/assignments\/\d+$/, 'phân công đề cương'],
+      [/^versions\/(\d+)\/knowledge-blocks$/, 'khối kiến thức'],
+      [/^versions\/(\d+)\/teaching-plan$/, 'kế hoạch giảng dạy'],
+      [/^versions\/(\d+)\/teaching-plan\/bulk$/, 'kế hoạch giảng dạy'],
+      [/^versions\/(\d+)\/course-relations$/, 'quan hệ học phần'],
       // PLOs & PIs
       [/^plos\/(\d+)$/, 'chuẩn đầu ra PLO'],
       [/^plos\/(\d+)\/pis$/, 'chỉ số PI'],
       [/^pis\/(\d+)$/, 'chỉ số PI'],
+      // Objectives
+      [/^objectives\/(\d+)$/, 'mục tiêu PO'],
       // Courses
       [/^courses$/, 'học phần'],
+      [/^courses\/all$/, 'học phần'],
       [/^courses\/(\d+)$/, 'học phần'],
       [/^version-courses\/(\d+)$/, 'học phần trong CTĐT'],
-      // Syllabi
+      // Knowledge blocks
+      [/^knowledge-blocks\/(\d+)$/, 'khối kiến thức'],
+      [/^knowledge-blocks\/(\d+)\/assign-courses$/, 'gán HP vào khối KT'],
+      // Syllabi & CLOs
       [/^syllabi\/(\d+)$/, 'đề cương'],
       [/^syllabi\/(\d+)\/clos$/, 'CLO đề cương'],
       [/^syllabi\/(\d+)\/clo-plo-map$/, 'ma trận CLO ↔ PLO'],
+      [/^syllabi\/(\d+)\/import-pdf$/, 'import PDF đề cương'],
+      [/^clos\/(\d+)$/, 'CLO đề cương'],
+      // Assessments
+      [/^assessments\/(\d+)$/, 'đánh giá CĐR'],
+      // Assignments
+      [/^my-assignments$/, 'đề cương được phân công'],
       [/^my-assignments\/(\d+)\/create-syllabus$/, 'đề cương (từ phân công)'],
+      [/^assignments\/eligible-gv$/, 'GV đủ điều kiện phân công'],
       // Approval
       [/^approval\/submit$/, 'nộp phê duyệt'],
       [/^approval\/review$/, 'phê duyệt / từ chối'],
+      [/^approval\/pending$/, 'Xem danh sách chờ duyệt'],
+      [/^approval\/history\/.*$/, 'Xem lịch sử phê duyệt'],
+      [/^approval\/rejected\/.*$/, 'xóa từ chối'],
       // Users & RBAC
       [/^users$/, 'tài khoản'],
       [/^users\/(\d+)$/, 'tài khoản'],
@@ -60,17 +81,25 @@ window.AuditLogsPage = {
       [/^roles$/, 'vai trò'],
       [/^roles\/(\d+)$/, 'vai trò'],
       [/^roles\/(\d+)\/permissions$/, 'phân quyền vai trò'],
+      [/^permissions$/, 'quyền hạn'],
       [/^departments$/, 'đơn vị'],
       [/^departments\/(\d+)$/, 'đơn vị'],
-      // Export
+      // Export & Import
       [/^export\/version\/(\d+)$/, 'xuất CTĐT'],
+      [/^import\/parse-word$/, 'phân tích file Word'],
+      [/^import\/save$/, 'lưu dữ liệu import'],
+      // Dashboard & System
+      [/^dashboard\/stats$/, 'Xem thống kê'],
+      [/^health$/, 'Kiểm tra hệ thống'],
     ];
 
     for (const [regex, label] of patterns) {
       if (regex.test(path)) {
-        // Special cases where method label doesn't apply
-        if (label === 'Đăng nhập' || label === 'Đăng xuất' || label === 'Đổi mật khẩu' ||
-            label === 'nộp phê duyệt' || label === 'phê duyệt / từ chối') {
+        // Special cases where label is already a complete phrase (starts with uppercase)
+        if (/^[A-ZĐ]/.test(label)) {
+          return { method, desc: label };
+        }
+        if (label === 'nộp phê duyệt' || label === 'phê duyệt / từ chối') {
           return { method, desc: label.charAt(0).toUpperCase() + label.slice(1) };
         }
         return { method, desc: `${methodLabel} ${label}` };

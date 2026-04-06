@@ -41,40 +41,7 @@ window.CourseFlowchart = {
   },
 
   computeLayout() {
-    const g = new dagre.graphlib.Graph();
-    g.setGraph({
-      rankdir: 'LR',
-      ranksep: this.NODE_GAP_X,
-      nodesep: this.NODE_GAP_Y,
-      marginx: 20,
-      marginy: 20,
-    });
-    g.setDefaultEdgeLabel(() => ({}));
-
-    // Add nodes — group by semester using rank
-    this.courses.forEach(c => {
-      g.setNode(String(c.id), {
-        width: this.NODE_W,
-        height: this.NODE_H,
-        label: c.course_name,
-        semester: c.semester || 0,
-      });
-    });
-
-    // Collect edges
-    const edges = [];
-    this.courses.forEach(c => {
-      (c.prerequisite_course_ids || []).forEach(preId => {
-        edges.push({ from: String(preId), to: String(c.id), type: 'prerequisite' });
-        g.setEdge(String(preId), String(c.id));
-      });
-      (c.corequisite_course_ids || []).forEach(coId => {
-        edges.push({ from: String(coId), to: String(c.id), type: 'corequisite' });
-        g.setEdge(String(coId), String(c.id));
-      });
-    });
-
-    // Force semester-based ranking: create invisible edges between semester groups
+    // Group courses by semester
     const bySemester = {};
     this.courses.forEach(c => {
       const sem = c.semester || 0;
@@ -83,37 +50,48 @@ window.CourseFlowchart = {
     });
     const semesters = Object.keys(bySemester).map(Number).sort((a, b) => a - b);
 
-    // Add invisible anchor nodes per semester to enforce column ordering
-    semesters.forEach((sem, i) => {
-      const anchorId = `_anchor_${sem}`;
-      g.setNode(anchorId, { width: 0, height: 0 });
-      if (i > 0) {
-        g.setEdge(`_anchor_${semesters[i - 1]}`, anchorId, { minlen: 1 });
-      }
-      // Link first course in semester to anchor to keep them in same rank
-      bySemester[sem].forEach(c => {
-        g.setEdge(anchorId, String(c.id), { minlen: 0, weight: 0 });
+    // Build node position map: { [courseId]: { x, y } }
+    const MARGIN_X = 20;
+    const HEADER_H = 32;
+    const nodePos = {};
+    let maxRows = 0;
+
+    semesters.forEach((sem, colIdx) => {
+      const courses = bySemester[sem];
+      if (courses.length > maxRows) maxRows = courses.length;
+      courses.forEach((c, rowIdx) => {
+        const x = MARGIN_X + colIdx * (this.NODE_W + this.NODE_GAP_X);
+        const y = HEADER_H + rowIdx * (this.NODE_H + this.NODE_GAP_Y);
+        nodePos[c.id] = { x, y };
       });
     });
 
-    dagre.layout(g);
+    // Collect edges
+    const edges = [];
+    this.courses.forEach(c => {
+      (c.prerequisite_course_ids || []).forEach(preId => {
+        edges.push({ from: preId, to: c.id, type: 'prerequisite' });
+      });
+      (c.corequisite_course_ids || []).forEach(coId => {
+        edges.push({ from: coId, to: c.id, type: 'corequisite' });
+      });
+    });
 
-    return { graph: g, edges, semesters, bySemester };
+    // Canvas dimensions
+    const totalW = MARGIN_X + semesters.length * (this.NODE_W + this.NODE_GAP_X);
+    const totalH = HEADER_H + maxRows * (this.NODE_H + this.NODE_GAP_Y) + 20;
+
+    return { nodePos, edges, semesters, bySemester, totalW, totalH };
   },
 
   renderFlowchart(container) {
-    const { graph, edges, semesters, bySemester } = this.computeLayout();
-
-    // Calculate total dimensions from graph
-    const graphLabel = graph.graph();
-    const totalW = graphLabel.width || 800;
-    const totalH = graphLabel.height || 400;
+    const { nodePos, edges, semesters, bySemester, totalW, totalH } = this.computeLayout();
 
     container.innerHTML = `
       ${this.editable ? this.renderToolbar() : ''}
       <div id="flowchart-viewport" style="overflow:auto;border:1px solid var(--border, #e2e8f0);border-radius:12px;background:var(--bg-secondary, #f8f9fa);position:relative;">
-        <div id="flowchart-canvas" style="position:relative;min-width:${totalW + 40}px;min-height:${totalH + 80}px;transform-origin:0 0;">
-          ${this.renderSemesterHeaders(graph, semesters, bySemester)}
+        <div id="flowchart-canvas" style="position:relative;min-width:${totalW}px;min-height:${totalH}px;transform-origin:0 0;">
+          ${this.renderSemesterHeaders(nodePos, semesters, bySemester)}
           <svg id="flowchart-svg" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:1;">
             <defs>
               <marker id="arrow-prereq" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
@@ -123,9 +101,9 @@ window.CourseFlowchart = {
                 <polygon points="0 0, 8 3, 0 6" fill="#ea580c"/>
               </marker>
             </defs>
-            ${edges.map(e => this.renderArrow(graph, e)).join('')}
+            ${edges.map(e => this.renderArrow(nodePos, e)).join('')}
           </svg>
-          ${this.courses.filter(c => !String(c.id).startsWith('_')).map(c => this.renderNode(graph, c)).join('')}
+          ${this.courses.map(c => this.renderNode(nodePos, c)).join('')}
         </div>
       </div>
       ${this.renderLegend()}
@@ -166,29 +144,23 @@ window.CourseFlowchart = {
     `;
   },
 
-  renderSemesterHeaders(graph, semesters, bySemester) {
+  renderSemesterHeaders(nodePos, semesters, bySemester) {
     return semesters.map(sem => {
       const nodes = bySemester[sem];
-      let minX = Infinity, maxX = -Infinity;
-      nodes.forEach(c => {
-        const node = graph.node(String(c.id));
-        if (node) {
-          minX = Math.min(minX, node.x - node.width / 2);
-          maxX = Math.max(maxX, node.x + node.width / 2);
-        }
-      });
-      if (minX === Infinity) return '';
-      const centerX = (minX + maxX) / 2;
+      if (!nodes.length) return '';
+      const firstPos = nodePos[nodes[0].id];
+      if (!firstPos) return '';
+      const centerX = firstPos.x + this.NODE_W / 2;
       const label = sem === 0 ? 'Chưa xếp' : `HK ${sem}`;
       return `<div style="position:absolute;top:8px;left:${centerX - 40}px;width:80px;text-align:center;font-weight:700;font-size:12px;color:#2563eb;z-index:3;white-space:nowrap;">${label}</div>`;
     }).join('');
   },
 
-  renderNode(graph, course) {
-    const node = graph.node(String(course.id));
-    if (!node) return '';
-    const x = node.x - this.NODE_W / 2;
-    const y = node.y - this.NODE_H / 2 + 28;
+  renderNode(nodePos, course) {
+    const pos = nodePos[course.id];
+    if (!pos) return '';
+    const x = pos.x;
+    const y = pos.y;
     const isSource = this.sourceNode === course.id;
     const borderColor = isSource
       ? (this.mode === 'prerequisite' ? '#2563eb' : '#ea580c')
@@ -211,29 +183,41 @@ window.CourseFlowchart = {
     `;
   },
 
-  renderArrow(graph, edge) {
-    const fromNode = graph.node(edge.from);
-    const toNode = graph.node(edge.to);
-    if (!fromNode || !toNode) return '';
+  renderArrow(nodePos, edge) {
+    const fromPos = nodePos[edge.from];
+    const toPos = nodePos[edge.to];
+    if (!fromPos || !toPos) return '';
 
-    const yOffset = 28;
-    const x1 = fromNode.x + this.NODE_W / 2;
-    const y1 = fromNode.y + yOffset;
-    const x2 = toNode.x - this.NODE_W / 2;
-    const y2 = toNode.y + yOffset;
-
-    const midX = (x1 + x2) / 2;
     const isPrereq = edge.type === 'prerequisite';
     const color = isPrereq ? '#2563eb' : '#ea580c';
     const dash = isPrereq ? '' : 'stroke-dasharray="6 4"';
     const marker = isPrereq ? 'url(#arrow-prereq)' : 'url(#arrow-coreq)';
 
+    let pathD;
+    const sameColumn = fromPos.x === toPos.x;
+
+    if (sameColumn) {
+      const x1 = fromPos.x + this.NODE_W;
+      const y1 = fromPos.y + this.NODE_H / 2;
+      const x2 = toPos.x + this.NODE_W;
+      const y2 = toPos.y + this.NODE_H / 2;
+      const bulge = 40;
+      pathD = `M ${x1} ${y1} C ${x1 + bulge} ${y1}, ${x2 + bulge} ${y2}, ${x2} ${y2}`;
+    } else {
+      const x1 = fromPos.x + this.NODE_W;
+      const y1 = fromPos.y + this.NODE_H / 2;
+      const x2 = toPos.x;
+      const y2 = toPos.y + this.NODE_H / 2;
+      const midX = (x1 + x2) / 2;
+      pathD = `M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}`;
+    }
+
     return `
       <path class="flowchart-arrow" data-from="${edge.from}" data-to="${edge.to}" data-type="${edge.type}"
-            d="M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}"
+            d="${pathD}"
             stroke="transparent" stroke-width="12" fill="none"
             style="pointer-events:stroke;cursor:pointer;" />
-      <path d="M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}"
+      <path d="${pathD}"
             stroke="${color}" stroke-width="2" fill="none" ${dash} marker-end="${marker}"
             style="pointer-events:none;" />
     `;

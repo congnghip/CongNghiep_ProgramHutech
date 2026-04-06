@@ -114,6 +114,7 @@ window.DepartmentsPage = {
     document.getElementById('dept-error').classList.remove('show');
     document.getElementById('dept-save-btn').textContent = 'Tạo mới';
     document.getElementById('dept-modal').classList.add('active');
+    App.modalGuard('dept-modal', () => DepartmentsPage.save());
   },
 
   openEditModal(id) {
@@ -129,6 +130,7 @@ window.DepartmentsPage = {
     document.getElementById('dept-error').classList.remove('show');
     document.getElementById('dept-save-btn').textContent = 'Cập nhật';
     document.getElementById('dept-modal').classList.add('active');
+    App.modalGuard('dept-modal', () => DepartmentsPage.save());
   },
 
   populateParentSelect(selectedId) {

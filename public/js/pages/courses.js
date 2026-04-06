@@ -40,10 +40,10 @@ window.CoursesPage = {
                 <input type="number" id="c-credits" value="3" min="1" max="20">
               </div>
               <div class="flex-row">
-                <div class="input-group" style="flex:1;margin:0;"><label>LT</label><input type="number" id="c-lt" value="0" min="0"></div>
-                <div class="input-group" style="flex:1;margin:0;"><label>TH</label><input type="number" id="c-th" value="0" min="0"></div>
-                <div class="input-group" style="flex:1;margin:0;"><label>ĐA</label><input type="number" id="c-da" value="0" min="0"></div>
-                <div class="input-group" style="flex:1;margin:0;"><label>TT</label><input type="number" id="c-tt" value="0" min="0"></div>
+                <div class="input-group" style="flex:1;margin:0;"><label>LT</label><input type="text" id="c-lt" value="0" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,'')"></div>
+                <div class="input-group" style="flex:1;margin:0;"><label>TH</label><input type="text" id="c-th" value="0" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,'')"></div>
+                <div class="input-group" style="flex:1;margin:0;"><label>ĐA</label><input type="text" id="c-da" value="0" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,'')"></div>
+                <div class="input-group" style="flex:1;margin:0;"><label>TT</label><input type="text" id="c-tt" value="0" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,'')"></div>
               </div>
               <div class="flex-row">
                 <div class="input-group" style="flex:1;margin:0;">
@@ -144,6 +144,7 @@ window.CoursesPage = {
     document.getElementById('c-save-btn').textContent = c ? 'Cập nhật' : 'Thêm';
     document.getElementById('c-error').classList.remove('show');
     document.getElementById('course-modal').classList.add('active');
+    App.modalGuard('course-modal', () => CoursesPage.save());
   },
 
   async save() {

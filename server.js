@@ -89,7 +89,7 @@ function requirePerm(permCode) {
 async function checkVersionEditAccess(userId, vId, requiredPerm = 'programs.edit') {
   const admin = await isAdmin(userId);
   const result = await pool.query(`
-    SELECT pv.status, pv.is_locked, p.department_id, p.archived_at
+    SELECT pv.status, pv.is_locked, p.department_id
     FROM program_versions pv
     JOIN programs p ON pv.program_id = p.id
     WHERE pv.id = $1
@@ -98,7 +98,6 @@ async function checkVersionEditAccess(userId, vId, requiredPerm = 'programs.edit
   if (!result.rows.length) throw new Error('Phiên bản không tồn tại');
   const context = result.rows[0];
 
-  if (context.archived_at) throw new Error('CTĐT đã được lưu trữ.');
   if (admin) return context;
   if (context.is_locked) throw new Error('Phiên bản đã bị khóa, không thể chỉnh sửa.');
 
@@ -149,28 +148,6 @@ function requireDraft(vIdParam = 'vId', requiredPerm = 'programs.edit') {
 async function requireViewVersion(req, res, next) {
   try {
     const admin = await isAdmin(req.user.id);
-
-    // Block access to versions of archived programs (for ALL users including admin)
-    let checkVId = req.params.vId || (req.path.includes('/api/versions/') ? req.params.id : null);
-    let checkSId = req.params.sId || (req.path.includes('/api/syllabi/') ? req.params.id : null);
-    if (req.path.includes('/api/export/version/')) checkVId = req.params.vId;
-    if (req.params.entityType === 'program_version') checkVId = req.params.entityId;
-    if (req.params.entityType === 'syllabus') checkSId = req.params.entityId;
-
-    let archivedQuery, archivedParams;
-    if (checkVId) {
-      archivedQuery = 'SELECT p.archived_at FROM program_versions pv JOIN programs p ON pv.program_id = p.id WHERE pv.id = $1';
-      archivedParams = [checkVId];
-    } else if (checkSId) {
-      archivedQuery = 'SELECT p.archived_at FROM version_syllabi vs JOIN program_versions pv ON vs.version_id = pv.id JOIN programs p ON pv.program_id = p.id WHERE vs.id = $1';
-      archivedParams = [checkSId];
-    }
-    if (archivedQuery) {
-      const archivedRes = await pool.query(archivedQuery, archivedParams);
-      if (archivedRes.rows.length && archivedRes.rows[0].archived_at) {
-        return res.status(404).json({ error: 'CTĐT đã được lưu trữ.' });
-      }
-    }
 
     if (admin) return next();
 
@@ -534,13 +511,6 @@ app.get('/api/programs', authMiddleware, async (req, res) => {
     const params = [req.user.id];
     const conditions = [];
 
-    // Archive filter: by default hide archived, admin can request ?archived=true
-    if (admin && req.query.archived === 'true') {
-      conditions.push('p.archived_at IS NOT NULL');
-    } else {
-      conditions.push('p.archived_at IS NULL');
-    }
-
     if (!admin) {
       // Must have at least one allowed version to see the program in the list
       conditions.push(`EXISTS (
@@ -579,7 +549,7 @@ app.delete('/api/programs/:id', authMiddleware, requirePerm('programs.delete_dra
     // 1. Check if program has any published versions
     const check = await pool.query('SELECT id FROM program_versions WHERE program_id = $1 AND status = \'published\' LIMIT 1', [req.params.id]);
     if (check.rows.length > 0) {
-      return res.status(400).json({ error: 'Không thể xóa CTĐT đã công bố. Hãy sử dụng chức năng Lưu trữ thay vì xóa.' });
+      return res.status(400).json({ error: 'Không thể xóa CTĐT đã công bố. Vui lòng liên hệ Admin nếu cần xóa.' });
     }
 
     // 2. Nullify copied_from_id references pointing to versions of this program
@@ -600,33 +570,12 @@ app.delete('/api/programs/:id', authMiddleware, requirePerm('programs.delete_dra
   }
 });
 
-app.post('/api/programs/:id/archive', authMiddleware, async (req, res) => {
-  try {
-    const admin = await isAdmin(req.user.id);
-    if (!admin) return res.status(403).json({ error: 'Chỉ Admin mới có quyền lưu trữ CTĐT.' });
-    const result = await pool.query('UPDATE programs SET archived_at = NOW() WHERE id = $1 AND archived_at IS NULL RETURNING id', [req.params.id]);
-    if (!result.rows.length) return res.status(404).json({ error: 'CTĐT không tồn tại hoặc đã được lưu trữ.' });
-    res.json({ success: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.post('/api/programs/:id/unarchive', authMiddleware, async (req, res) => {
-  try {
-    const admin = await isAdmin(req.user.id);
-    if (!admin) return res.status(403).json({ error: 'Chỉ Admin mới có quyền khôi phục CTĐT.' });
-    const result = await pool.query('UPDATE programs SET archived_at = NULL WHERE id = $1 AND archived_at IS NOT NULL RETURNING id', [req.params.id]);
-    if (!result.rows.length) return res.status(404).json({ error: 'CTĐT không tồn tại hoặc chưa được lưu trữ.' });
-    res.json({ success: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
 // ============ VERSIONS API ============
 app.get('/api/programs/:programId/versions', authMiddleware, async (req, res) => {
   try {
     const admin = await isAdmin(req.user.id);
-    const progRes = await pool.query('SELECT department_id, archived_at FROM programs WHERE id = $1', [req.params.programId]);
+    const progRes = await pool.query('SELECT department_id FROM programs WHERE id = $1', [req.params.programId]);
     if (!progRes.rows.length) return res.status(404).json({ error: 'CTĐT không tồn tại' });
-    if (progRes.rows[0].archived_at) return res.status(404).json({ error: 'CTĐT đã được lưu trữ.' });
     const deptId = progRes.rows[0].department_id;
 
     let query = 'SELECT * FROM program_versions WHERE program_id=$1';
@@ -654,15 +603,10 @@ app.get('/api/programs/:programId/versions', authMiddleware, async (req, res) =>
 });
 
 app.post('/api/programs/:programId/versions', authMiddleware, requirePerm('programs.create_version'), async (req, res) => {
-  const { academic_year, copy_from_version_id } = req.body;
+  const { academic_year, copy_from_version_id, version_name, total_credits, training_duration, change_type, effective_date, change_summary, grading_scale, graduation_requirements, job_positions, further_education, reference_programs, training_process, admission_targets, admission_criteria } = req.body;
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    // Check if program is archived
-    const progArchived = await client.query('SELECT archived_at FROM programs WHERE id = $1', [req.params.programId]);
-    if (!progArchived.rows.length) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'CTĐT không tồn tại' }); }
-    if (progArchived.rows[0].archived_at) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'CTĐT đã được lưu trữ.' }); }
-
     // Check for duplicate academic_year
     const dup = await client.query(
       'SELECT id FROM program_versions WHERE program_id=$1 AND academic_year=$2',
@@ -680,10 +624,11 @@ app.post('/api/programs/:programId/versions', authMiddleware, requirePerm('progr
         return res.status(400).json({ error: 'Chỉ có thể nhân bản từ phiên bản đã công bố.' });
       }
     }
-    // Create new version
+    // Create new version with all fields
     const ver = await client.query(
-      'INSERT INTO program_versions (program_id, academic_year, copied_from_id) VALUES ($1,$2,$3) RETURNING *',
-      [req.params.programId, academic_year, copy_from_version_id || null]
+      `INSERT INTO program_versions (program_id, academic_year, copied_from_id, version_name, total_credits, training_duration, change_type, effective_date, change_summary, grading_scale, graduation_requirements, job_positions, further_education, reference_programs, training_process, admission_targets, admission_criteria)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING *`,
+      [req.params.programId, academic_year, copy_from_version_id || null, version_name || null, total_credits || null, training_duration || null, change_type || null, effective_date || null, change_summary || null, grading_scale || null, graduation_requirements || null, job_positions || null, further_education || null, reference_programs || null, training_process || null, admission_targets || null, admission_criteria || null]
     );
     const newVersionId = ver.rows[0].id;
 
@@ -1835,6 +1780,7 @@ app.get('/api/my-assignments', authMiddleware, async (req, res) => {
       JOIN users u ON sa.assigned_by = u.id
       LEFT JOIN version_syllabi vs ON vs.version_id = sa.version_id AND vs.course_id = sa.course_id
       WHERE sa.assigned_to = $1
+        AND pv.is_locked = false
       ORDER BY sa.deadline ASC NULLS LAST, sa.created_at DESC
     `, [req.user.id]);
     res.json(result.rows);
@@ -2337,14 +2283,14 @@ app.get('/api/dashboard/stats', authMiddleware, async (req, res) => {
     // --- Core stats (parallel) ---
     const [programs, versions, courses, syllabi, users, depts] = await Promise.all([
       pool.query(
-        `SELECT COUNT(*) as c FROM programs p WHERE p.archived_at IS NULL ${deptFilter}`,
+        `SELECT COUNT(*) as c FROM programs p WHERE 1=1 ${deptFilter}`,
         deptParams
       ),
       pool.query(
         `SELECT pv.status, COUNT(*) as c
          FROM program_versions pv
          JOIN programs p ON pv.program_id = p.id
-         WHERE p.archived_at IS NULL ${deptFilter}
+         WHERE 1=1 ${deptFilter}
          GROUP BY pv.status`,
         deptParams
       ),
@@ -2884,12 +2830,12 @@ app.post('/api/import/save', authMiddleware, requirePerm('programs.import_word')
           version_id, ploId, piId, sampleCourseId,
           ap.assessment_tool || null,
           ap.description || null,      // criteria = $6 → ap.description
-          ap.expected_result || null,  // threshold = $7 → ap.expected_result
+          ap.standard || null,          // threshold = $7 → ap.standard (Ngưỡng)
           ap.schedule || null,
           ap.instructor || null,
           ap.unit || null,
           ap.direct_evidence || null,
-          ap.standard || null,
+          null,                           // expected_result = $12 → not in Word doc
           ap.contributing_courses ? ap.contributing_courses.join(',') : null,
         ]
       );

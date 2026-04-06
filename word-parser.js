@@ -139,6 +139,7 @@ async function readDocx(buffer) {
     attributeNamePrefix: '@_',
     preserveOrder: false,
     removeNSPrefix: true,
+    trimValues: false,
     isArray: (name) => [
       'tr', 'tc', 'tbl', 'p', 'r', 't',
       'gridCol', 'tcPr', 'rPr', 'pPr',

@@ -2,7 +2,6 @@
 window.ProgramsPage = {
   programs: [],
   departments: [],
-  showArchived: false,
 
   async render(container, params = {}) {
     this.routeParams = params || {};
@@ -11,9 +10,8 @@ window.ProgramsPage = {
         <div class="card-header">
           <div class="card-title">Chương trình Đào tạo</div>
           <div class="flex-row">
-            ${window.App.isAdmin ? `<button id="archive-tab-btn" class="btn ${this.showArchived ? 'btn-warning' : 'btn-outline-secondary'} btn-sm" onclick="window.ProgramsPage.toggleArchived()">${this.showArchived ? '📦 Đang xem: Đã lưu trữ' : '📦 Đã lưu trữ'}</button>` : ''}
             ${window.App.hasPerm('programs.import_word') ? `<button class="btn btn-outline-primary" onclick="window.App.navigate('import-word')">Import Word</button>` : ''}
-            ${!this.showArchived && window.App.hasPerm('programs.create') ? `<button class="btn btn-primary" onclick="window.ProgramsPage.openAddModal()">+ Tạo CTĐT</button>` : ''}
+            ${window.App.hasPerm('programs.create') ? `<button class="btn btn-primary" onclick="window.ProgramsPage.openAddModal()">+ Tạo CTĐT</button>` : ''}
           </div>
         </div>
         <div id="programs-content" class="card-body"><div class="spinner"></div></div>
@@ -91,40 +89,16 @@ window.ProgramsPage = {
                 <span style="font-size:11px;color:var(--text-muted);" id="prog-notes-count">Tối đa 1000 ký tự — 0/1000</span>
               </div>
 
-              <div class="modal-error" id="prog-error"></div>
-              <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="window.ProgramsPage.closeModal()">Hủy</button>
-                <button type="submit" class="btn btn-primary" id="prog-save-btn">Tạo mới</button>
-              </div>
             </form>
           </div>
-        </div>
-      </div>
-
-      <!-- Version Modal -->
-      <div id="ver-modal" class="modal-overlay">
-        <div class="modal">
-          <div class="modal-header"><h2 id="ver-modal-title">Tạo phiên bản mới</h2></div>
-          <div class="modal-body">
-            <input type="hidden" id="ver-program-id">
-            <div class="input-group">
-              <label>Năm học <span class="required-mark">*</span></label>
-              <input type="text" id="ver-year" required placeholder="VD: 2025-2026">
-            </div>
-            <div class="input-group">
-              <label>Copy từ phiên bản</label>
-              <select id="ver-copy-from"><option value="">— Tạo mới trắng —</option></select>
-            </div>
-            <div class="modal-error" id="ver-error"></div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" onclick="document.getElementById('ver-modal').classList.remove('active')">Hủy</button>
-              <button type="button" class="btn btn-primary" onclick="window.ProgramsPage.createVersion()">Tạo phiên bản</button>
-            </div>
+          <div class="modal-footer" style="flex-shrink:0;box-shadow:0 -4px 12px rgba(0,0,0,0.1);border-top:1px solid var(--border);padding:12px 24px;background:var(--bg, #fff);z-index:1;border-radius:0 0 12px 12px;">
+            <button type="button" class="btn btn-secondary" onclick="window.ProgramsPage.closeModal()">Hủy</button>
+            <button type="button" class="btn btn-primary" id="prog-save-btn" onclick="document.getElementById('prog-form').requestSubmit()">Tạo mới</button>
           </div>
         </div>
       </div>
 
-      <!-- Version Edit Modal -->
+      <!-- Version Edit Modal (used for both Create and Edit) -->
       <div id="ver-edit-modal" class="modal-overlay">
         <div class="modal" style="max-width:720px;max-height:90vh;display:flex;flex-direction:column;">
           <div class="modal-header" style="flex-shrink:0;"><h2 id="ver-edit-modal-title">Chỉnh Sửa Phiên Bản</h2></div>
@@ -136,15 +110,19 @@ window.ProgramsPage = {
               <div class="grid-2col">
                 <div class="input-group">
                   <label>Số Phiên Bản <span class="required-mark">*</span></label>
-                  <input type="text" id="ver-edit-year" required placeholder="VD: 2025-2026">
+                  <input type="text" id="ver-edit-year" required placeholder="VD: 2025-2026" oninput="window.ProgramsPage.formatAcademicYear(this)">
                 </div>
                 <div class="input-group">
                   <label>Tên Phiên Bản</label>
                   <input type="text" id="ver-edit-name" placeholder="VD: phiên bản năm học 2025-2026">
                 </div>
+                <div class="input-group" id="ver-edit-copy-group" style="display:none;">
+                  <label>Copy từ phiên bản</label>
+                  <select id="ver-copy-from"><option value="">— Tạo mới trắng —</option></select>
+                </div>
                 <div class="input-group">
                   <label>Tổng Số Tín Chỉ</label>
-                  <input type="number" id="ver-edit-credits" placeholder="VD: 125" min="1">
+                  <input type="text" id="ver-edit-credits" placeholder="VD: 125" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
                 </div>
                 <div class="input-group">
                   <label>Thời Gian Đào Tạo</label>
@@ -211,12 +189,11 @@ window.ProgramsPage = {
                 <label>Tiêu Chí Tuyển Sinh</label>
                 <textarea id="ver-edit-admission-criteria" rows="3" style="width:100%;resize:vertical;"></textarea>
               </div>
-              <div class="modal-error" id="ver-edit-error"></div>
-              <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="document.getElementById('ver-edit-modal').classList.remove('active')">Hủy</button>
-                <button type="submit" class="btn btn-primary" id="ver-edit-save-btn">Cập Nhật</button>
-              </div>
             </form>
+          </div>
+          <div class="modal-footer" style="flex-shrink:0;box-shadow:0 -4px 12px rgba(0,0,0,0.1);border-top:1px solid var(--border);padding:12px 24px;background:var(--bg, #fff);z-index:1;border-radius:0 0 12px 12px;">
+            <button type="button" class="btn btn-secondary" onclick="document.getElementById('ver-edit-modal').classList.remove('active')">Hủy</button>
+            <button type="button" class="btn btn-primary" id="ver-edit-save-btn" onclick="document.getElementById('ver-edit-form').requestSubmit()">Cập Nhật</button>
           </div>
         </div>
       </div>
@@ -231,17 +208,7 @@ window.ProgramsPage = {
     });
     document.getElementById('prog-notes').addEventListener('input', () => this.updateNotesCount());
 
-    // Click overlay → auto-save & close
-    document.getElementById('prog-modal').addEventListener('click', async (e) => {
-      if (e.target.classList.contains('modal-overlay')) {
-        await this.saveProgram();
-      }
-    });
-    document.getElementById('ver-edit-modal').addEventListener('click', async (e) => {
-      if (e.target.classList.contains('modal-overlay')) {
-        await this.saveVersionEdit();
-      }
-    });
+    // Backdrop click handled by App.modalGuard (set when modal opens)
 
     await this.loadData();
   },
@@ -249,7 +216,7 @@ window.ProgramsPage = {
   async loadData() {
     try {
       const [programs, depts] = await Promise.all([
-        fetch(`/api/programs${this.showArchived ? '?archived=true' : ''}`).then(r => r.json()),
+        fetch('/api/programs').then(r => r.json()),
         fetch('/api/departments').then(r => r.json()),
       ]);
       this.programs = programs;
@@ -273,18 +240,10 @@ window.ProgramsPage = {
     }
   },
 
-  toggleArchived() {
-    this.showArchived = !this.showArchived;
-    const container = document.getElementById('programs-content').closest('.card').parentElement;
-    this.render(container);
-  },
-
   renderList() {
     const content = document.getElementById('programs-content');
     if (this.programs.length === 0) {
-      content.innerHTML = this.showArchived
-        ? '<div class="empty-state"><div class="icon">📦</div><h3>Không có CTĐT nào được lưu trữ</h3></div>'
-        : '<div class="empty-state"><div class="icon">📭</div><h3>Chưa có CTĐT nào</h3><p>Nhấn "+ Tạo CTĐT" để bắt đầu</p></div>';
+      content.innerHTML = '<div class="empty-state"><div class="icon">📭</div><h3>Chưa có CTĐT nào</h3><p>Nhấn "+ Tạo CTĐT" để bắt đầu</p></div>';
       return;
     }
 
@@ -316,13 +275,8 @@ window.ProgramsPage = {
           </div>
         </div>
         <div class="flex-row" style="flex-shrink:0;" onclick="event.stopPropagation()">
-          ${p.archived_at ? `
-            ${window.App.isAdmin ? `<button class="btn btn-sm btn-outline-primary" style="font-size:12px;" onclick="window.ProgramsPage.unarchiveProgram(${p.id}, '${p.name.replace(/'/g, "\\'")}')">Khôi phục</button>` : ''}
-          ` : `
             ${window.App.hasPerm('programs.edit') ? `<button class="btn btn-sm btn-outline-secondary" onclick="window.ProgramsPage.openEditModal(${p.id})">Chỉnh sửa</button>` : ''}
             ${window.App.hasPerm('programs.delete_draft') ? `<button class="btn btn-sm btn-ghost" style="color:var(--danger);" onclick="window.ProgramsPage.deleteProgram(${p.id}, '${p.name.replace(/'/g, "\\'")}')">Xóa</button>` : ''}
-            ${window.App.isAdmin && parseInt(p.version_count) > 0 ? `<button class="btn btn-sm btn-ghost" style="color:var(--warning);" onclick="window.ProgramsPage.archiveProgram(${p.id}, '${p.name.replace(/'/g, "\\'")}')">Lưu trữ</button>` : ''}
-          `}
         </div>
       </div>
     `;
@@ -364,57 +318,15 @@ window.ProgramsPage = {
     }
   },
 
-  async archiveProgram(id, name) {
-    const confirmed = await window.ui.confirm({
-      title: 'Lưu trữ chương trình đào tạo',
-      eyebrow: 'Lưu trữ',
-      message: `Bạn có chắc chắn muốn lưu trữ CTĐT "${name}"?\n\nCTĐT sẽ bị ẩn khỏi tất cả người dùng. Bạn có thể khôi phục sau.`,
-      confirmText: 'Lưu trữ',
-      cancelText: 'Hủy',
-      tone: 'warning',
-      confirmVariant: 'warning'
-    });
-    if (!confirmed) return;
-    try {
-      const res = await fetch(`/api/programs/${id}/archive`, { method: 'POST' });
-      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
-      window.toast.success('Đã lưu trữ chương trình đào tạo');
-      await this.loadData();
-    } catch (e) {
-      window.toast.error(e.message);
-    }
-  },
-
-  async unarchiveProgram(id, name) {
-    const confirmed = await window.ui.confirm({
-      title: 'Khôi phục chương trình đào tạo',
-      eyebrow: 'Khôi phục',
-      message: `Bạn có chắc chắn muốn khôi phục CTĐT "${name}"?\n\nCTĐT sẽ hiển thị lại cho tất cả người dùng.`,
-      confirmText: 'Khôi phục',
-      cancelText: 'Hủy',
-      tone: 'info',
-      confirmVariant: 'primary'
-    });
-    if (!confirmed) return;
-    try {
-      const res = await fetch(`/api/programs/${id}/unarchive`, { method: 'POST' });
-      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
-      window.toast.success('Đã khôi phục chương trình đào tạo');
-      await this.loadData();
-    } catch (e) {
-      window.toast.error(e.message);
-    }
-  },
-
   // CTDT Modal
   openAddModal() {
     document.getElementById('prog-modal-title').textContent = 'Tạo CTĐT mới';
     document.getElementById('prog-form').reset();
     document.getElementById('prog-edit-id').value = '';
     this.populateDeptSelect();
-    document.getElementById('prog-error').classList.remove('show');
     document.getElementById('prog-save-btn').textContent = 'Tạo mới';
     document.getElementById('prog-modal').classList.add('active');
+    App.modalGuard('prog-modal', () => ProgramsPage.saveProgram());
   },
 
   openEditModal(id) {
@@ -433,9 +345,9 @@ window.ProgramsPage = {
     document.getElementById('prog-training-mode').value = p.training_mode || 'Chính quy';
     document.getElementById('prog-notes').value = p.notes || '';
     this.updateNotesCount();
-    document.getElementById('prog-error').classList.remove('show');
     document.getElementById('prog-save-btn').textContent = 'Cập nhật';
     document.getElementById('prog-modal').classList.add('active');
+    App.modalGuard('prog-modal', () => ProgramsPage.saveProgram());
   },
 
   populateDeptSelect(selectedDeptId) {
@@ -485,11 +397,10 @@ window.ProgramsPage = {
     const degree_name = document.getElementById('prog-degree-name').value.trim() || null;
     const training_mode = document.getElementById('prog-training-mode').value;
     const notes = document.getElementById('prog-notes').value.trim() || null;
-    const errorEl = document.getElementById('prog-error');
 
-    if (!name) { errorEl.textContent = 'Vui lòng nhập tên chương trình (Tiếng Việt)'; errorEl.classList.add('show'); return; }
-    if (!name_en) { errorEl.textContent = 'Vui lòng nhập tên chương trình (Tiếng Anh)'; errorEl.classList.add('show'); return; }
-    if (!code) { errorEl.textContent = 'Vui lòng nhập mã chương trình'; errorEl.classList.add('show'); return; }
+    if (!name) { window.toast.error('Vui lòng nhập tên chương trình (Tiếng Việt)'); return; }
+    if (!name_en) { window.toast.error('Vui lòng nhập tên chương trình (Tiếng Anh)'); return; }
+    if (!code) { window.toast.error('Vui lòng nhập mã chương trình'); return; }
     try {
       const url = id ? `/api/programs/${id}` : '/api/programs';
       const method = id ? 'PUT' : 'POST';
@@ -502,8 +413,7 @@ window.ProgramsPage = {
       window.toast.success(id ? 'Đã cập nhật CTĐT' : 'Đã tạo CTĐT');
       await this.loadData();
     } catch (e) {
-      errorEl.textContent = e.message;
-      errorEl.classList.add('show');
+      window.toast.error(e.message);
     }
   },
 
@@ -513,17 +423,36 @@ window.ProgramsPage = {
     if (counter) counter.textContent = `Tối đa 1000 ký tự — ${val.length}/1000`;
   },
 
-  // Version Modal
+  // Version Modal — reuse ver-edit-modal for creating
   async openVersionModal(programId) {
-    document.getElementById('ver-modal-title').textContent = 'Tạo phiên bản mới';
-    document.getElementById('ver-program-id').value = programId;
+    document.getElementById('ver-edit-modal-title').textContent = 'Tạo phiên bản mới';
+    document.getElementById('ver-edit-id').value = '';
+    document.getElementById('ver-edit-program-id').value = programId;
+    document.getElementById('ver-edit-program-name').value = '';
     const now = new Date();
     const year = now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1;
-    document.getElementById('ver-year').value = `${year}-${year + 1}`;
+    document.getElementById('ver-edit-year').value = `${year}-${year + 1}`;
+    document.getElementById('ver-edit-name').value = '';
+    document.getElementById('ver-edit-credits').value = '';
+    document.getElementById('ver-edit-duration').value = '';
+    document.getElementById('ver-edit-change-type').value = '';
+    document.getElementById('ver-edit-status').value = 'draft';
+    document.getElementById('ver-edit-effective-date').value = '';
+    document.getElementById('ver-edit-change-summary').value = '';
+    document.getElementById('ver-edit-grading').value = '';
+    document.getElementById('ver-edit-graduation').value = '';
+    document.getElementById('ver-edit-jobs').value = '';
+    document.getElementById('ver-edit-further-edu').value = '';
+    document.getElementById('ver-edit-reference').value = '';
+    document.getElementById('ver-edit-training-process').value = '';
+    document.getElementById('ver-edit-admission-targets').value = '';
+    document.getElementById('ver-edit-admission-criteria').value = '';
+    document.getElementById('ver-edit-save-btn').textContent = 'Tạo phiên bản';
 
-    // Load existing versions for copy
+    // Show copy dropdown
+    document.getElementById('ver-edit-copy-group').style.display = '';
     try {
-      const versions = await fetch(`/api/programs/${programId}/versions`).then(r => r.json());
+      const versions = await fetch(`/api/programs/${programId}/versions`).then(r => r.json()).then(d => Array.isArray(d) ? d : []);
       const sel = document.getElementById('ver-copy-from');
       sel.innerHTML = '<option value="">— Tạo mới trắng —</option>';
       versions.forEach(v => {
@@ -531,31 +460,8 @@ window.ProgramsPage = {
       });
     } catch (e) {}
 
-    document.getElementById('ver-error').classList.remove('show');
-    document.getElementById('ver-modal').classList.add('active');
-  },
-
-  async createVersion() {
-    const programId = document.getElementById('ver-program-id').value;
-    const academic_year = document.getElementById('ver-year').value.trim();
-    const copy_from_version_id = document.getElementById('ver-copy-from').value || null;
-    const errorEl = document.getElementById('ver-error');
-
-    if (!academic_year) { errorEl.textContent = 'Vui lòng nhập năm học'; errorEl.classList.add('show'); return; }
-    try {
-      const res = await fetch(`/api/programs/${programId}/versions`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ academic_year, copy_from_version_id: copy_from_version_id ? parseInt(copy_from_version_id) : null })
-      });
-      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
-      document.getElementById('ver-modal').classList.remove('active');
-      window.toast.success(`Đã tạo phiên bản ${academic_year}` + (copy_from_version_id ? ' (đã copy dữ liệu)' : ''));
-      await this.loadData();
-    } catch (e) {
-      errorEl.textContent = e.message;
-      errorEl.classList.add('show');
-      window.toast.error(e.message);
-    }
+    document.getElementById('ver-edit-modal').classList.add('active');
+    App.modalGuard('ver-edit-modal', () => ProgramsPage.saveVersionEdit());
   },
 
   // View versions
@@ -572,7 +478,7 @@ window.ProgramsPage = {
     `;
 
     try {
-      const versions = await fetch(`/api/programs/${programId}/versions`).then(r => r.json());
+      const versions = await fetch(`/api/programs/${programId}/versions`).then(r => r.json()).then(d => Array.isArray(d) ? d : []);
       const statusColors = { draft: 'badge-warning', submitted: 'badge-info', approved_khoa: 'badge-info', approved_pdt: 'badge-info', published: 'badge-success' };
       const statusLabels = { draft: 'Bản nháp', submitted: 'Đã nộp', approved_khoa: 'Duyệt Khoa ✓', approved_pdt: 'Duyệt PĐT ✓', published: 'Đã công bố' };
 
@@ -585,7 +491,7 @@ window.ProgramsPage = {
           ? '<div class="empty-state"><div class="icon">📭</div><p>Chưa có phiên bản nào</p></div>'
           : `<div style="display:grid;gap:10px;">
             ${versions.map(v => `
-              <div class="tree-node flex-between" style="cursor:pointer;${v.is_locked ? 'opacity:0.7;' : ''}"
+              <div class="tree-node flex-between" style="cursor:pointer;"
                    onclick="window.App.navigate('version-editor',{versionId:${v.id}})">
                 <div style="flex:1;min-width:0;">
                   <div style="font-weight:600;font-size:15px;">
@@ -626,31 +532,26 @@ window.ProgramsPage = {
     this.loadData();
   },
 
-  // Clone version — open modal pre-filled with copy from selected version
+  // Clone version — reuse ver-edit-modal in create mode, pre-select source
   async cloneVersion(programId, sourceVersionId, sourceYear) {
-    document.getElementById('ver-program-id').value = programId;
+    await this.openVersionModal(programId);
+    document.getElementById('ver-edit-modal-title').textContent = `Nhân bản từ ${sourceYear}`;
     // Auto-generate next academic year
     const match = sourceYear.match(/^(\d{4})-(\d{4})$/);
     if (match) {
       const nextStart = parseInt(match[2]);
-      document.getElementById('ver-year').value = `${nextStart}-${nextStart + 1}`;
-    } else {
-      document.getElementById('ver-year').value = '';
+      document.getElementById('ver-edit-year').value = `${nextStart}-${nextStart + 1}`;
     }
-
-    // Load existing versions for copy dropdown and pre-select source
+    // Pre-select source version in copy dropdown
+    const sel = document.getElementById('ver-copy-from');
+    sel.innerHTML = '<option value="">— Tạo mới trắng —</option>';
     try {
-      const versions = await fetch(`/api/programs/${programId}/versions`).then(r => r.json());
-      const sel = document.getElementById('ver-copy-from');
-      sel.innerHTML = '<option value="">— Tạo mới trắng —</option>';
+      const versions = await fetch(`/api/programs/${programId}/versions`).then(r => r.json()).then(d => Array.isArray(d) ? d : []);
       versions.filter(v => v.status === 'published').forEach(v => {
         sel.innerHTML += `<option value="${v.id}" ${v.id === sourceVersionId ? 'selected' : ''}>${v.academic_year} (${v.status}${v.is_locked ? ' 🔒' : ''})</option>`;
       });
     } catch (e) {}
-
-    document.getElementById('ver-modal-title').textContent = `Nhân bản từ ${sourceYear}`;
-    document.getElementById('ver-error').classList.remove('show');
-    document.getElementById('ver-modal').classList.add('active');
+    App.modalGuard('ver-edit-modal', () => ProgramsPage.saveVersionEdit());
   },
 
   async deleteVersion(id, year, programId, programName) {
@@ -682,6 +583,8 @@ window.ProgramsPage = {
       document.getElementById('ver-edit-program-id').value = programId;
       document.getElementById('ver-edit-program-name').value = programName;
       document.getElementById('ver-edit-modal-title').textContent = `Chỉnh Sửa Phiên Bản - ${programName}`;
+      document.getElementById('ver-edit-save-btn').textContent = 'Cập Nhật';
+      document.getElementById('ver-edit-copy-group').style.display = 'none';
       document.getElementById('ver-edit-year').value = v.academic_year || '';
       document.getElementById('ver-edit-name').value = v.version_name || '';
       document.getElementById('ver-edit-credits').value = v.total_credits || '';
@@ -698,8 +601,8 @@ window.ProgramsPage = {
       document.getElementById('ver-edit-training-process').value = v.training_process || '';
       document.getElementById('ver-edit-admission-targets').value = v.admission_targets || '';
       document.getElementById('ver-edit-admission-criteria').value = v.admission_criteria || '';
-      document.getElementById('ver-edit-error').classList.remove('show');
-      document.getElementById('ver-edit-modal').classList.add('active');
+        document.getElementById('ver-edit-modal').classList.add('active');
+        App.modalGuard('ver-edit-modal', () => ProgramsPage.saveVersionEdit());
     } catch (e) {
       window.toast.error('Không thể tải dữ liệu phiên bản: ' + e.message);
     }
@@ -710,9 +613,11 @@ window.ProgramsPage = {
     const programId = document.getElementById('ver-edit-program-id').value;
     const programName = document.getElementById('ver-edit-program-name').value;
     const academic_year = document.getElementById('ver-edit-year').value.trim();
-    const errorEl = document.getElementById('ver-edit-error');
 
-    if (!academic_year) { errorEl.textContent = 'Vui lòng nhập số phiên bản'; errorEl.classList.add('show'); return; }
+    if (!academic_year) { window.toast.error('Vui lòng nhập số phiên bản'); return; }
+    if (!/^\d{4}-\d{4}$/.test(academic_year)) { window.toast.error('Số phiên bản phải có dạng YYYY-YYYY (VD: 2025-2026)'); return; }
+    const [y1, y2] = academic_year.split('-').map(Number);
+    if (y2 !== y1 + 1) { window.toast.error('Số phiên bản phải là 2 năm liên tiếp (VD: 2025-2026)'); return; }
 
     const body = {
       academic_year,
@@ -733,18 +638,43 @@ window.ProgramsPage = {
     };
 
     try {
-      const res = await fetch(`/api/versions/${id}`, {
-        method: 'PUT', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
-      });
-      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
-      document.getElementById('ver-edit-modal').classList.remove('active');
-      window.toast.success('Đã cập nhật phiên bản');
-      await this.viewVersions(parseInt(programId), programName);
+      if (id) {
+        // Edit existing version
+        const res = await fetch(`/api/versions/${id}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+        document.getElementById('ver-edit-modal').classList.remove('active');
+        window.toast.success('Đã cập nhật phiên bản');
+        await this.viewVersions(parseInt(programId), programName);
+      } else {
+        // Create new version
+        const copy_from_version_id = document.getElementById('ver-copy-from').value || null;
+        const res = await fetch(`/api/programs/${programId}/versions`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...body, copy_from_version_id: copy_from_version_id ? parseInt(copy_from_version_id) : null })
+        });
+        if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+        document.getElementById('ver-edit-modal').classList.remove('active');
+        window.toast.success(`Đã tạo phiên bản ${academic_year}` + (copy_from_version_id ? ' (đã copy dữ liệu)' : ''));
+        await this.loadData();
+      }
     } catch (e) {
-      errorEl.textContent = e.message;
-      errorEl.classList.add('show');
+      window.toast.error(e.message);
     }
+  },
+
+  // Format academic year input: only digits and hyphen, auto-insert hyphen after 4 digits
+  formatAcademicYear(input) {
+    let v = input.value.replace(/[^0-9-]/g, '');
+    // Remove extra hyphens, allow only one
+    const parts = v.split('-');
+    if (parts.length > 2) v = parts[0] + '-' + parts.slice(1).join('');
+    // Auto-insert hyphen after 4 digits
+    if (v.length === 4 && !v.includes('-')) v += '-';
+    // Limit to 9 chars (YYYY-YYYY)
+    input.value = v.substring(0, 9);
   },
 
   destroy() {}

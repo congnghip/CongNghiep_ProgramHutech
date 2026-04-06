@@ -56,8 +56,6 @@ window.VersionEditorPage = {
         <nav class="breadcrumb-nav mb-3">
           <a href="#" onclick="event.preventDefault();window.App.navigate('programs')" class="breadcrumb-link">Chương trình Đào tạo</a>
           <span class="breadcrumb-sep">›</span>
-          <a href="#" onclick="event.preventDefault();window.App.navigate('programs',{deptId:${this.version.department_id || 'null'},deptName:'${(this.version.dept_name || '').replace(/'/g, "\\'")}'})  " class="breadcrumb-link">${this.version.dept_name || ''}</a>
-          <span class="breadcrumb-sep">›</span>
           <a href="#" onclick="event.preventDefault();window.App.navigate('programs',{programId:${this.version.program_id},programName:'${(this.version.program_name || '').replace(/'/g, "\\'")}'})  " class="breadcrumb-link">${this.version.program_name}</a>
           <span class="breadcrumb-sep">›</span>
           <span class="breadcrumb-current">${this.version.academic_year}</span>
@@ -241,22 +239,38 @@ window.VersionEditorPage = {
           </div>
         `).join('')}
       </div>
-      <div id="po-form-area" style="display:none;margin-top:16px;padding:16px;background:var(--bg-secondary);border-radius:var(--radius-lg);">
-        <input type="hidden" id="po-edit-id">
-        <div style="display:flex;gap:10px;align-items:end;">
-          <div class="input-group" style="width:100px;margin:0;"><label>Mã</label><input type="text" id="po-code" placeholder="PO1"></div>
-          <div class="input-group" style="flex:1;margin:0;"><label>Mô tả</label><input type="text" id="po-desc" placeholder="Mô tả mục tiêu"></div>
-          <button class="btn btn-primary btn-sm" onclick="window.VersionEditorPage.savePO()">Lưu</button>
-          <button class="btn btn-secondary btn-sm" onclick="document.getElementById('po-form-area').style.display='none'">Hủy</button>
+      <div id="po-modal" class="modal-overlay">
+        <div class="modal" style="max-width:500px;">
+          <div class="modal-header"><h2 id="po-modal-title">Thêm mục tiêu PO</h2></div>
+          <div class="modal-body">
+            <input type="hidden" id="po-edit-id">
+            <div class="input-group">
+              <label>Mã PO <span class="required-mark">*</span></label>
+              <div style="display:flex;align-items:center;gap:0;">
+                <span style="padding:8px 10px;background:var(--bg-secondary);border:1px solid var(--border);border-right:none;border-radius:var(--radius) 0 0 var(--radius);font-weight:600;color:var(--primary);font-size:14px;">PO</span>
+                <input type="text" id="po-code-num" placeholder="1" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" style="border-radius:0 var(--radius) var(--radius) 0;width:80px;">
+              </div>
+            </div>
+            <div class="input-group">
+              <label>Mô tả</label>
+              <textarea id="po-desc" placeholder="Mô tả mục tiêu" rows="3" style="width:100%;resize:vertical;"></textarea>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" onclick="document.getElementById('po-modal').classList.remove('active')">Hủy</button>
+              <button type="button" class="btn btn-primary" onclick="window.VersionEditorPage.savePO()">Lưu</button>
+            </div>
+          </div>
         </div>
       </div>
     `;
     if (editable) {
       document.getElementById('add-po-btn')?.addEventListener('click', () => {
         document.getElementById('po-edit-id').value = '';
-        document.getElementById('po-code').value = `PO${pos.length + 1}`;
+        document.getElementById('po-code-num').value = pos.length + 1;
         document.getElementById('po-desc').value = '';
-        document.getElementById('po-form-area').style.display = 'block';
+        document.getElementById('po-modal-title').textContent = 'Thêm mục tiêu PO';
+        document.getElementById('po-modal').classList.add('active');
+        App.modalGuard('po-modal', () => window.VersionEditorPage.savePO());
         document.getElementById('po-desc').focus();
       });
     }
@@ -264,20 +278,24 @@ window.VersionEditorPage = {
 
   editPO(id, code, desc) {
     document.getElementById('po-edit-id').value = id;
-    document.getElementById('po-code').value = code;
+    document.getElementById('po-code-num').value = code.replace(/^PO/i, '');
     document.getElementById('po-desc').value = desc;
-    document.getElementById('po-form-area').style.display = 'block';
+    document.getElementById('po-modal-title').textContent = 'Sửa mục tiêu PO';
+    document.getElementById('po-modal').classList.add('active');
+    App.modalGuard('po-modal', () => window.VersionEditorPage.savePO());
   },
 
   async savePO() {
     const id = document.getElementById('po-edit-id').value;
-    const code = document.getElementById('po-code').value.trim();
+    const num = document.getElementById('po-code-num').value.trim();
+    if (!num) { window.toast.warning('Nhập số thứ tự PO'); return; }
+    const code = `PO${num}`;
     const description = document.getElementById('po-desc').value.trim();
-    if (!code) { window.toast.warning('Nhập mã PO'); return; }
     try {
       const url = id ? `/api/objectives/${id}` : `/api/versions/${this.versionId}/objectives`;
       const res = await fetch(url, { method: id ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code, description }) });
       if (!res.ok) throw new Error((await res.json()).error);
+      document.getElementById('po-modal').classList.remove('active');
       window.toast.success(id ? 'Đã cập nhật' : 'Đã thêm');
       this.renderTab();
     } catch (e) { window.toast.error(e.message); }
@@ -323,46 +341,69 @@ window.VersionEditorPage = {
           `).join('')}
         </tbody>
       </table>
-      <div id="plo-form-area" style="display:none;margin-top:16px;padding:16px;background:var(--bg-secondary);border-radius:var(--radius-lg);">
-        <input type="hidden" id="plo-edit-id">
-        <div style="display:grid;grid-template-columns:100px 140px 1fr auto auto;gap:10px;align-items:end;">
-          <div class="input-group" style="margin:0;"><label>Mã</label><input type="text" id="plo-code" placeholder="PLO1"></div>
-          <div class="input-group" style="margin:0;"><label>Bloom</label>
-            <select id="plo-bloom">${bloomLabels.slice(1).map((l, i) => `<option value="${i + 1}">${l}</option>`).join('')}</select>
+      <div id="plo-modal" class="modal-overlay">
+        <div class="modal" style="max-width:500px;">
+          <div class="modal-header"><h2 id="plo-modal-title">Thêm PLO</h2></div>
+          <div class="modal-body">
+            <input type="hidden" id="plo-edit-id">
+            <div style="display:flex;gap:12px;">
+              <div class="input-group" style="flex:0 0 auto;">
+                <label>Mã PLO <span class="required-mark">*</span></label>
+                <div style="display:flex;align-items:center;gap:0;">
+                  <span style="padding:8px 10px;background:var(--bg-secondary);border:1px solid var(--border);border-right:none;border-radius:var(--radius) 0 0 var(--radius);font-weight:600;color:var(--primary);font-size:14px;">PLO</span>
+                  <input type="text" id="plo-code-num" placeholder="1" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" style="border-radius:0 var(--radius) var(--radius) 0;width:80px;">
+                </div>
+              </div>
+              <div class="input-group" style="flex:1;">
+                <label>Bloom</label>
+                <select id="plo-bloom">${bloomLabels.slice(1).map((l, i) => `<option value="${i + 1}">${l}</option>`).join('')}</select>
+              </div>
+            </div>
+            <div class="input-group">
+              <label>Mô tả</label>
+              <textarea id="plo-pdesc" placeholder="Mô tả chuẩn đầu ra" rows="3" style="width:100%;resize:vertical;"></textarea>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" onclick="document.getElementById('plo-modal').classList.remove('active')">Hủy</button>
+              <button type="button" class="btn btn-primary" onclick="window.VersionEditorPage.savePLO()">Lưu</button>
+            </div>
           </div>
-          <div class="input-group" style="margin:0;"><label>Mô tả</label><input type="text" id="plo-pdesc" placeholder="Mô tả chuẩn đầu ra"></div>
-          <button class="btn btn-primary btn-sm" onclick="window.VersionEditorPage.savePLO()">Lưu</button>
-          <button class="btn btn-secondary btn-sm" onclick="document.getElementById('plo-form-area').style.display='none'">Hủy</button>
         </div>
       </div>
     `;
     document.getElementById('add-plo-btn')?.addEventListener('click', () => {
       document.getElementById('plo-edit-id').value = '';
-      document.getElementById('plo-code').value = `PLO${plos.length + 1}`;
+      document.getElementById('plo-code-num').value = plos.length + 1;
       document.getElementById('plo-bloom').value = '3';
       document.getElementById('plo-pdesc').value = '';
-      document.getElementById('plo-form-area').style.display = 'block';
+      document.getElementById('plo-modal-title').textContent = 'Thêm PLO';
+      document.getElementById('plo-modal').classList.add('active');
+      App.modalGuard('plo-modal', () => window.VersionEditorPage.savePLO());
     });
   },
 
   editPLO(id, code, bloom, desc) {
     document.getElementById('plo-edit-id').value = id;
-    document.getElementById('plo-code').value = code;
+    document.getElementById('plo-code-num').value = code.replace(/^PLO/i, '');
     document.getElementById('plo-bloom').value = bloom;
     document.getElementById('plo-pdesc').value = desc;
-    document.getElementById('plo-form-area').style.display = 'block';
+    document.getElementById('plo-modal-title').textContent = 'Sửa PLO';
+    document.getElementById('plo-modal').classList.add('active');
+    App.modalGuard('plo-modal', () => window.VersionEditorPage.savePLO());
   },
 
   async savePLO() {
     const id = document.getElementById('plo-edit-id').value;
-    const code = document.getElementById('plo-code').value.trim();
+    const num = document.getElementById('plo-code-num').value.trim();
+    if (!num) { window.toast.warning('Nhập số thứ tự PLO'); return; }
+    const code = `PLO${num}`;
     const bloom_level = parseInt(document.getElementById('plo-bloom').value);
     const description = document.getElementById('plo-pdesc').value.trim();
-    if (!code) { window.toast.warning('Nhập mã PLO'); return; }
     try {
       const url = id ? `/api/plos/${id}` : `/api/versions/${this.versionId}/plos`;
       const res = await fetch(url, { method: id ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code, bloom_level, description }) });
       if (!res.ok) throw new Error((await res.json()).error);
+      document.getElementById('plo-modal').classList.remove('active');
       window.toast.success(id ? 'Đã cập nhật' : 'Đã thêm');
       this.renderTab();
     } catch (e) { window.toast.error(e.message); }
@@ -426,35 +467,35 @@ window.VersionEditorPage = {
               </div>
             `}).join('')}</div>
           `}
-          <div id="pi-form-slot-${plo.id}"></div>
         </div>
       `).join('')}
-      <div id="pi-form-area" style="display:none;margin-top:16px;padding:16px;background:var(--bg-secondary);border-radius:var(--radius-lg);">
-        <input type="hidden" id="pi-edit-id"><input type="hidden" id="pi-plo-id">
-        <div style="display:flex;flex-direction:column;gap:10px;">
-          <div style="display:flex;gap:10px;align-items:end;">
-            <div class="input-group" style="width:120px;margin:0;"><label>Mã PI</label><input type="text" id="pi-code" placeholder="PI.1.1"></div>
-            <div class="input-group" style="flex:1;margin:0;"><label>Mô tả</label><input type="text" id="pi-desc" placeholder="Mô tả chỉ số"></div>
-            <button class="btn btn-primary btn-sm" onclick="window.VersionEditorPage.savePI()">Lưu</button>
-            <button class="btn btn-secondary btn-sm" onclick="window.VersionEditorPage.hidePIForm()">Hủy</button>
+      <div id="pi-modal" class="modal-overlay">
+        <div class="modal" style="max-width:540px;">
+          <div class="modal-header"><h2 id="pi-modal-title">Thêm PI</h2></div>
+          <div class="modal-body">
+            <input type="hidden" id="pi-edit-id"><input type="hidden" id="pi-plo-id"><input type="hidden" id="pi-plo-num">
+            <div style="display:flex;gap:12px;">
+              <div class="input-group" style="flex:0 0 auto;">
+                <label>Mã PI <span class="required-mark">*</span></label>
+                <div style="display:flex;align-items:center;gap:0;">
+                  <span id="pi-code-prefix" style="padding:8px 10px;background:var(--bg-secondary);border:1px solid var(--border);border-right:none;border-radius:var(--radius) 0 0 var(--radius);font-weight:600;color:var(--primary);font-size:14px;">PI.1.</span>
+                  <input type="text" id="pi-code-num" placeholder="1" inputmode="numeric" oninput="this.value=this.value.replace(/[^0-9]/g,'')" style="border-radius:0 var(--radius) var(--radius) 0;width:60px;">
+                </div>
+              </div>
+            </div>
+            <div class="input-group">
+              <label>Mô tả</label>
+              <textarea id="pi-desc" placeholder="Mô tả chỉ số" rows="3" style="width:100%;resize:vertical;"></textarea>
+            </div>
+            <div id="pi-courses-area" style="margin-top:8px;"></div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" onclick="document.getElementById('pi-modal').classList.remove('active')">Hủy</button>
+              <button type="button" class="btn btn-primary" onclick="window.VersionEditorPage.savePI()">Lưu</button>
+            </div>
           </div>
-          <div id="pi-courses-area" style="margin-top:8px;"></div>
         </div>
       </div>
     `;
-  },
-
-  movePIFormToPLO(ploId) {
-    const form = document.getElementById('pi-form-area');
-    const slot = document.getElementById(`pi-form-slot-${ploId}`);
-    if (!form || !slot) return;
-    slot.appendChild(form);
-  },
-
-  hidePIForm() {
-    const form = document.getElementById('pi-form-area');
-    if (!form) return;
-    form.style.display = 'none';
   },
 
   renderPICoursesForm(ploId, selectedIds) {
@@ -478,42 +519,54 @@ window.VersionEditorPage = {
   },
 
   addPI(ploId, ploCode, count) {
-    this.movePIFormToPLO(ploId);
+    const ploNum = ploCode.replace('PLO', '');
     document.getElementById('pi-edit-id').value = '';
     document.getElementById('pi-plo-id').value = ploId;
-    document.getElementById('pi-code').value = `PI.${ploCode.replace('PLO', '')}.${count + 1}`;
+    document.getElementById('pi-plo-num').value = ploNum;
+    document.getElementById('pi-code-prefix').textContent = `PI.${ploNum}.`;
+    document.getElementById('pi-code-num').value = count + 1;
     document.getElementById('pi-desc').value = '';
+    document.getElementById('pi-modal-title').textContent = `Thêm PI cho ${ploCode}`;
     this.renderPICoursesForm(ploId, []);
-    document.getElementById('pi-form-area').style.display = 'block';
+    document.getElementById('pi-modal').classList.add('active');
+    App.modalGuard('pi-modal', () => window.VersionEditorPage.savePI());
   },
 
   editPI(id, ploId, code, desc, courseIdsArr) {
-    this.movePIFormToPLO(ploId);
+    const parts = code.match(/^PI\.(\d+)\.(\d+)$/);
+    const ploNum = parts ? parts[1] : '';
+    const piNum = parts ? parts[2] : code;
     document.getElementById('pi-edit-id').value = id;
     document.getElementById('pi-plo-id').value = ploId;
-    document.getElementById('pi-code').value = code;
+    document.getElementById('pi-plo-num').value = ploNum;
+    document.getElementById('pi-code-prefix').textContent = `PI.${ploNum}.`;
+    document.getElementById('pi-code-num').value = piNum;
     document.getElementById('pi-desc').value = desc;
+    document.getElementById('pi-modal-title').textContent = 'Sửa PI';
     this.renderPICoursesForm(ploId, courseIdsArr || []);
-    document.getElementById('pi-form-area').style.display = 'block';
+    document.getElementById('pi-modal').classList.add('active');
+    App.modalGuard('pi-modal', () => window.VersionEditorPage.savePI());
   },
 
   async savePI() {
     const id = document.getElementById('pi-edit-id').value;
     const ploId = document.getElementById('pi-plo-id').value;
-    const pi_code = document.getElementById('pi-code').value.trim();
+    const ploNum = document.getElementById('pi-plo-num').value;
+    const piNum = document.getElementById('pi-code-num').value.trim();
     const description = document.getElementById('pi-desc').value.trim();
-    
     const course_ids = Array.from(document.querySelectorAll('.pi-course-cb:checked')).map(cb => parseInt(cb.value));
 
-    if (!pi_code) { window.toast.warning('Nhập mã PI'); return; }
+    if (!piNum) { window.toast.warning('Nhập số thứ tự PI'); return; }
+    const pi_code = `PI.${ploNum}.${piNum}`;
     try {
       const url = id ? `/api/pis/${id}` : `/api/plos/${ploId}/pis`;
-      const res = await fetch(url, { 
-        method: id ? 'PUT' : 'POST', 
-        headers: { 'Content-Type': 'application/json' }, 
-        body: JSON.stringify({ pi_code, description, course_ids }) 
+      const res = await fetch(url, {
+        method: id ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pi_code, description, course_ids })
       });
       if (!res.ok) throw new Error((await res.json()).error);
+      document.getElementById('pi-modal').classList.remove('active');
       window.toast.success(id ? 'Đã cập nhật' : 'Đã thêm');
       this.renderTab();
     } catch (e) { window.toast.error(e.message); }
@@ -549,7 +602,7 @@ window.VersionEditorPage = {
     body.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
         <h3 style="font-size:15px;font-weight:600;">Ma trận PO ↔ PLO</h3>
-        ${editable ? '<button class="btn btn-primary btn-sm" id="save-po-plo-btn">Lưu</button>' : ''}
+        ${editable ? '<span id="po-plo-status" class="text-muted" style="font-size:12px;"></span>' : ''}
       </div>
       <div style="overflow-x:auto;">
         <table class="data-table" id="po-plo-table">
@@ -569,17 +622,26 @@ window.VersionEditorPage = {
         </table>
       </div>
     `;
-    document.getElementById('save-po-plo-btn')?.addEventListener('click', async () => {
-      const checkboxes = document.querySelectorAll('#po-plo-table input[type="checkbox"]:checked');
-      const mappings = Array.from(checkboxes).map(cb => ({ po_id: parseInt(cb.dataset.po), plo_id: parseInt(cb.dataset.plo) }));
-      try {
-        const res = await fetch(`/api/versions/${this.versionId}/po-plo-map`, {
-          method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mappings })
-        });
-        if (!res.ok) throw new Error((await res.json()).error);
-        window.toast.success(`Đã lưu ${mappings.length} liên kết`);
-      } catch (e) { window.toast.error(e.message); }
-    });
+    if (editable) {
+      let saveTimer;
+      const autoSave = () => {
+        clearTimeout(saveTimer);
+        const status = document.getElementById('po-plo-status');
+        if (status) status.textContent = 'Đang lưu...';
+        saveTimer = setTimeout(async () => {
+          const checkboxes = document.querySelectorAll('#po-plo-table input[type="checkbox"]:checked');
+          const mappings = Array.from(checkboxes).map(cb => ({ po_id: parseInt(cb.dataset.po), plo_id: parseInt(cb.dataset.plo) }));
+          try {
+            const res = await fetch(`/api/versions/${this.versionId}/po-plo-map`, {
+              method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mappings })
+            });
+            if (!res.ok) throw new Error((await res.json()).error);
+            if (status) { status.textContent = 'Đã lưu ✓'; setTimeout(() => { if (status) status.textContent = ''; }, 2000); }
+          } catch (e) { window.toast.error(e.message); if (status) status.textContent = ''; }
+        }, 500);
+      };
+      document.getElementById('po-plo-table')?.addEventListener('change', autoSave);
+    }
   },
 
   // ===== TAB 6: Courses =====
@@ -702,60 +764,49 @@ window.VersionEditorPage = {
     const semKeys = Object.keys(semesters).sort((a, b) => a - b);
     const maxSem = Math.max(8, ...semKeys.map(Number));
 
-    const renderRow = (c, isEdit) => {
-      const editStyle = 'outline:1px dashed var(--border);padding:2px 4px;border-radius:3px;min-width:30px;';
-      const val = (v) => isEdit ? (v || '') : (v || '—');
-      return `
-        <tr data-vc-id="${c.version_course_id}">
+    const renderRow = (c) => `
+        <tr data-vc-id="${c.version_course_id}" draggable="false">
+          <td class="tp-drag-handle" style="text-align:center;color:var(--text-light);padding:0 4px;display:none;cursor:grab;" title="Kéo để chuyển học kỳ">⠿</td>
           <td><strong>${c.course_code}</strong></td>
           <td>${c.course_name}</td>
           <td style="text-align:center;">${c.credits || ''}</td>
-          <td style="text-align:center;color:var(--text-muted);" ${isEdit ? `contenteditable="true" style="text-align:center;${editStyle}"` : ''} data-field="hours_theory">${val(c.hours_theory)}</td>
-          <td style="text-align:center;color:var(--text-muted);" ${isEdit ? `contenteditable="true" style="text-align:center;${editStyle}"` : ''} data-field="hours_practice">${val(c.hours_practice)}</td>
-          <td style="text-align:center;color:var(--text-muted);" ${isEdit ? `contenteditable="true" style="text-align:center;${editStyle}"` : ''} data-field="hours_project">${val(c.hours_project)}</td>
-          <td style="text-align:center;color:var(--text-muted);" ${isEdit ? `contenteditable="true" style="text-align:center;${editStyle}"` : ''} data-field="hours_internship">${val(c.hours_internship)}</td>
-          <td style="font-size:12px;color:var(--text-muted);" ${isEdit ? `contenteditable="true" style="font-size:12px;${editStyle}"` : ''} data-field="software">${c.software || ''}</td>
+          <td style="text-align:center;color:var(--text-muted);" data-field="hours_theory">${c.hours_theory || '—'}</td>
+          <td style="text-align:center;color:var(--text-muted);" data-field="hours_practice">${c.hours_practice || '—'}</td>
+          <td style="text-align:center;color:var(--text-muted);" data-field="hours_project">${c.hours_project || '—'}</td>
+          <td style="text-align:center;color:var(--text-muted);" data-field="hours_internship">${c.hours_internship || '—'}</td>
+          <td style="font-size:12px;color:var(--text-muted);" data-field="software">${c.software || ''}</td>
           <td style="font-size:12px;color:var(--text-muted);">${c.managing_dept || ''}</td>
-          <td style="text-align:center;">${isEdit ? `<select data-field="batch" style="font-size:12px;padding:2px;border:1px solid var(--border);border-radius:3px;">
-            <option value="" ${!c.batch ? 'selected' : ''}>—</option>
-            <option value="A" ${c.batch === 'A' ? 'selected' : ''}>A</option>
-            <option value="B" ${c.batch === 'B' ? 'selected' : ''}>B</option>
-          </select>` : (c.batch || '')}</td>
-          ${isEdit ? `<td style="text-align:center;"><select data-field="semester" style="font-size:12px;padding:2px;border:1px solid var(--border);border-radius:3px;">
-            ${Array.from({length: maxSem}, (_, i) => i + 1).map(s => `<option value="${s}" ${s === c.semester ? 'selected' : ''}>HK ${s}</option>`).join('')}
-          </select></td>` : ''}
+          <td style="text-align:center;" data-field="batch" data-value="${c.batch || ''}">${c.batch || '—'}</td>
         </tr>
       `;
-    };
 
-    const renderTable = (items, isEdit) => `
+    const renderTable = (items, sem) => `
       <div style="overflow-x:auto;">
       <table class="data-table">
         <thead><tr>
+          <th class="tp-drag-col" style="width:30px;display:none;"></th>
           <th>Mã HP</th><th>Tên HP</th><th style="text-align:center;">TC</th>
           <th style="text-align:center;font-size:11px;">Tiết LT</th><th style="text-align:center;font-size:11px;">Tiết TH</th>
           <th style="text-align:center;font-size:11px;">Tiết ĐA</th><th style="text-align:center;font-size:11px;">Tiết TT</th>
           <th>Phần mềm</th><th>Đơn vị QL</th><th>Đợt</th>
-          ${isEdit ? '<th style="font-size:11px;">Học kỳ</th>' : ''}
         </tr></thead>
-        <tbody>${items.map(c => renderRow(c, isEdit)).join('')}</tbody>
+        <tbody class="tp-drop-zone" data-sem="${sem}">${items.map(c => renderRow(c)).join('')}</tbody>
       </table>
       </div>
     `;
 
-    const renderContent = (isEdit) => {
+    const renderContent = () => {
       if (semKeys.length === 0) return '<p style="color:var(--text-muted);font-size:13px;">Hãy gán HP vào CTĐT trước.</p>';
-      // Both modes: grouped by semester
       return semKeys.map(sem => {
         const items = semesters[sem];
         const totalCredits = items.reduce((s, c) => s + (c.credits || 0), 0);
         return `
-        <div style="margin-bottom:24px;">
+        <div class="tp-semester-group" data-sem="${sem}" style="margin-bottom:24px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
             <strong style="font-size:14px;">Học kỳ ${sem}</strong>
-            <span style="color:var(--text-muted);font-size:12px;">${totalCredits} TC</span>
+            <span class="tp-credit-count" style="color:var(--text-muted);font-size:12px;">${totalCredits} TC</span>
           </div>
-          ${renderTable(items, isEdit)}
+          ${renderTable(items, sem)}
         </div>`;
       }).join('');
     };
@@ -767,25 +818,113 @@ window.VersionEditorPage = {
           <button id="tp-edit-btn" class="btn btn-secondary" style="font-size:12px;">Chỉnh sửa</button>
         </div>` : ''}
       </div>
-      <div id="tp-content">${renderContent(false)}</div>
+      <div id="tp-content">${renderContent()}</div>
     `;
 
     if (!editable) return;
 
-    // Wire edit button
     const editBtn = body.querySelector('#tp-edit-btn');
     const actionsDiv = body.querySelector('#tp-edit-actions');
     const contentDiv = body.querySelector('#tp-content');
 
-    editBtn.addEventListener('click', () => {
-      // Switch to edit mode
+    const enterEditMode = () => {
       actionsDiv.innerHTML = `
-        <div style="display:flex;gap:8px;">
+        <div style="display:flex;gap:8px;align-items:center;">
+          <span class="text-muted" style="font-size:12px;">Kéo ⠿ để chuyển học kỳ</span>
           <button id="tp-cancel-btn" class="btn btn-secondary" style="font-size:12px;">Hủy</button>
           <button id="tp-save-btn" class="btn btn-primary" style="font-size:12px;">Lưu</button>
         </div>
       `;
-      contentDiv.innerHTML = renderContent(true);
+
+      // Show drag columns & handles with transition
+      contentDiv.querySelectorAll('.tp-drag-col, .tp-drag-handle').forEach(el => {
+        el.style.transition = 'width 0.2s ease, opacity 0.2s ease, padding 0.2s ease';
+        el.style.display = '';
+        el.style.width = '0';
+        el.style.opacity = '0';
+        el.style.overflow = 'hidden';
+        el.style.padding = '0';
+        requestAnimationFrame(() => {
+          el.style.width = '30px';
+          el.style.opacity = '1';
+          el.style.padding = '';
+        });
+      });
+
+      // Enable drag on rows
+      contentDiv.querySelectorAll('tr[data-vc-id]').forEach(row => {
+        row.draggable = true;
+        row.style.cursor = 'grab';
+      });
+
+      // Make editable cells: hours fields (numbers only) and software
+      const hourFields = ['hours_theory', 'hours_practice', 'hours_project', 'hours_internship'];
+      contentDiv.querySelectorAll('td[data-field]').forEach(td => {
+        const field = td.dataset.field;
+        if (field === 'batch') {
+          // Replace text with select
+          const val = td.dataset.value || '';
+          td.innerHTML = `<select data-field="batch" style="width:100%;font-size:13px;padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius);background:var(--bg);cursor:pointer;">
+            <option value="" ${!val ? 'selected' : ''}>—</option>
+            <option value="A" ${val === 'A' ? 'selected' : ''}>A</option>
+            <option value="B" ${val === 'B' ? 'selected' : ''}>B</option>
+          </select>`;
+          return;
+        }
+        const curText = td.textContent.trim();
+        td.contentEditable = 'true';
+        td.style.transition = 'background 0.2s ease, outline 0.2s ease';
+        td.style.background = '#f5f5f5';
+        td.style.outline = '1px solid var(--border)';
+        td.style.borderRadius = '4px';
+        td.textContent = (curText === '—' || curText === '0') ? '' : curText;
+        if (hourFields.includes(field)) {
+          td.inputMode = 'numeric';
+          td.addEventListener('input', () => { td.textContent = td.textContent.replace(/[^0-9]/g, ''); });
+          td.addEventListener('keydown', (e) => {
+            if (e.key.length === 1 && !/[0-9]/.test(e.key) && !e.ctrlKey && !e.metaKey) e.preventDefault();
+          });
+        }
+      });
+
+      // Drag and drop
+      let dragRow = null;
+      contentDiv.addEventListener('dragstart', (e) => {
+        const row = e.target.closest('tr[data-vc-id]');
+        if (!row) return;
+        dragRow = row;
+        row.style.opacity = '0.4';
+        e.dataTransfer.effectAllowed = 'move';
+      });
+      contentDiv.addEventListener('dragend', () => {
+        if (dragRow) dragRow.style.opacity = '1';
+        dragRow = null;
+        contentDiv.querySelectorAll('.tp-drop-zone').forEach(z => z.style.background = '');
+      });
+      contentDiv.querySelectorAll('.tp-drop-zone').forEach(zone => {
+        zone.addEventListener('dragover', (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; zone.style.background = 'rgba(59,130,246,0.06)'; });
+        zone.addEventListener('dragleave', () => { zone.style.background = ''; });
+        zone.addEventListener('drop', (e) => {
+          e.preventDefault();
+          zone.style.background = '';
+          if (!dragRow) return;
+          zone.appendChild(dragRow);
+          dragRow.style.opacity = '1';
+          contentDiv.querySelectorAll('.tp-semester-group').forEach(g => {
+            const rows = g.querySelectorAll('tr[data-vc-id]');
+            let total = 0;
+            rows.forEach(r => {
+              const tds = r.querySelectorAll('td');
+              // credits is 4th visible td (index 3 when drag handle hidden, 4 when shown)
+              const dragShown = r.querySelector('.tp-drag-handle')?.style.display !== 'none';
+              total += parseInt(tds[dragShown ? 4 : 3]?.textContent) || 0;
+            });
+            const cnt = g.querySelector('.tp-credit-count');
+            if (cnt) cnt.textContent = `${total} TC`;
+          });
+          dragRow = null;
+        });
+      });
 
       // Cancel
       actionsDiv.querySelector('#tp-cancel-btn').addEventListener('click', () => {
@@ -794,28 +933,29 @@ window.VersionEditorPage = {
 
       // Save
       actionsDiv.querySelector('#tp-save-btn').addEventListener('click', async () => {
-        const rows = contentDiv.querySelectorAll('tr[data-vc-id]');
         const items = [];
-        rows.forEach(row => {
-          const vcId = parseInt(row.dataset.vcId);
-          const getVal = (field) => {
-            const el = row.querySelector(`[data-field="${field}"]`);
-            if (!el) return null;
-            if (el.tagName === 'SELECT') return el.value;
-            return el.innerText.trim();
-          };
-          items.push({
-            version_course_id: vcId,
-            semester: parseInt(getVal('semester')) || null,
-            hours_theory: parseInt(getVal('hours_theory')) || 0,
-            hours_practice: parseInt(getVal('hours_practice')) || 0,
-            hours_project: parseInt(getVal('hours_project')) || 0,
-            hours_internship: parseInt(getVal('hours_internship')) || 0,
-            software: getVal('software') || '',
-            batch: getVal('batch') || '',
+        contentDiv.querySelectorAll('.tp-drop-zone').forEach(zone => {
+          const sem = parseInt(zone.dataset.sem);
+          zone.querySelectorAll('tr[data-vc-id]').forEach(row => {
+            const vcId = parseInt(row.dataset.vcId);
+            const getVal = (field) => {
+              const el = row.querySelector(`[data-field="${field}"]`);
+              if (!el) return null;
+              if (el.tagName === 'SELECT') return el.value;
+              return el.textContent.trim();
+            };
+            items.push({
+              version_course_id: vcId,
+              semester: sem,
+              hours_theory: parseInt(getVal('hours_theory')) || 0,
+              hours_practice: parseInt(getVal('hours_practice')) || 0,
+              hours_project: parseInt(getVal('hours_project')) || 0,
+              hours_internship: parseInt(getVal('hours_internship')) || 0,
+              software: getVal('software') || '',
+              batch: getVal('batch') || '',
+            });
           });
         });
-
         try {
           const res = await fetch(`/api/versions/${this.versionId}/teaching-plan/bulk`, {
             method: 'PUT',
@@ -823,24 +963,19 @@ window.VersionEditorPage = {
             body: JSON.stringify({ items })
           });
           if (res.ok) {
+            window.toast.success('Đã lưu kế hoạch giảng dạy');
             this.renderTab();
           } else {
             const err = await res.json();
-            window.ui.alert({
-              title: 'Không thể lưu kế hoạch giảng dạy',
-              message: err.error || 'Đã xảy ra lỗi khi lưu kế hoạch giảng dạy.',
-              tone: 'danger'
-            });
+            window.toast.error(err.error || 'Đã xảy ra lỗi khi lưu.');
           }
         } catch (e) {
-          window.ui.alert({
-            title: 'Không thể lưu kế hoạch giảng dạy',
-            message: 'Lỗi: ' + e.message,
-            tone: 'danger'
-          });
+          window.toast.error('Lỗi: ' + e.message);
         }
       });
-    });
+    };
+
+    editBtn.addEventListener('click', enterEditMode);
   },
 
   // ===== Knowledge Blocks Tab =====
@@ -1163,7 +1298,7 @@ window.VersionEditorPage = {
     body.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
         <h3 style="font-size:15px;font-weight:600;">Ma trận HP ↔ PLO</h3>
-        ${editable ? '<button class="btn btn-primary btn-sm" id="save-c-plo-btn">Lưu ma trận</button>' : ''}
+        ${editable ? '<span id="c-plo-status" class="text-muted" style="font-size:12px;"></span>' : ''}
       </div>
       <p style="color:var(--text-muted);font-size:12px;margin-bottom:12px;">— = Không áp dụng · 1 = Thấp · 2 = TB · 3 = Cao</p>
       <div style="overflow-x:auto;padding-bottom:16px;">
@@ -1199,26 +1334,32 @@ window.VersionEditorPage = {
       </div>
     `;
 
-    document.getElementById('save-c-plo-btn')?.addEventListener('click', async () => {
-      const btn = document.getElementById('save-c-plo-btn');
-      btn.textContent = 'Đang lưu...'; btn.disabled = true;
-      const ploSelects = document.querySelectorAll('#c-plo-table select.plo-select');
-      const mappings = [];
-      ploSelects.forEach(s => {
-        const val = parseInt(s.value);
-        if (val > 0) {
-          mappings.push({ course_id: parseInt(s.dataset.vc), plo_id: parseInt(s.dataset.plo), contribution_level: val });
-        }
-      });
-      try {
-        const res = await fetch(`/api/versions/${this.versionId}/course-plo-map`, {
-          method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mappings })
-        });
-        if (!res.ok) throw new Error((await res.json()).error);
-        window.toast.success(`Đã lưu ${mappings.length} liên kết HP ↔ PLO`);
-      } catch (e) { window.toast.error(e.message); }
-      btn.textContent = 'Lưu ma trận'; btn.disabled = false;
-    });
+    if (editable) {
+      let saveTimer;
+      const autoSave = () => {
+        clearTimeout(saveTimer);
+        const status = document.getElementById('c-plo-status');
+        if (status) status.textContent = 'Đang lưu...';
+        saveTimer = setTimeout(async () => {
+          const ploSelects = document.querySelectorAll('#c-plo-table select.plo-select');
+          const mappings = [];
+          ploSelects.forEach(s => {
+            const val = parseInt(s.value);
+            if (val > 0) {
+              mappings.push({ course_id: parseInt(s.dataset.vc), plo_id: parseInt(s.dataset.plo), contribution_level: val });
+            }
+          });
+          try {
+            const res = await fetch(`/api/versions/${this.versionId}/course-plo-map`, {
+              method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mappings })
+            });
+            if (!res.ok) throw new Error((await res.json()).error);
+            if (status) { status.textContent = 'Đã lưu ✓'; setTimeout(() => { if (status) status.textContent = ''; }, 2000); }
+          } catch (e) { window.toast.error(e.message); if (status) status.textContent = ''; }
+        }, 500);
+      };
+      document.getElementById('c-plo-table')?.addEventListener('change', autoSave);
+    }
   },
 
   // ===== Course-PI Matrix Tab =====
@@ -1242,7 +1383,7 @@ window.VersionEditorPage = {
     body.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
         <h3 style="font-size:15px;font-weight:600;">Ma trận HP ↔ PI</h3>
-        ${editable ? '<button class="btn btn-primary btn-sm" id="save-c-pi-btn">Lưu ma trận</button>' : ''}
+        ${editable ? '<span id="c-pi-status" class="text-muted" style="font-size:12px;"></span>' : ''}
       </div>
       <p style="color:var(--text-muted);font-size:12px;margin-bottom:12px;">Chỉ các ô có HP ↔ PLO đã map (≥1) mới được chỉnh sửa.</p>
       <div style="overflow-x:auto;padding-bottom:16px;">
@@ -1292,25 +1433,31 @@ window.VersionEditorPage = {
       </div>
     `;
 
-    document.getElementById('save-c-pi-btn')?.addEventListener('click', async () => {
-      const btn = document.getElementById('save-c-pi-btn');
-      btn.textContent = 'Đang lưu...'; btn.disabled = true;
-      const piSelects = document.querySelectorAll('#c-pi-table select.pi-select');
-      const pi_mappings = [];
-      piSelects.forEach(s => {
-        if (!s.disabled) {
-          pi_mappings.push({ course_id: parseInt(s.dataset.vc), pi_id: parseInt(s.dataset.pi), contribution_level: parseInt(s.value) });
-        }
-      });
-      try {
-        const res = await fetch(`/api/versions/${this.versionId}/course-pi-map`, {
-          method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pi_mappings })
-        });
-        if (!res.ok) throw new Error((await res.json()).error);
-        window.toast.success(`Đã lưu ma trận PI`);
-      } catch (e) { window.toast.error(e.message); }
-      btn.textContent = 'Lưu ma trận'; btn.disabled = false;
-    });
+    if (editable) {
+      let saveTimer;
+      const autoSave = () => {
+        clearTimeout(saveTimer);
+        const status = document.getElementById('c-pi-status');
+        if (status) status.textContent = 'Đang lưu...';
+        saveTimer = setTimeout(async () => {
+          const piSelects = document.querySelectorAll('#c-pi-table select.pi-select');
+          const pi_mappings = [];
+          piSelects.forEach(s => {
+            if (!s.disabled) {
+              pi_mappings.push({ course_id: parseInt(s.dataset.vc), pi_id: parseInt(s.dataset.pi), contribution_level: parseInt(s.value) });
+            }
+          });
+          try {
+            const res = await fetch(`/api/versions/${this.versionId}/course-pi-map`, {
+              method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pi_mappings })
+            });
+            if (!res.ok) throw new Error((await res.json()).error);
+            if (status) { status.textContent = 'Đã lưu ✓'; setTimeout(() => { if (status) status.textContent = ''; }, 2000); }
+          } catch (e) { window.toast.error(e.message); if (status) status.textContent = ''; }
+        }, 500);
+      };
+      document.getElementById('c-pi-table')?.addEventListener('change', autoSave);
+    }
   },
 
   // ===== TAB 9: Assessment =====
@@ -1342,30 +1489,43 @@ window.VersionEditorPage = {
           `).join('')}
         </tbody>
       </table>
-      ${editable ? `
-        <div id="assess-form" style="margin-top:16px;padding:16px;background:var(--bg-secondary);border-radius:var(--radius-lg);display:none;">
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
-            <div class="input-group" style="margin:0;"><label>PLO</label>
-              <select id="a-plo">${plos.map(p => `<option value="${p.id}">${p.code}</option>`).join('')}</select>
+      <div id="assess-modal" class="modal-overlay">
+        <div class="modal" style="max-width:560px;">
+          <div class="modal-header"><h2>Thêm kế hoạch đánh giá CĐR</h2></div>
+          <div class="modal-body">
+            <div class="grid-2col">
+              <div class="input-group"><label>PLO <span class="required-mark">*</span></label>
+                <select id="a-plo">${plos.map(p => `<option value="${p.id}">${p.code}</option>`).join('')}</select>
+              </div>
+              <div class="input-group"><label>HP lấy mẫu</label>
+                <select id="a-course"><option value="">—</option>${vCourses.map(c => `<option value="${c.course_id}">${c.course_code} — ${c.course_name}</option>`).join('')}</select>
+              </div>
+              <div class="input-group"><label>Công cụ</label><input type="text" id="a-tool" placeholder="Câu hỏi bài KT"></div>
+              <div class="input-group"><label>Ngưỡng</label><input type="text" id="a-threshold" placeholder="70% đạt"></div>
+              <div class="input-group"><label>HK</label><input type="text" id="a-sem" placeholder="HK1"></div>
+              <div class="input-group"><label>GV</label><input type="text" id="a-assessor"></div>
             </div>
-            <div class="input-group" style="margin:0;"><label>HP lấy mẫu</label>
-              <select id="a-course"><option value="">—</option>${vCourses.map(c => `<option value="${c.course_id}">${c.course_code}</option>`).join('')}</select>
+            <div class="input-group"><label>Tiêu chí</label>
+              <textarea id="a-criteria" rows="2" style="width:100%;resize:vertical;" placeholder="Tiêu chí đánh giá"></textarea>
             </div>
-            <div class="input-group" style="margin:0;"><label>Công cụ</label><input type="text" id="a-tool" placeholder="Câu hỏi bài KT"></div>
-            <div class="input-group" style="margin:0;"><label>Tiêu chí</label><input type="text" id="a-criteria"></div>
-            <div class="input-group" style="margin:0;"><label>Ngưỡng</label><input type="text" id="a-threshold" placeholder="70% đạt"></div>
-            <div class="input-group" style="margin:0;"><label>HK</label><input type="text" id="a-sem" placeholder="HK1"></div>
-            <div class="input-group" style="margin:0;"><label>GV</label><input type="text" id="a-assessor"></div>
-          </div>
-          <div style="display:flex;gap:8px;margin-top:10px;justify-content:flex-end;">
-            <button class="btn btn-secondary btn-sm" onclick="document.getElementById('assess-form').style.display='none'">Hủy</button>
-            <button class="btn btn-primary btn-sm" onclick="window.VersionEditorPage.saveAssessment()">Lưu</button>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" onclick="document.getElementById('assess-modal').classList.remove('active')">Hủy</button>
+              <button type="button" class="btn btn-primary" onclick="window.VersionEditorPage.saveAssessment()">Lưu</button>
+            </div>
           </div>
         </div>
-      ` : ''}
+      </div>
     `;
     document.getElementById('add-assess-btn')?.addEventListener('click', () => {
-      document.getElementById('assess-form').style.display = 'block';
+      document.getElementById('a-plo').value = plos[0]?.id || '';
+      document.getElementById('a-course').value = '';
+      document.getElementById('a-tool').value = '';
+      document.getElementById('a-criteria').value = '';
+      document.getElementById('a-threshold').value = '';
+      document.getElementById('a-sem').value = '';
+      document.getElementById('a-assessor').value = '';
+      document.getElementById('assess-modal').classList.add('active');
+      App.modalGuard('assess-modal', () => window.VersionEditorPage.saveAssessment());
     });
   },
 
@@ -1384,6 +1544,7 @@ window.VersionEditorPage = {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
       });
       if (!res.ok) throw new Error((await res.json()).error);
+      document.getElementById('assess-modal').classList.remove('active');
       window.toast.success('Đã thêm');
       this.renderTab();
     } catch (e) { window.toast.error(e.message); }
