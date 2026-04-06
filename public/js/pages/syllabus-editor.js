@@ -528,9 +528,12 @@ window.SyllabusEditorPage = {
     `;
   },
 
-  async saveResources() {
+  _collectResources() {
+    const textbooks = document.getElementById('syl-textbooks');
+    if (!textbooks) return; // Tab 5 not mounted
     const toArr = id => document.getElementById(id).value.split('\n').map(s => s.trim()).filter(Boolean);
-    const content = { ...this.syllabus.content,
+    this.syllabus.content = {
+      ...this.syllabus.content,
       textbooks: toArr('syl-textbooks'),
       references: toArr('syl-references'),
       course_requirements: {
@@ -540,9 +543,12 @@ window.SyllabusEditorPage = {
         classroom_setup: document.getElementById('syl-classroom').value,
       },
     };
+  },
+
+  async saveResources() {
+    this._collectResources();
     try {
-      await fetch(`/api/syllabi/${this.syllabusId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content }) });
-      this.syllabus.content = content;
+      await fetch(`/api/syllabi/${this.syllabusId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: this.syllabus.content }) });
       window.toast.success('Đã lưu');
     } catch (e) { window.toast.error(e.message); }
   },
