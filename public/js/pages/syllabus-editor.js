@@ -236,7 +236,7 @@ window.SyllabusEditorPage = {
         <h3 style="font-size:15px;font-weight:600;">Chuẩn đầu ra môn học (CLO)</h3>
         <div style="display:flex;gap:8px;">
           ${hasPending ? '<span class="badge" style="background:var(--warning);color:#fff;">Đã import — cần Lưu</span>' : ''}
-          ${editable ? '<button class="btn btn-primary btn-sm" id="add-clo-btn">+ Thêm</button>' : ''}
+          ${editable ? '<button class="btn btn-primary btn-sm" onclick="window.SyllabusEditorPage.openAddCLOModal()">+ Thêm</button>' : ''}
         </div>
       </div>
       <table class="data-table">
@@ -265,12 +265,6 @@ window.SyllabusEditorPage = {
         </div>
       </div>
     `;
-    document.getElementById('add-clo-btn')?.addEventListener('click', () => {
-      document.getElementById('clo-edit-id').value = '';
-      document.getElementById('clo-code').value = `CLO${this.clos.length + 1}`;
-      document.getElementById('clo-desc').value = '';
-      document.getElementById('clo-form-area').style.display = 'block';
-    });
   },
 
   editCLO(id, code, desc) {
@@ -308,6 +302,46 @@ window.SyllabusEditorPage = {
     await fetch(`/api/clos/${id}`, { method: 'DELETE' });
     window.toast.success('Đã xóa');
     this.renderSylTab();
+  },
+
+  openAddCLOModal() {
+    const form = document.getElementById('clo-add-form');
+    form.reset();
+    document.getElementById('clo-add-code').value = `CLO${this.clos.length + 1}`;
+    const errorEl = document.getElementById('clo-add-error');
+    errorEl.classList.remove('show');
+    errorEl.textContent = '';
+    document.getElementById('clo-add-modal').classList.add('active');
+    App.modalGuard('clo-add-modal', () => this.submitAddCLO());
+  },
+
+  closeAddCLOModal() {
+    document.getElementById('clo-add-modal').classList.remove('active');
+  },
+
+  async submitAddCLO() {
+    const code = document.getElementById('clo-add-code').value.trim();
+    const description = document.getElementById('clo-add-desc').value.trim();
+    const errorEl = document.getElementById('clo-add-error');
+    if (!code) {
+      errorEl.textContent = 'Nhập mã CLO';
+      errorEl.classList.add('show');
+      return;
+    }
+    try {
+      const res = await fetch(`/api/syllabi/${this.syllabusId}/clos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, description }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error);
+      this.closeAddCLOModal();
+      window.toast.success('Đã thêm CLO');
+      this.renderSylTab();
+    } catch (e) {
+      errorEl.textContent = e.message;
+      errorEl.classList.add('show');
+    }
   },
 
   async _persistImportedClos() {
