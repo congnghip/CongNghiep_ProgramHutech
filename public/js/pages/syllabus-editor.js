@@ -117,6 +117,7 @@ window.SyllabusEditorPage = {
 
     document.querySelectorAll('#syl-tabs .tab-item').forEach(el => {
       el.addEventListener('click', () => {
+        this._collectCurrentTabIntoState();
         document.querySelectorAll('#syl-tabs .tab-item').forEach(e => e.classList.remove('active'));
         el.classList.add('active');
         this.activeTab = parseInt(el.dataset.tab);
@@ -169,6 +170,17 @@ window.SyllabusEditorPage = {
       language_instruction: document.getElementById('syl-lang-inst').value,
       learning_methods: document.getElementById('syl-learning-methods').value,
     };
+  },
+
+  _collectCurrentTabIntoState() {
+    switch (this.activeTab) {
+      case 0: this._collectGeneral(); break;
+      case 2: this._collectCloPloMap(); break;
+      case 3: this._collectOutline(); break;
+      case 4: this._collectGrading(); break;
+      case 5: this._collectResources(); break;
+      // Tab 1 (CLO): inline CRUD, nothing to collect
+    }
   },
 
   async saveGeneral() {
