@@ -158,17 +158,23 @@ window.SyllabusEditorPage = {
     `;
   },
 
-  async saveGeneral() {
-    const content = { ...this.syllabus.content,
-      course_description: document.getElementById('syl-course-desc').value,
+  _collectGeneral() {
+    const desc = document.getElementById('syl-course-desc');
+    if (!desc) return; // Tab 0 not mounted
+    this.syllabus.content = {
+      ...this.syllabus.content,
+      course_description: desc.value,
       course_objectives: document.getElementById('syl-course-obj').value,
       prerequisites: document.getElementById('syl-prereq').value,
       language_instruction: document.getElementById('syl-lang-inst').value,
       learning_methods: document.getElementById('syl-learning-methods').value,
     };
+  },
+
+  async saveGeneral() {
+    this._collectGeneral();
     try {
-      await fetch(`/api/syllabi/${this.syllabusId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content }) });
-      this.syllabus.content = content;
+      await fetch(`/api/syllabi/${this.syllabusId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: this.syllabus.content }) });
       window.toast.success('Đã lưu');
     } catch (e) { window.toast.error(e.message); }
   },
