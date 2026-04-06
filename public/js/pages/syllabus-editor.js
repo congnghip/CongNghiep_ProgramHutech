@@ -138,6 +138,44 @@ window.SyllabusEditorPage = {
           </div>
         </div>
       </div>
+
+      <!-- Add Outline Lesson Modal -->
+      <div id="outline-add-modal" class="modal-overlay">
+        <div class="modal" style="max-width:640px;">
+          <div class="modal-header"><h2>Thêm bài học</h2></div>
+          <div class="modal-body">
+            <form id="outline-add-form">
+              <div class="input-group">
+                <label>Tên bài <span class="required-mark">*</span></label>
+                <input type="text" id="outline-add-title" required placeholder="VD: Chương 1 — Giới thiệu">
+              </div>
+              <div style="display:flex;gap:12px;">
+                <div class="input-group" style="flex:1;">
+                  <label>Số tiết</label>
+                  <input type="number" id="outline-add-hours" min="0" value="0">
+                </div>
+                <div class="input-group" style="flex:1;">
+                  <label>CLO liên quan</label>
+                  <input type="text" id="outline-add-clos" placeholder="CLO1, CLO2">
+                </div>
+              </div>
+              <div class="input-group">
+                <label>Nội dung chi tiết (mỗi dòng = 1 mục)</label>
+                <textarea id="outline-add-topics" rows="4"></textarea>
+              </div>
+              <div class="input-group">
+                <label>Phương pháp dạy học</label>
+                <textarea id="outline-add-methods" rows="3"></textarea>
+              </div>
+              <div class="modal-error" id="outline-add-error"></div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="window.SyllabusEditorPage.closeAddOutlineModal()">Hủy</button>
+                <button type="submit" class="btn btn-primary">Thêm</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
     `;
 
     document.querySelectorAll('#syl-tabs .tab-item').forEach(el => {
@@ -153,6 +191,11 @@ window.SyllabusEditorPage = {
     document.getElementById('clo-add-form')?.addEventListener('submit', async (e) => {
       e.preventDefault();
       await this.submitAddCLO();
+    });
+
+    document.getElementById('outline-add-form')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      this.submitAddOutline();
     });
 
     this.renderSylTab();
