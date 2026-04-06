@@ -668,6 +668,55 @@ window.SyllabusEditorPage = {
     input.click();
   },
 
+  // ============ SAVE ALL ============
+  async saveAll() {
+    try {
+      // 1. Collect currently-active tab into in-memory state
+      this._collectCurrentTabIntoState();
+
+      // 2. PUT content (covers Tabs 0, 3, 4, 5 — all live in this.syllabus.content)
+      const res = await fetch(`/api/syllabi/${this.syllabusId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: this.syllabus.content }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error || 'Lỗi lưu nội dung');
+
+      // 3. Persist pending imported CLOs + mappings (if any)
+      if (this.importedClos) {
+        await this._persistImportedClos();
+      }
+
+      // 4. Persist Tab 2 manual map edits if any.
+      //    At this point importedClos is null (either it was never set, or step 3
+      //    cleared it). If the user also tweaked Tab 2 selects after an import,
+      //    step 3 wrote the imported mapping and step 4 overwrites it with the
+      //    user's edits — intentional last-write-wins.
+      //    NOTE on empty arrays: `_collectCloPloMap` writes `[]` when all selects
+      //    are 0. The truthy-array check below intentionally fires a PUT in that
+      //    case — an empty array legitimately represents "user zero'd all mappings,
+      //    save this as the new state". Do NOT change this to a `.length > 0` check
+      //    or null-coalesce, because that would break the deliberate-erase use case.
+      //    In single-user scenarios, if Tab 2 renders with all-zero selects, the
+      //    server already has an empty mapping (selects are rendered from server
+      //    state), so PUT [] is a safe no-op.
+      if (this.dirtyMapChanges) {
+        const res2 = await fetch(`/api/syllabi/${this.syllabusId}/clo-plo-map`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mappings: this.dirtyMapChanges }),
+        });
+        if (!res2.ok) throw new Error((await res2.json()).error || 'Lỗi lưu CLO-PLO');
+        this.dirtyMapChanges = null;
+      }
+
+      window.toast.success('Đã lưu tất cả');
+      this.renderSylTab();
+    } catch (e) {
+      window.toast.error(e.message);
+    }
+  },
+
   // ============ APPROVAL ============
   async submitForApproval() {
     const confirmed = await window.ui.confirm({
