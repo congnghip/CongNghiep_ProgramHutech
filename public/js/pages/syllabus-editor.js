@@ -469,18 +469,23 @@ window.SyllabusEditorPage = {
     </tr>`);
   },
 
-  async saveGrading() {
-    const rows = document.querySelectorAll('#grading-table tbody tr');
+  _collectGrading() {
+    const table = document.getElementById('grading-table');
+    if (!table) return; // Tab 4 not mounted
+    const rows = table.querySelectorAll('tbody tr');
     const assessment_methods = Array.from(rows).map(r => ({
       component: r.querySelector('[data-field="component"]').value,
       weight: parseInt(r.querySelector('[data-field="weight"]').value) || 0,
       assessment_tool: r.querySelector('[data-field="assessment_tool"]').value,
       clos: r.querySelector('[data-field="clos"]').value.split(',').map(s => s.trim()).filter(Boolean),
     }));
-    const content = { ...this.syllabus.content, assessment_methods };
+    this.syllabus.content = { ...this.syllabus.content, assessment_methods };
+  },
+
+  async saveGrading() {
+    this._collectGrading();
     try {
-      await fetch(`/api/syllabi/${this.syllabusId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content }) });
-      this.syllabus.content = content;
+      await fetch(`/api/syllabi/${this.syllabusId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: this.syllabus.content }) });
       window.toast.success('Đã lưu');
     } catch (e) { window.toast.error(e.message); }
   },
