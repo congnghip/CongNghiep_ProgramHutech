@@ -305,6 +305,22 @@ window.SyllabusEditorPage = {
     } catch (e) { window.toast.error(e.message); }
   },
 
+  _collectCloPloMap() {
+    const table = document.getElementById('clo-plo-table');
+    if (!table) return; // Tab 2 not mounted
+    const selects = table.querySelectorAll('select');
+    const mappings = [];
+    selects.forEach(s => {
+      const v = parseInt(s.value);
+      if (v > 0) mappings.push({
+        clo_id: parseInt(s.dataset.clo),
+        plo_id: parseInt(s.dataset.plo),
+        contribution_level: v,
+      });
+    });
+    this.dirtyMapChanges = mappings;
+  },
+
   // ============ TAB 2: CLO ↔ PLO ============
   async renderCLOPLOTab(body, editable) {
     const [clos, maps] = await Promise.all([
@@ -345,12 +361,12 @@ window.SyllabusEditorPage = {
       </div>
     `;
     document.getElementById('save-clo-plo-btn')?.addEventListener('click', async () => {
-      const selects = document.querySelectorAll('#clo-plo-table select');
-      const mappings = [];
-      selects.forEach(s => { const v = parseInt(s.value); if (v > 0) mappings.push({ clo_id: parseInt(s.dataset.clo), plo_id: parseInt(s.dataset.plo), contribution_level: v }); });
+      this._collectCloPloMap();
+      const mappings = this.dirtyMapChanges || [];
       try {
         const res = await fetch(`/api/syllabi/${this.syllabusId}/clo-plo-map`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mappings }) });
         if (!res.ok) throw new Error((await res.json()).error);
+        this.dirtyMapChanges = null;
         window.toast.success(`Đã lưu ${mappings.length} liên kết`);
       } catch (e) { window.toast.error(e.message); }
     });
