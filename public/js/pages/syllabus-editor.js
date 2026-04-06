@@ -503,7 +503,7 @@ window.SyllabusEditorPage = {
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
         <h3 style="font-size:15px;font-weight:600;">Nội dung chi tiết học phần</h3>
         <div style="display:flex;gap:8px;">
-          ${editable ? '<button class="btn btn-secondary btn-sm" onclick="window.SyllabusEditorPage.addOutlineRow()">+ Thêm bài</button>' : ''}
+          ${editable ? '<button class="btn btn-secondary btn-sm" onclick="window.SyllabusEditorPage.openAddOutlineModal()">+ Thêm bài</button>' : ''}
           ${editable ? '<button class="btn btn-primary btn-sm" onclick="window.SyllabusEditorPage.saveOutline()">Lưu</button>' : ''}
         </div>
       </div>
@@ -533,14 +533,51 @@ window.SyllabusEditorPage = {
     </div>`;
   },
 
-  addOutlineRow() {
-    const container = document.getElementById('outline-container');
-    const idx = container.querySelectorAll('.outline-row').length;
-    const emptyRow = { lesson: idx + 1, title: '', hours: 0, topics: [], teaching_methods: '', clos: [] };
-    // Remove "Chưa có nội dung" message if present
-    const p = container.querySelector('p');
-    if (p) p.remove();
-    container.insertAdjacentHTML('beforeend', this._outlineRowHtml(emptyRow, idx, true));
+  openAddOutlineModal() {
+    const form = document.getElementById('outline-add-form');
+    form.reset();
+    document.getElementById('outline-add-hours').value = '0';
+    const errorEl = document.getElementById('outline-add-error');
+    errorEl.classList.remove('show');
+    errorEl.textContent = '';
+    document.getElementById('outline-add-modal').classList.add('active');
+    App.modalGuard('outline-add-modal', () => this.submitAddOutline());
+  },
+
+  closeAddOutlineModal() {
+    document.getElementById('outline-add-modal').classList.remove('active');
+  },
+
+  submitAddOutline() {
+    const title = document.getElementById('outline-add-title').value.trim();
+    const errorEl = document.getElementById('outline-add-error');
+    if (!title) {
+      errorEl.textContent = 'Nhập tên bài';
+      errorEl.classList.add('show');
+      return;
+    }
+    const hours = parseFloat(document.getElementById('outline-add-hours').value) || 0;
+    const topics = document.getElementById('outline-add-topics').value
+      .split('\n').map(s => s.trim()).filter(Boolean);
+    const teaching_methods = document.getElementById('outline-add-methods').value;
+    const clos = document.getElementById('outline-add-clos').value
+      .split(',').map(s => s.trim()).filter(Boolean);
+
+    // CRITICAL: capture inline edits on existing rows BEFORE re-rendering Tab 3
+    this._collectOutline();
+
+    const existing = this.syllabus.content.course_outline || [];
+    this.syllabus.content = {
+      ...this.syllabus.content,
+      course_outline: [
+        ...existing,
+        { lesson: existing.length + 1, title, hours, topics, teaching_methods, clos },
+      ],
+    };
+
+    this.closeAddOutlineModal();
+    window.toast.success('Đã thêm bài (chưa lưu)');
+    this.renderSylTab();
   },
 
   _collectOutline() {
