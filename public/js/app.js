@@ -6,9 +6,6 @@
     userPerms: [],
     isAdmin: false,
     currentPage: null,
-    notificationUnread: 0,
-    notificationFilter: 'all',
-    notificationPollTimer: null,
 
     async init() {
       this.initToast();
@@ -105,11 +102,6 @@
               <div class="nav-item active" data-page="dashboard">
                 <span class="icon">📊</span> Tổng quan
               </div>
-              <div class="nav-item" id="notification-nav" data-notification-trigger>
-                <span class="icon">🔔</span>
-                <span style="flex:1;">Thông báo</span>
-                <span class="notification-badge" id="notification-badge" style="display:none;"></span>
-              </div>
 
               <div class="nav-section">Đào tạo</div>
               ${(this.hasPerm('programs.view_published') || this.hasPerm('programs.view_draft')) ? `
@@ -168,44 +160,12 @@
             </div>
           </div>
         </div>
-        <div class="notification-drawer-backdrop" id="notification-drawer-backdrop" onclick="window.App.closeNotificationsDrawer()"></div>
-        <aside class="notification-drawer" id="notification-drawer" aria-label="Thông báo">
-          <div class="notification-drawer-header">
-            <div>
-              <h2>Thông báo</h2>
-              <p id="notification-drawer-subtitle">Các việc cần bạn xử lý và kết quả phê duyệt.</p>
-            </div>
-            <button type="button" class="notification-close" onclick="window.App.closeNotificationsDrawer()">×</button>
-          </div>
-          <div class="notification-drawer-actions">
-            <button type="button" class="notification-filter active" data-filter="all">Tất cả</button>
-            <button type="button" class="notification-filter" data-filter="unread">Chưa đọc</button>
-            <button type="button" class="notification-filter" data-filter="actionable">Cần xử lý</button>
-          </div>
-          <div class="notification-drawer-toolbar">
-            <button type="button" class="btn btn-secondary btn-sm" onclick="window.App.markAllNotificationsRead()">Đánh dấu tất cả đã đọc</button>
-          </div>
-          <div class="notification-list" id="notification-list">
-            <div class="spinner"></div>
-          </div>
-        </aside>
       `;
 
       document.querySelectorAll('.nav-item[data-page]').forEach(item => {
         item.addEventListener('click', () => this.navigate(item.dataset.page));
       });
-      document.getElementById('notification-nav')?.addEventListener('click', () => this.openNotificationsDrawer());
-      document.querySelectorAll('.notification-filter').forEach(btn => {
-        btn.addEventListener('click', () => this.setNotificationFilter(btn.dataset.filter));
-      });
-      document.getElementById('notification-list')?.addEventListener('click', (e) => {
-        const item = e.target.closest('.notification-item[data-notification-id]');
-        if (!item) return;
-        this.openNotification(item.dataset.notificationId);
-      });
 
-      this.refreshNotificationCount();
-      this.startNotificationPolling();
       this.navigate('dashboard');
     },
 
@@ -281,188 +241,7 @@
       });
     },
 
-    async refreshNotificationCount() {
-      try {
-        const res = await fetch('/api/notifications/unread-count');
-        if (!res.ok) return;
-        const data = await res.json().catch(() => ({}));
-        this.notificationUnread = Number(data?.unread || 0);
-        const badge = document.getElementById('notification-badge');
-        if (!badge) return;
-        if (this.notificationUnread > 0) {
-          badge.textContent = this.notificationUnread > 99 ? '99+' : String(this.notificationUnread);
-          badge.style.display = 'inline-flex';
-        } else {
-          badge.textContent = '';
-          badge.style.display = 'none';
-        }
-      } catch (e) {
-        return;
-      }
-    },
-
-    startNotificationPolling() {
-      this.stopNotificationPolling();
-      this.refreshNotificationCount();
-      this.notificationPollTimer = setInterval(() => {
-        this.refreshNotificationCount();
-      }, 60000);
-    },
-
-    stopNotificationPolling() {
-      if (this.notificationPollTimer) {
-        clearInterval(this.notificationPollTimer);
-        this.notificationPollTimer = null;
-      }
-    },
-
-    openNotificationsDrawer() {
-      document.getElementById('notification-drawer')?.classList.add('active');
-      document.getElementById('notification-drawer-backdrop')?.classList.add('active');
-      this.loadNotifications();
-    },
-
-    closeNotificationsDrawer() {
-      document.getElementById('notification-drawer')?.classList.remove('active');
-      document.getElementById('notification-drawer-backdrop')?.classList.remove('active');
-    },
-
-    setNotificationFilter(filter) {
-      this.notificationFilter = filter || 'all';
-      document.querySelectorAll('.notification-filter').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.filter === this.notificationFilter);
-      });
-      this.loadNotifications();
-    },
-
-    async loadNotifications() {
-      const list = document.getElementById('notification-list');
-      if (!list) return;
-      list.innerHTML = '<div class="spinner"></div>';
-
-      try {
-        const res = await fetch(`/api/notifications?filter=${encodeURIComponent(this.notificationFilter || 'all')}`);
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(data.error || 'Không thể tải thông báo');
-
-        const notifications = Array.isArray(data.notifications) ? data.notifications : [];
-        this.notificationItems = notifications;
-
-        if (!notifications.length) {
-          const emptyMap = {
-            unread: 'Bạn chưa có thông báo chưa đọc.',
-            actionable: 'Hiện chưa có thông báo cần xử lý.',
-            all: 'Chưa có thông báo nào.'
-          };
-          list.innerHTML = `
-            <div class="notification-empty">
-              <div class="icon">🔔</div>
-              <h3>Trống</h3>
-              <p>${emptyMap[this.notificationFilter] || emptyMap.all}</p>
-            </div>
-          `;
-          return;
-        }
-
-        list.innerHTML = notifications.map(n => this.renderNotificationItem(n)).join('');
-      } catch (e) {
-        list.innerHTML = `
-          <div class="notification-empty notification-error">
-            <div class="icon">⚠️</div>
-            <h3>Không thể tải thông báo</h3>
-            <p>${this.escapeHtml(e.message || 'Đã có lỗi xảy ra.')}</p>
-          </div>
-        `;
-      }
-    },
-
-    renderNotificationItem(notification) {
-      const title = this.escapeHtml(notification?.title || 'Thông báo');
-      const body = this.escapeHtml(notification?.body || '');
-      const time = this.escapeHtml(this.formatNotificationTime(notification?.created_at));
-      const isRead = !!notification?.is_read;
-
-      return `
-        <div class="notification-item ${isRead ? 'is-read' : 'is-unread'}" data-notification-id="${notification.id}" role="button" tabindex="0" aria-label="${title}">
-          <div class="notification-item-main">
-            <div class="notification-item-title-row">
-              <div class="notification-item-title">${title}</div>
-              ${isRead ? '<span class="notification-item-state">Đã đọc</span>' : '<span class="notification-item-dot" aria-hidden="true"></span>'}
-            </div>
-            ${body ? `<div class="notification-item-body">${body}</div>` : ''}
-            <div class="notification-item-time">${time}</div>
-          </div>
-        </div>
-      `;
-    },
-
-    async openNotification(notificationId) {
-      const notification = (this.notificationItems || []).find(n => String(n.id) === String(notificationId));
-      if (!notification) return;
-
-      try {
-        const res = await fetch(`/api/notifications/${notification.id}/read`, { method: 'POST' });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          throw new Error(data.error || 'Không thể đánh dấu thông báo đã đọc');
-        }
-        await this.refreshNotificationCount();
-      } catch (e) {
-        window.toast?.error(e.message || 'Không thể đánh dấu thông báo đã đọc');
-      } finally {
-        this.closeNotificationsDrawer();
-        if (notification.link_page) {
-          const params = notification.link_params && typeof notification.link_params === 'object' ? notification.link_params : {};
-          this.navigate(notification.link_page, params);
-        }
-      }
-    },
-
-    async markAllNotificationsRead() {
-      try {
-        const res = await fetch('/api/notifications/read-all', { method: 'POST' });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          throw new Error(data.error || 'Không thể đánh dấu tất cả đã đọc');
-        }
-        await Promise.all([this.refreshNotificationCount(), this.loadNotifications()]);
-      } catch (e) {
-        window.toast?.error(e.message || 'Không thể đánh dấu tất cả đã đọc');
-      }
-    },
-
-    formatNotificationTime(dateValue) {
-      const date = new Date(dateValue);
-      if (Number.isNaN(date.getTime())) return '';
-
-      const diffMs = Date.now() - date.getTime();
-      const diffMinutes = Math.floor(diffMs / 60000);
-      const diffHours = Math.floor(diffMs / 3600000);
-      const diffDays = Math.floor(diffMs / 86400000);
-
-      if (diffMinutes < 1) return 'Vừa xong';
-      if (diffMinutes < 60) return `${diffMinutes} phút trước`;
-      if (diffHours < 24) return `${diffHours} giờ trước`;
-      if (diffDays < 7) return `${diffDays} ngày trước`;
-
-      return new Intl.DateTimeFormat('vi-VN', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-      }).format(date);
-    },
-
-    escapeHtml(value) {
-      return String(value ?? '')
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
-    },
-
     async logout() {
-      this.stopNotificationPolling();
       await fetch('/api/auth/logout', { method: 'POST' });
       this.currentUser = null;
       this.renderLogin();
