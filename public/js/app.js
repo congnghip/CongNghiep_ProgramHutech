@@ -9,6 +9,24 @@
     notificationUnread: 0,
     notificationFilter: 'all',
     notificationPollTimer: null,
+    sidebarCollapsed: false,
+
+    applySidebarState() {
+      document.querySelector('.layout')?.classList.toggle('sidebar-collapsed', this.sidebarCollapsed);
+      document.querySelector('.sidebar')?.classList.toggle('collapsed', this.sidebarCollapsed);
+
+      const toggle = document.querySelector('[data-sidebar-toggle]');
+      if (toggle) {
+        toggle.setAttribute('aria-expanded', String(!this.sidebarCollapsed));
+        toggle.setAttribute('aria-label', this.sidebarCollapsed ? 'Mở rộng sidebar' : 'Thu gọn sidebar');
+        toggle.textContent = this.sidebarCollapsed ? '»' : '«';
+      }
+    },
+
+    toggleSidebar() {
+      this.sidebarCollapsed = !this.sidebarCollapsed;
+      this.applySidebarState();
+    },
 
     async init() {
       this.initToast();
@@ -95,46 +113,62 @@
     renderApp() {
       const role = this.getHighestRole();
       document.getElementById('app').innerHTML = `
-        <div class="layout">
-          <div class="sidebar">
+        <div class="layout ${this.sidebarCollapsed ? 'sidebar-collapsed' : ''}">
+          <div class="sidebar ${this.sidebarCollapsed ? 'collapsed' : ''}">
             <div class="sidebar-header">
-              <span style="font-size:18px;">🎓</span>
-              <h1>HUTECH Program</h1>
+              <div class="sidebar-brand">
+                <span class="sidebar-brand-icon">🎓</span>
+                <h1>HUTECH Program</h1>
+              </div>
+              <button
+                type="button"
+                class="sidebar-toggle"
+                data-sidebar-toggle
+                aria-label="${this.sidebarCollapsed ? 'Mở rộng sidebar' : 'Thu gọn sidebar'}"
+                aria-expanded="${String(!this.sidebarCollapsed)}"
+              >${this.sidebarCollapsed ? '»' : '«'}</button>
             </div>
             <nav class="sidebar-nav">
               <div class="nav-item active" data-page="dashboard">
-                <span class="icon">📊</span> Tổng quan
+                <span class="icon">📊</span>
+                <span class="nav-label">Tổng quan</span>
               </div>
               <div class="nav-item" id="notification-nav" data-notification-trigger>
                 <span class="icon">🔔</span>
-                <span style="flex:1;">Thông báo</span>
+                <span class="nav-label nav-label-grow">Thông báo</span>
                 <span class="notification-badge" id="notification-badge" style="display:none;"></span>
               </div>
 
               <div class="nav-section">Đào tạo</div>
               ${(this.hasPerm('programs.view_published') || this.hasPerm('programs.view_draft')) ? `
               <div class="nav-item" data-page="programs">
-                <span class="icon">📋</span> Chương trình ĐT
+                <span class="icon">📋</span>
+                <span class="nav-label">Chương trình ĐT</span>
               </div>` : ''}
               ${this.hasPerm('courses.view') ? `
               <div class="nav-item" data-page="courses">
-                <span class="icon">📚</span> Học phần
+                <span class="icon">📚</span>
+                <span class="nav-label">Học phần</span>
               </div>` : ''}
               ${this.userRoles.some(r => r.role_code === 'GIANG_VIEN') ? `
               <div class="nav-item" data-page="my-assignments">
-                <span class="icon">📝</span> Đề cương của tôi
+                <span class="icon">📝</span>
+                <span class="nav-label">Đề cương của tôi</span>
               </div>` : ''}
               <div class="nav-item" data-page="approval">
-                <span class="icon">📬</span> Phê duyệt
+                <span class="icon">📬</span>
+                <span class="nav-label">Phê duyệt</span>
               </div>
 
               ${this.isAdmin ? `
               <div class="nav-section">Cài đặt</div>
               <div class="nav-item" data-page="rbac-admin">
-                <span class="icon">⚙️</span> Phân quyền
+                <span class="icon">⚙️</span>
+                <span class="nav-label">Phân quyền</span>
               </div>
               <div class="nav-item" data-page="audit-logs">
-                <span class="icon">📜</span> Nhật ký
+                <span class="icon">📜</span>
+                <span class="nav-label">Nhật ký</span>
               </div>
               ` : ''}
             </nav>
@@ -194,6 +228,7 @@
       document.querySelectorAll('.nav-item[data-page]').forEach(item => {
         item.addEventListener('click', () => this.navigate(item.dataset.page));
       });
+      document.querySelector('[data-sidebar-toggle]')?.addEventListener('click', () => this.toggleSidebar());
       document.getElementById('notification-nav')?.addEventListener('click', () => this.openNotificationsDrawer());
       document.querySelectorAll('.notification-filter').forEach(btn => {
         btn.addEventListener('click', () => this.setNotificationFilter(btn.dataset.filter));
@@ -214,6 +249,7 @@
         if (e.key === 'Escape') this.closeNotificationsDrawer();
       });
 
+      this.applySidebarState();
       this.startNotificationPolling();
       this.navigate('dashboard');
     },
