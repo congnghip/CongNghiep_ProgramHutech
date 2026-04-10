@@ -57,4 +57,20 @@ test.describe.serial('Sidebar collapse', () => {
       .poll(() => page.evaluate(() => window.App.currentPage === window.ProgramsPage))
       .toBe(true);
   });
+
+  test('TC_SIDEBAR_02: collapsed mode keeps tooltips and unread badge visible', async ({ page }) => {
+    await login(page);
+
+    await page.evaluate(() => {
+      const badge = document.getElementById('notification-badge');
+      badge.textContent = '7';
+      badge.style.display = 'inline-flex';
+    });
+
+    await page.locator('[data-sidebar-toggle]').click();
+
+    await expect(page.locator('.nav-item[data-page="dashboard"]')).toHaveAttribute('title', 'Tổng quan');
+    await expect(page.locator('#notification-nav')).toHaveAttribute('title', 'Thông báo');
+    await expect(page.locator('#notification-badge')).toBeVisible();
+  });
 });

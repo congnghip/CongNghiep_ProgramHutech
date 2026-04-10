@@ -129,11 +129,11 @@
               >${this.sidebarCollapsed ? '»' : '«'}</button>
             </div>
             <nav class="sidebar-nav">
-              <div class="nav-item active" data-page="dashboard">
+              <div class="nav-item active" data-page="dashboard" title="Tổng quan">
                 <span class="icon">📊</span>
                 <span class="nav-label">Tổng quan</span>
               </div>
-              <div class="nav-item" id="notification-nav" data-notification-trigger>
+              <div class="nav-item" id="notification-nav" data-notification-trigger title="Thông báo">
                 <span class="icon">🔔</span>
                 <span class="nav-label nav-label-grow">Thông báo</span>
                 <span class="notification-badge" id="notification-badge" style="display:none;"></span>
@@ -141,32 +141,32 @@
 
               <div class="nav-section">Đào tạo</div>
               ${(this.hasPerm('programs.view_published') || this.hasPerm('programs.view_draft')) ? `
-              <div class="nav-item" data-page="programs">
+              <div class="nav-item" data-page="programs" title="Chương trình ĐT">
                 <span class="icon">📋</span>
                 <span class="nav-label">Chương trình ĐT</span>
               </div>` : ''}
               ${this.hasPerm('courses.view') ? `
-              <div class="nav-item" data-page="courses">
+              <div class="nav-item" data-page="courses" title="Học phần">
                 <span class="icon">📚</span>
                 <span class="nav-label">Học phần</span>
               </div>` : ''}
               ${this.userRoles.some(r => r.role_code === 'GIANG_VIEN') ? `
-              <div class="nav-item" data-page="my-assignments">
+              <div class="nav-item" data-page="my-assignments" title="Đề cương của tôi">
                 <span class="icon">📝</span>
                 <span class="nav-label">Đề cương của tôi</span>
               </div>` : ''}
-              <div class="nav-item" data-page="approval">
+              <div class="nav-item" data-page="approval" title="Phê duyệt">
                 <span class="icon">📬</span>
                 <span class="nav-label">Phê duyệt</span>
               </div>
 
               ${this.isAdmin ? `
               <div class="nav-section">Cài đặt</div>
-              <div class="nav-item" data-page="rbac-admin">
+              <div class="nav-item" data-page="rbac-admin" title="Phân quyền">
                 <span class="icon">⚙️</span>
                 <span class="nav-label">Phân quyền</span>
               </div>
-              <div class="nav-item" data-page="audit-logs">
+              <div class="nav-item" data-page="audit-logs" title="Nhật ký">
                 <span class="icon">📜</span>
                 <span class="nav-label">Nhật ký</span>
               </div>
