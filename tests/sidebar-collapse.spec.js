@@ -87,4 +87,23 @@ test.describe.serial('Sidebar collapse', () => {
     await expect(myAssignments).toBeVisible();
     await expect(myAssignments).toHaveAttribute('title', /.+/);
   });
+
+  test('TC_SIDEBAR_03: collapsed preference persists after reload', async ({ page }) => {
+    await login(page);
+
+    await page.locator('[data-sidebar-toggle]').click();
+
+    await expect(page.locator('.sidebar')).toHaveClass(/collapsed/);
+    await expect
+      .poll(() => page.evaluate(() => localStorage.getItem('hutech.sidebar.collapsed')))
+      .toBe('true');
+
+    await page.reload();
+    await page.locator('.sidebar').waitFor({ state: 'visible', timeout: 10000 });
+    await page.waitForFunction(() => !document.querySelector('#page-content .spinner'), null, { timeout: 10000 });
+
+    await expect(page.locator('.sidebar')).toHaveClass(/collapsed/);
+    await expect(page.locator('.layout')).toHaveClass(/sidebar-collapsed/);
+    await expect(page.locator('.sidebar-user')).toBeHidden();
+  });
 });

@@ -10,6 +10,23 @@
     notificationFilter: 'all',
     notificationPollTimer: null,
     sidebarCollapsed: false,
+    sidebarStorageKey: 'hutech.sidebar.collapsed',
+
+    loadSidebarPreference() {
+      try {
+        this.sidebarCollapsed = localStorage.getItem(this.sidebarStorageKey) === 'true';
+      } catch (e) {
+        this.sidebarCollapsed = false;
+      }
+    },
+
+    persistSidebarPreference() {
+      try {
+        localStorage.setItem(this.sidebarStorageKey, String(this.sidebarCollapsed));
+      } catch (e) {
+        return;
+      }
+    },
 
     applySidebarState() {
       document.querySelector('.layout')?.classList.toggle('sidebar-collapsed', this.sidebarCollapsed);
@@ -25,6 +42,7 @@
 
     toggleSidebar() {
       this.sidebarCollapsed = !this.sidebarCollapsed;
+      this.persistSidebarPreference();
       this.applySidebarState();
     },
 
@@ -40,6 +58,7 @@
           this.userRoles = data.roles;
           this.userPerms = data.permissions;
           this.isAdmin = data.isAdmin;
+          this.loadSidebarPreference();
           this.renderApp();
         } else {
           this.renderLogin();
