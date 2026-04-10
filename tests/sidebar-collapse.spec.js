@@ -80,7 +80,9 @@ test.describe.serial('Sidebar collapse', () => {
 
     await expect(page.locator('#notification-badge')).toBeVisible();
 
+    await page.evaluate(() => localStorage.setItem('hutech.sidebar.collapsed', 'false'));
     await login(page, 'giangvien', 'admin123');
+    await expect(page.locator('.sidebar')).not.toHaveClass(/collapsed/);
     await page.locator('[data-sidebar-toggle]').click();
 
     const myAssignments = page.locator('.nav-item[data-page="my-assignments"]');
@@ -98,7 +100,53 @@ test.describe.serial('Sidebar collapse', () => {
       .poll(() => page.evaluate(() => localStorage.getItem('hutech.sidebar.collapsed')))
       .toBe('true');
 
+    await page.addInitScript(() => {
+      window.__sidebarFirstRender = { layoutClassName: null, sidebarClassName: null };
+
+      const observer = new MutationObserver((mutations, mutationObserver) => {
+        for (const mutation of mutations) {
+          for (const node of mutation.addedNodes) {
+            if (!(node instanceof Element)) {
+              continue;
+            }
+
+            if (window.__sidebarFirstRender.layoutClassName === null) {
+              const layout = node.matches('.layout') ? node : node.querySelector?.('.layout');
+              if (layout) {
+                window.__sidebarFirstRender.layoutClassName = layout.className;
+              }
+            }
+
+            if (window.__sidebarFirstRender.sidebarClassName === null) {
+              const sidebar = node.matches('.sidebar') ? node : node.querySelector?.('.sidebar');
+              if (sidebar) {
+                window.__sidebarFirstRender.sidebarClassName = sidebar.className;
+              }
+            }
+          }
+        }
+
+        if (
+          window.__sidebarFirstRender.layoutClassName !== null &&
+          window.__sidebarFirstRender.sidebarClassName !== null
+        ) {
+          mutationObserver.disconnect();
+        }
+      });
+
+      observer.observe(document, { childList: true, subtree: true });
+    });
+
     await page.reload();
+    await page.waitForFunction(() => {
+      const state = window.__sidebarFirstRender;
+      return state && state.layoutClassName !== null && state.sidebarClassName !== null;
+    }, null, { timeout: 10000 });
+
+    const firstRender = await page.evaluate(() => window.__sidebarFirstRender);
+    expect(firstRender.layoutClassName).toContain('sidebar-collapsed');
+    expect(firstRender.sidebarClassName).toContain('collapsed');
+
     await page.locator('.sidebar').waitFor({ state: 'visible', timeout: 10000 });
     await expect(page.locator('.sidebar')).toHaveClass(/collapsed/);
     await expect(page.locator('.layout')).toHaveClass(/sidebar-collapsed/);
