@@ -92,6 +92,7 @@ window.VersionEditorPage = {
             </div>
           </div>
           <div class="page-header-actions">
+            <button class="btn btn-primary btn-sm" onclick="window.VersionEditorPage.exportVersionDocx()">Xuất DOCX</button>
             <button class="btn btn-secondary btn-sm" onclick="window.VersionEditorPage.exportVersion()">Xuất JSON</button>
             ${(isDraft && !locked && window.App.hasPerm('programs.submit')) ? '<button class="btn btn-primary btn-sm" onclick="window.VersionEditorPage.submitVersion()">Nộp duyệt</button>' : ''}
           </div>
@@ -1353,7 +1354,7 @@ window.VersionEditorPage = {
         <h3 style="font-size:15px;font-weight:600;">Ma trận HP ↔ PLO</h3>
         ${editable ? '<span id="c-plo-status" class="text-muted" style="font-size:12px;"></span>' : ''}
       </div>
-      <p style="color:var(--text-muted);font-size:12px;margin-bottom:12px;">— = Không áp dụng · 1 = Thấp · 2 = TB · 3 = Cao</p>
+      <p style="color:var(--text-muted);font-size:12px;margin-bottom:12px;">Bỏ trống = Không áp dụng · Tích = Áp dụng</p>
       <div style="overflow-x:auto;padding-bottom:16px;">
         <table class="data-table" id="c-plo-table" style="border-collapse:collapse;white-space:nowrap;">
           <thead>
@@ -1368,17 +1369,16 @@ window.VersionEditorPage = {
               <td style="position:sticky;left:0;z-index:5;font-size:12px;background:#ffffff;box-shadow:inset -1px 0 0 var(--border);" title="${c.course_name}"><strong>${c.course_code}</strong></td>
               <td style="font-size:12px;max-width:200px;overflow:hidden;text-overflow:ellipsis;">${c.course_name}</td>
               ${plos.map(p => {
-                const val = ploMapObj[`${c.id}-${p.id}`] || 0;
+                const checked = (ploMapObj[`${c.id}-${p.id}`] || 0) > 0;
                 return `<td style="text-align:center;">
-                  <select class="plo-select" data-vc="${c.id}" data-plo="${p.id}"
-                          style="width:38px;padding:1px;font-size:11px;border:1px solid var(--border);border-radius:var(--radius);font-family:inherit;
-                                 ${!editable ? 'background:var(--bg-secondary);opacity:0.5;cursor:not-allowed;' : 'cursor:pointer;'}"
-                          ${!editable ? 'disabled' : ''}>
-                    <option value="0" ${val === 0 ? 'selected' : ''}>—</option>
-                    <option value="1" ${val === 1 ? 'selected' : ''}>1</option>
-                    <option value="2" ${val === 2 ? 'selected' : ''}>2</option>
-                    <option value="3" ${val === 3 ? 'selected' : ''}>3</option>
-                  </select>
+                  <input type="checkbox"
+                         class="plo-checkbox"
+                         data-vc="${c.id}"
+                         data-plo="${p.id}"
+                         aria-label="Áp dụng ${c.course_code} cho ${p.code}"
+                         ${checked ? 'checked' : ''}
+                         ${!editable ? 'disabled' : ''}
+                         style="width:16px;height:16px;margin:0;accent-color:var(--primary);cursor:${editable ? 'pointer' : 'not-allowed'};${!editable ? 'opacity:0.5;' : ''}">
                 </td>`;
               }).join('')}
             </tr>`).join('')}
@@ -1394,13 +1394,10 @@ window.VersionEditorPage = {
         const status = document.getElementById('c-plo-status');
         if (status) status.textContent = 'Đang lưu...';
         saveTimer = setTimeout(async () => {
-          const ploSelects = document.querySelectorAll('#c-plo-table select.plo-select');
+          const ploCheckboxes = document.querySelectorAll('#c-plo-table input.plo-checkbox:checked');
           const mappings = [];
-          ploSelects.forEach(s => {
-            const val = parseInt(s.value);
-            if (val > 0) {
-              mappings.push({ course_id: parseInt(s.dataset.vc), plo_id: parseInt(s.dataset.plo), contribution_level: val });
-            }
+          ploCheckboxes.forEach(s => {
+            mappings.push({ course_id: parseInt(s.dataset.vc, 10), plo_id: parseInt(s.dataset.plo, 10), contribution_level: 1 });
           });
           try {
             const res = await fetch(`/api/versions/${this.versionId}/course-plo-map`, {
@@ -1783,6 +1780,33 @@ window.VersionEditorPage = {
       const syl = await res.json();
       window.toast.success('Đã tạo đề cương');
       window.App.navigate('syllabus-editor', { syllabusId: syl.id });
+    } catch (e) { window.toast.error(e.message); }
+  },
+
+  async exportVersionDocx() {
+    try {
+      const res = await fetch(`/api/export/version/${this.versionId}/docx`);
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.error || 'Không thể xuất DOCX');
+      }
+      const contentType = res.headers.get('Content-Type') || '';
+      if (!contentType.includes('application/vnd.openxmlformats-officedocument.wordprocessingml.document')) {
+        throw new Error('Không thể xuất DOCX: máy chủ chưa trả về file Word hợp lệ');
+      }
+      const blob = await res.blob();
+      const disposition = res.headers.get('Content-Disposition') || '';
+      const match = disposition.match(/filename="([^"]+)"/);
+      const filename = match ? match[1] : `CTDT_${this.version.program_code || 'export'}_${this.version.academic_year}.docx`;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      window.toast.success('Đã xuất file DOCX');
     } catch (e) { window.toast.error(e.message); }
   },
 

@@ -8,6 +8,7 @@ const { pool, initDB, getUserPermissions, getUserRoles, hasPermission, isAdmin, 
 const multer = require('multer');
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } });
 const { parseWordFile } = require('./word-parser');
+const { exportVersionToDocx } = require('./word-exporter');
 const { parseSyllabusPdf } = require('./pdf-syllabus-parser');
 
 const app = express();
@@ -2852,38 +2853,147 @@ app.get('/api/audit-logs', authMiddleware, requireAdmin(), async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+async function loadVersionExportData(db, vId) {
+  const [
+    version,
+    objectives,
+    plos,
+    courses,
+    knowledgeBlocks,
+    poploMap,
+    coursePloMap,
+    coursePiMap,
+    assessments,
+    syllabi,
+  ] = await Promise.all([
+    db.query(`
+      SELECT pv.*, p.name as program_name, p.name_en as program_name_en, p.code as program_code,
+             p.degree, p.degree_name, p.total_credits as program_total_credits,
+             p.institution, p.training_mode, d.name as dept_name, d.code as dept_code
+      FROM program_versions pv
+      JOIN programs p ON pv.program_id = p.id
+      LEFT JOIN departments d ON p.department_id = d.id
+      WHERE pv.id = $1
+    `, [vId]),
+    db.query('SELECT * FROM version_objectives WHERE version_id=$1 ORDER BY code', [vId]),
+    db.query(`
+      SELECT vp.*,
+        COALESCE((
+          SELECT json_agg(json_build_object('id', pi.id, 'code', pi.pi_code, 'pi_code', pi.pi_code, 'description', pi.description) ORDER BY pi.pi_code)
+          FROM plo_pis pi WHERE pi.plo_id = vp.id
+        ), '[]'::json) as pis
+      FROM version_plos vp
+      WHERE vp.version_id=$1
+      ORDER BY vp.code
+    `, [vId]),
+    db.query(`
+      SELECT vc.*, c.id as master_course_id, c.code as course_code, c.name as course_name,
+             c.credits, c.credits_theory, c.credits_practice, c.credits_project, c.credits_internship,
+             c.description as course_desc, d.name as dept_name, d.code as dept_code,
+             kb.name as knowledge_block_name,
+             tp.total_hours, tp.hours_theory, tp.hours_practice, tp.hours_project, tp.hours_internship,
+             tp.software, tp.managing_dept, tp.batch, tp.notes,
+             COALESCE((
+               SELECT array_agg(pc.code ORDER BY pc.code)
+               FROM version_courses pvc JOIN courses pc ON pvc.course_id = pc.id
+               WHERE pvc.id = ANY(COALESCE(vc.prerequisite_course_ids, ARRAY[]::int[]))
+             ), ARRAY[]::text[]) as prerequisite_codes,
+             COALESCE((
+               SELECT array_agg(cc.code ORDER BY cc.code)
+               FROM version_courses cvc JOIN courses cc ON cvc.course_id = cc.id
+               WHERE cvc.id = ANY(COALESCE(vc.corequisite_course_ids, ARRAY[]::int[]))
+             ), ARRAY[]::text[]) as corequisite_codes
+      FROM version_courses vc
+      JOIN courses c ON vc.course_id = c.id
+      LEFT JOIN departments d ON c.department_id = d.id
+      LEFT JOIN knowledge_blocks kb ON vc.knowledge_block_id = kb.id
+      LEFT JOIN teaching_plan tp ON tp.version_course_id = vc.id
+      WHERE vc.version_id=$1
+      ORDER BY COALESCE(vc.semester, 99), c.code
+    `, [vId]),
+    db.query('SELECT * FROM knowledge_blocks WHERE version_id=$1 ORDER BY sort_order, id', [vId]),
+    db.query(`
+      SELECT pom.*, po.code as po_code, plo.code as plo_code
+      FROM po_plo_map pom
+      JOIN version_objectives po ON pom.po_id = po.id
+      JOIN version_plos plo ON pom.plo_id = plo.id
+      WHERE pom.version_id=$1
+      ORDER BY po.code, plo.code
+    `, [vId]),
+    db.query(`
+      SELECT cpm.*, c.code as course_code, plo.code as plo_code
+      FROM course_plo_map cpm
+      JOIN version_courses vc ON cpm.course_id = vc.id
+      JOIN courses c ON vc.course_id = c.id
+      JOIN version_plos plo ON cpm.plo_id = plo.id
+      WHERE cpm.version_id=$1
+      ORDER BY c.code, plo.code
+    `, [vId]),
+    db.query(`
+      SELECT vpc.*, c.code as course_code, pi.pi_code
+      FROM version_pi_courses vpc
+      JOIN version_courses vc ON vpc.course_id = vc.id
+      JOIN courses c ON vc.course_id = c.id
+      JOIN plo_pis pi ON vpc.pi_id = pi.id
+      WHERE vpc.version_id=$1
+      ORDER BY c.code, pi.pi_code
+    `, [vId]),
+    db.query(`
+      SELECT ap.*, vp.code as plo_code, pi.pi_code, c.code as course_code
+      FROM assessment_plans ap
+      LEFT JOIN version_plos vp ON ap.plo_id = vp.id
+      LEFT JOIN plo_pis pi ON ap.pi_id = pi.id
+      LEFT JOIN courses c ON ap.sample_course_id = c.id
+      WHERE ap.version_id=$1
+      ORDER BY vp.code, pi.pi_code, ap.id
+    `, [vId]),
+    db.query(`
+      SELECT vs.*, c.code as course_code, c.name as course_name
+      FROM version_syllabi vs
+      JOIN courses c ON vs.course_id = c.id
+      WHERE vs.version_id=$1
+      ORDER BY c.code
+    `, [vId]),
+  ]);
+
+  if (!version.rows.length) return null;
+
+  return {
+    version: version.rows[0],
+    objectives: objectives.rows,
+    plos: plos.rows,
+    courses: courses.rows,
+    knowledgeBlocks: knowledgeBlocks.rows,
+    poploMap: poploMap.rows,
+    coursePloMap: coursePloMap.rows,
+    coursePiMap: coursePiMap.rows,
+    assessments: assessments.rows,
+    syllabi: syllabi.rows,
+    exportedAt: new Date().toISOString(),
+  };
+}
+
 // ============ EXPORT ============
 app.get('/api/export/version/:vId', authMiddleware, requirePerm('programs.export'), requireViewVersion, async (req, res) => {
   try {
-    const vId = req.params.vId;
-    const [version, pos, plos, vCourses, poploMap, cploMap, assessments, syllabi] = await Promise.all([
-      pool.query(`SELECT pv.*, p.name as program_name, p.code as program_code, p.degree, p.total_credits, d.name as dept_name
-        FROM program_versions pv JOIN programs p ON pv.program_id=p.id JOIN departments d ON p.department_id=d.id WHERE pv.id=$1`, [vId]),
-      pool.query('SELECT * FROM version_objectives WHERE version_id=$1 ORDER BY code', [vId]),
-      pool.query(`SELECT vp.*, (SELECT json_agg(json_build_object('id',pi.id,'code',pi.pi_code,'description',pi.description)) FROM plo_pis pi WHERE pi.plo_id=vp.id) as pis FROM version_plos vp WHERE vp.version_id=$1 ORDER BY code`, [vId]),
-      pool.query(`SELECT vc.*, c.code as course_code, c.name as course_name, c.credits, c.credits_theory, c.credits_practice, c.credits_project, c.credits_internship, c.description as course_desc, d.name as dept_name
-        FROM version_courses vc JOIN courses c ON vc.course_id=c.id LEFT JOIN departments d ON c.department_id=d.id WHERE vc.version_id=$1 ORDER BY vc.semester, c.code`, [vId]),
-      pool.query('SELECT * FROM po_plo_map WHERE version_id=$1', [vId]),
-      pool.query('SELECT * FROM course_plo_map WHERE version_id=$1', [vId]),
-      pool.query(`SELECT ap.*, vp.code as plo_code, c.code as course_code FROM assessment_plans ap
-        LEFT JOIN version_plos vp ON ap.plo_id=vp.id LEFT JOIN courses c ON ap.sample_course_id=c.id WHERE ap.version_id=$1`, [vId]),
-      pool.query(`SELECT vs.*, c.code as course_code, c.name as course_name FROM version_syllabi vs
-        JOIN courses c ON vs.course_id=c.id WHERE vs.version_id=$1 ORDER BY c.code`, [vId]),
-    ]);
+    const data = await loadVersionExportData(pool, req.params.vId);
+    if (!data) return res.status(404).json({ error: 'Version not found' });
+    res.json(data);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
 
-    if (!version.rows.length) return res.status(404).json({ error: 'Version not found' });
+app.get('/api/export/version/:vId/docx', authMiddleware, requirePerm('programs.export'), requireViewVersion, async (req, res) => {
+  try {
+    const data = await loadVersionExportData(pool, req.params.vId);
+    if (!data) return res.status(404).json({ error: 'Version not found' });
 
-    res.json({
-      version: version.rows[0],
-      objectives: pos.rows,
-      plos: plos.rows,
-      courses: vCourses.rows,
-      poploMap: poploMap.rows,
-      coursePloMap: cploMap.rows,
-      assessments: assessments.rows,
-      syllabi: syllabi.rows,
-      exportedAt: new Date().toISOString(),
-    });
+    const buffer = await exportVersionToDocx(data);
+    const code = String(data.version.program_code || 'export').replace(/[^\w.-]+/g, '_');
+    const year = String(data.version.academic_year || 'version').replace(/[^\w.-]+/g, '_');
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    res.setHeader('Content-Disposition', `attachment; filename="CTDT_${code}_${year}.docx"`);
+    res.send(buffer);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

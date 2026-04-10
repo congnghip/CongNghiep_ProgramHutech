@@ -1316,6 +1316,73 @@ test.describe('Version Editor', () => {
     expect(result).toBe(true);
   });
 
+  test('TC_VER_39: HP-PLO dung checkbox va tu dong luu', async ({ page }) => {
+    await login(page);
+    const setup = await page.evaluate(async (vId) => {
+      const coursesRes = await fetch('/api/courses');
+      const courses = await coursesRes.json();
+      if (!courses.length) return { skip: true };
+
+      const code = 'PLOCHK_' + (Date.now() % 1e6);
+      const ploRes = await fetch(`/api/versions/${vId}/plos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, description: 'PLO checkbox test' })
+      });
+      const plo = await ploRes.json();
+      if (!ploRes.ok) return { skip: true };
+
+      const vcRes = await fetch(`/api/versions/${vId}/courses`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ course_id: courses[0].id, semester: 1 })
+      });
+      const versionCourse = await vcRes.json();
+      if (!vcRes.ok) {
+        await fetch(`/api/plos/${plo.id}`, { method: 'DELETE' });
+        return { skip: true };
+      }
+
+      return { skip: false, ploId: plo.id, versionCourseId: versionCourse.id };
+    }, testVersionId);
+
+    if (setup.skip) test.skip();
+
+    try {
+      await page.evaluate((vId) => window.App.navigate('version-editor', { versionId: vId }), testVersionId);
+      await page.waitForTimeout(1000);
+      await page.locator('#editor-tabs .tab-item').filter({ hasText: 'HP ↔ PLO' }).click();
+
+      await expect(page.locator('#c-plo-table input.plo-checkbox').first()).toBeVisible();
+      await expect(page.locator('#c-plo-table select.plo-select')).toHaveCount(0);
+
+      const checkbox = page.locator(
+        `#c-plo-table input.plo-checkbox[data-vc="${setup.versionCourseId}"][data-plo="${setup.ploId}"]`
+      );
+      await checkbox.check();
+      await expect(page.locator('#c-plo-status')).toContainText('Đã lưu');
+
+      const saved = await page.evaluate(async (data) => {
+        const res = await fetch(`/api/versions/${data.vId}/course-plo-map`);
+        const mappings = await res.json();
+        return mappings.find(m => m.course_id === data.versionCourseId && m.plo_id === data.ploId) || null;
+      }, { vId: testVersionId, versionCourseId: setup.versionCourseId, ploId: setup.ploId });
+
+      expect(saved).toBeTruthy();
+      expect(saved.contribution_level).toBe(1);
+    } finally {
+      await page.evaluate(async (data) => {
+        await fetch(`/api/versions/${data.vId}/course-plo-map`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mappings: [] })
+        });
+        await fetch(`/api/plos/${data.ploId}`, { method: 'DELETE' });
+        await fetch(`/api/version-courses/${data.versionCourseId}`, { method: 'DELETE' });
+      }, { vId: testVersionId, ploId: setup.ploId, versionCourseId: setup.versionCourseId });
+    }
+  });
+
   // Course-PI Matrix
   test('TC_VER_33: Map HP voi PI', async ({ page }) => {
     await login(page);

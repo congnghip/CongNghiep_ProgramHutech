@@ -66,4 +66,79 @@ test.describe.serial('Main content width', () => {
     expect(collapsed.paddingRight).toBe('32px');
     expect(collapsed.marginLeft).toBe('72px');
   });
+
+  test('TC_LAYOUT_02: expanded sidebar keeps main content inside a narrower desktop viewport', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await login(page);
+
+    const expanded = await page.locator('.main-content').evaluate(el => {
+      const rect = el.getBoundingClientRect();
+      return {
+        right: Math.ceil(rect.right),
+        width: Math.round(rect.width),
+        viewportWidth: window.innerWidth,
+      };
+    });
+
+    expect(expanded.right).toBeLessThanOrEqual(expanded.viewportWidth);
+    expect(expanded.width).toBeLessThanOrEqual(expanded.viewportWidth - 240);
+
+    await page.locator('[data-sidebar-toggle]').click();
+
+    const collapsed = await page.locator('.main-content').evaluate(el => {
+      const rect = el.getBoundingClientRect();
+      return {
+        right: Math.ceil(rect.right),
+        width: Math.round(rect.width),
+        viewportWidth: window.innerWidth,
+      };
+    });
+
+    expect(collapsed.right).toBeLessThanOrEqual(collapsed.viewportWidth);
+    expect(collapsed.width).toBeLessThanOrEqual(collapsed.viewportWidth - 72);
+  });
+
+  test('TC_LAYOUT_03: wide editor tabs scroll inside main content instead of widening the shell', async ({ page }) => {
+    await page.setViewportSize({ width: 1536, height: 800 });
+    await login(page);
+
+    await page.locator('.main-content').evaluate(el => {
+      el.innerHTML = `
+        <div class="tab-bar" id="editor-tabs">
+          ${[
+            'Thông tin',
+            'Mục tiêu PO',
+            'Chuẩn đầu ra PLO',
+            'Chỉ số PI',
+            'PO ↔ PLO',
+            'Khối KT',
+            'Học phần',
+            'Mô tả HP',
+            'Kế hoạch GD',
+            'Sơ đồ tiến trình',
+            'HP ↔ PLO',
+            'HP ↔ PI',
+            'Đánh giá CĐR',
+            'Đề cương',
+          ].map(label => `<div class="tab-item">${label}</div>`).join('')}
+        </div>
+      `;
+    });
+
+    const expanded = await page.evaluate(() => {
+      const mainRect = document.querySelector('.main-content').getBoundingClientRect();
+      const tabs = document.querySelector('#editor-tabs');
+      return {
+        mainRight: Math.ceil(mainRect.right),
+        viewportWidth: window.innerWidth,
+        documentWidth: document.documentElement.scrollWidth,
+        tabsScrollWidth: tabs.scrollWidth,
+        tabsClientWidth: tabs.clientWidth,
+      };
+    });
+
+    expect(expanded.mainRight).toBeLessThanOrEqual(expanded.viewportWidth);
+    expect(expanded.documentWidth).toBeLessThanOrEqual(expanded.viewportWidth);
+    expect(expanded.tabsScrollWidth).toBeGreaterThan(expanded.tabsClientWidth);
+  });
 });
