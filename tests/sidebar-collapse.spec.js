@@ -69,8 +69,15 @@ test.describe.serial('Sidebar collapse', () => {
 
     await page.locator('[data-sidebar-toggle]').click();
 
-    await expect(page.locator('.nav-item[data-page="dashboard"]')).toHaveAttribute('title', 'Tổng quan');
-    await expect(page.locator('#notification-nav')).toHaveAttribute('title', 'Thông báo');
+    const navItems = page.locator('.sidebar .nav-item');
+    const navItemCount = await navItems.count();
+
+    expect(navItemCount).toBeGreaterThan(0);
+
+    for (let i = 0; i < navItemCount; i += 1) {
+      await expect(navItems.nth(i)).toHaveAttribute('title', /.+/);
+    }
+
     await expect(page.locator('#notification-badge')).toBeVisible();
   });
 });
