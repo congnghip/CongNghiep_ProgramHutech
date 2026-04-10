@@ -79,5 +79,12 @@ test.describe.serial('Sidebar collapse', () => {
     }
 
     await expect(page.locator('#notification-badge')).toBeVisible();
+
+    await login(page, 'giangvien', 'admin123');
+    await page.locator('[data-sidebar-toggle]').click();
+
+    const myAssignments = page.locator('.nav-item[data-page="my-assignments"]');
+    await expect(myAssignments).toBeVisible();
+    await expect(myAssignments).toHaveAttribute('title', /.+/);
   });
 });
