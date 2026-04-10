@@ -100,6 +100,8 @@ test.describe.serial('Sidebar collapse', () => {
 
     await page.reload();
     await page.locator('.sidebar').waitFor({ state: 'visible', timeout: 10000 });
+    await expect(page.locator('.sidebar')).toHaveClass(/collapsed/);
+    await expect(page.locator('.layout')).toHaveClass(/sidebar-collapsed/);
     await page.waitForFunction(() => !document.querySelector('#page-content .spinner'), null, { timeout: 10000 });
 
     await expect(page.locator('.sidebar')).toHaveClass(/collapsed/);
