@@ -879,6 +879,7 @@ window.SyllabusEditorPage = {
       });
       if (!res.ok) throw new Error((await res.json()).error);
       window.toast.success('Đã nộp');
+      if (window.App.refreshNotificationCount) window.App.refreshNotificationCount();
       this.syllabus.status = 'submitted';
       this.render(document.getElementById('page-content'), this.syllabusId);
     } catch (e) { window.toast.error(e.message); }

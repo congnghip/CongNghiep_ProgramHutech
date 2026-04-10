@@ -62,7 +62,7 @@ TC_VER_31,Version Editor,Unmap HP-PLO,Clear level,Toast thanh cong khi luu,Pass,
 TC_VER_32,Version Editor,Map tat ca HP voi 1 PLO,Fill toan bo cot,Luu thanh cong,Pass,2026-04-05
 TC_VER_33,Version Editor,Map HP voi PI,Check trong matrix,Toast thanh cong,Pass,2026-04-05
 TC_VER_34,Version Editor,Unmap HP-PI,Uncheck,Toast thanh cong,Pass,2026-04-05
-TC_VER_35,Version Editor,Cap nhat ke hoach giang day,Set hoc ky cho HP,Toast thanh cong,Pass,2026-04-05
+TC_VER_35,Version Editor,Cap nhat ke hoach giang day,Set hoc ky cho HP,Toast thanh cong,Pass,2026-04-09
 TC_VER_36,Version Editor,Thiet lap tien quyet HP,Set prerequisite,Toast thanh cong,Pass,2026-04-05
 TC_VER_37,Version Editor,Xem so do tien trinh,Mo tab flowchart,SVG diagram render,Pass,2026-04-05
 TC_VER_38,Version Editor,Flowchart khi khong co HP,Version khong co courses,Hien thi empty state hoac message,Pass,2026-04-05

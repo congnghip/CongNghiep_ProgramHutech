@@ -141,6 +141,7 @@ window.ApprovalPage = {
       });
       if (!res.ok) throw new Error((await res.json()).error);
       window.toast.success('Đã phê duyệt');
+      if (window.App.refreshNotificationCount) window.App.refreshNotificationCount();
       this.render(document.getElementById('page-content'));
     } catch (e) { window.toast.error(e.message); }
   },
@@ -165,6 +166,7 @@ window.ApprovalPage = {
       if (!res.ok) throw new Error((await res.json()).error);
       document.getElementById('reject-modal').classList.remove('active');
       window.toast.success('Đã từ chối');
+      if (window.App.refreshNotificationCount) window.App.refreshNotificationCount();
       this.render(document.getElementById('page-content'));
     } catch (e) { window.toast.error(e.message); }
   },

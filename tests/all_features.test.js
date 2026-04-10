@@ -12,6 +12,7 @@ async function login(page, username = 'admin', password = 'admin123') {
   await page.locator('#login-pass').fill(password);
   await page.locator('#login-form button[type="submit"]').click();
   await page.locator('.sidebar').waitFor({ state: 'visible', timeout: 10000 });
+  await page.waitForFunction(() => !document.querySelector('#page-content .spinner'), null, { timeout: 10000 });
 }
 
 async function navigateTo(page, pageName) {
@@ -1341,11 +1342,48 @@ test.describe('Version Editor', () => {
   // Teaching Plan
   test('TC_VER_35: Cap nhat ke hoach giang day', async ({ page }) => {
     await login(page);
-    const result = await page.evaluate(async (vId) => {
-      const res = await fetch(`/api/versions/${vId}/teaching-plan`);
+    const prepared = await page.evaluate(async (vId) => {
+      let versionCourses = await fetch(`/api/versions/${vId}/courses`).then(r => r.json());
+      if (versionCourses.length < 2) {
+        const masterCourses = await fetch('/api/courses').then(r => r.json());
+        for (const course of masterCourses.slice(0, 2)) {
+          await fetch(`/api/versions/${vId}/courses`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ course_id: course.id, semester: 1 })
+          });
+        }
+        versionCourses = await fetch(`/api/versions/${vId}/courses`).then(r => r.json());
+      }
+
+      const items = versionCourses.slice(0, 2).map((vc, index) => ({
+        version_course_id: vc.id,
+        semester: index + 1,
+        hours_theory: 45,
+        hours_practice: 0,
+        hours_project: 0,
+        hours_internship: 0,
+        software: '',
+        batch: index === 0 ? 'A' : 'B',
+      }));
+
+      const res = await fetch(`/api/versions/${vId}/teaching-plan/bulk`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items })
+      });
       return res.ok;
     }, testVersionId);
-    expect(result).toBe(true);
+    expect(prepared).toBe(true);
+
+    await page.evaluate((vId) => window.App.navigate('version-editor', { versionId: vId }), testVersionId);
+    await page.waitForSelector('#editor-tabs .tab-item');
+    await page.locator('#editor-tabs .tab-item', { hasText: 'Kế hoạch GD' }).click();
+    await page.waitForSelector('#tp-edit-btn');
+    await page.click('#tp-edit-btn');
+    await page.waitForSelector('#tp-save-btn');
+    await page.click('#tp-save-btn');
+    await expectToastWithText(page, 'success', 'Đã lưu kế hoạch giảng dạy');
   });
 
   test('TC_VER_36: Thiet lap tien quyet HP', async ({ page }) => {

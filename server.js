@@ -1603,6 +1603,299 @@ app.delete('/api/syllabi/:id', authMiddleware, async (req, res) => {
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
+async function createNotification({
+  userId,
+  type,
+  title,
+  body = null,
+  entityType = null,
+  entityId = null,
+  linkPage = null,
+  linkParams = {},
+  dedupeKey
+}) {
+  if (!userId || !type || !title || !dedupeKey) return null;
+  const result = await pool.query(`
+    INSERT INTO notifications
+      (user_id, type, title, body, entity_type, entity_id, link_page, link_params, dedupe_key)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+    ON CONFLICT (user_id, dedupe_key) DO UPDATE SET
+      title = EXCLUDED.title,
+      body = EXCLUDED.body,
+      entity_type = EXCLUDED.entity_type,
+      entity_id = EXCLUDED.entity_id,
+      link_page = EXCLUDED.link_page,
+      link_params = EXCLUDED.link_params
+    RETURNING *
+  `, [
+    userId,
+    type,
+    title,
+    body,
+    entityType,
+    entityId,
+    linkPage,
+    JSON.stringify(linkParams || {}),
+    dedupeKey
+  ]);
+  return result.rows[0];
+}
+
+async function markNotificationsRead({ type, entityType, entityId, userId = null }) {
+  const params = [type, entityType, entityId];
+  let query = `
+    UPDATE notifications
+    SET is_read = true,
+        read_at = COALESCE(read_at, NOW())
+    WHERE type = $1
+      AND entity_type = $2
+      AND entity_id = $3
+      AND is_read = false
+  `;
+
+  if (userId !== null) {
+    params.push(userId);
+    query += ` AND user_id = $${params.length}`;
+  }
+
+  await pool.query(query, params);
+}
+
+async function resolveApprovalNeededNotifications(entityType, entityId) {
+  await markNotificationsRead({
+    type: 'approval_needed',
+    entityType,
+    entityId,
+  });
+}
+
+async function resolveAssignmentNotifications(assignmentId, userId = null) {
+  await markNotificationsRead({
+    type: 'assignment',
+    entityType: 'syllabus_assignment',
+    entityId: assignmentId,
+    userId,
+  });
+}
+
+async function resolveAssignmentNotificationsForSyllabus(syllabusId) {
+  const result = await pool.query(`
+    SELECT sa.id
+    FROM version_syllabi vs
+    JOIN syllabus_assignments sa
+      ON sa.version_id = vs.version_id
+     AND sa.course_id = vs.course_id
+    WHERE vs.id = $1
+  `, [syllabusId]);
+
+  await Promise.all(result.rows.map(row => resolveAssignmentNotifications(row.id)));
+}
+
+async function runNotificationSideEffect(label, fn) {
+  try {
+    return await fn();
+  } catch (error) {
+    console.error(`[notification:${label}] side effect failed`, error);
+    return null;
+  }
+}
+
+async function getUsersWithPermissionForNotification(permCode, deptId) {
+  const parsedDeptId = Number.parseInt(deptId, 10);
+  const scopedDeptId = Number.isInteger(parsedDeptId) ? parsedDeptId : null;
+  const result = await pool.query(`
+    SELECT DISTINCT u.id
+    FROM users u
+    JOIN user_roles ur ON u.id = ur.user_id
+    JOIN roles r ON ur.role_id = r.id
+    LEFT JOIN role_permissions rp ON ur.role_id = rp.role_id
+    LEFT JOIN permissions p ON rp.permission_id = p.id
+    WHERE u.is_active = true
+      AND (p.code = $1 OR r.code = 'ADMIN')
+      AND (
+        r.level >= 4
+        OR (
+          $2::int IS NOT NULL
+          AND (
+            ur.department_id = $2
+            OR ur.department_id = (SELECT parent_id FROM departments WHERE id = $2)
+          )
+        )
+      )
+    ORDER BY u.id
+  `, [permCode, scopedDeptId]);
+  return result.rows.map(r => r.id);
+}
+
+async function getProgramVersionNotificationContext(versionId) {
+  const result = await pool.query(`
+    SELECT pv.id, pv.academic_year, pv.status, pv.version_name,
+           p.name as program_name, p.department_id
+    FROM program_versions pv
+    JOIN programs p ON pv.program_id = p.id
+    WHERE pv.id = $1
+  `, [versionId]);
+  return result.rows[0] || null;
+}
+
+async function getSyllabusNotificationContext(syllabusId) {
+  const result = await pool.query(`
+    SELECT vs.id, vs.status, vs.author_id, vs.version_id, vs.course_id,
+           c.code as course_code, c.name as course_name,
+           p.name as program_name, p.department_id, pv.academic_year
+    FROM version_syllabi vs
+    JOIN courses c ON vs.course_id = c.id
+    JOIN program_versions pv ON vs.version_id = pv.id
+    JOIN programs p ON pv.program_id = p.id
+    WHERE vs.id = $1
+  `, [syllabusId]);
+  return result.rows[0] || null;
+}
+
+async function getLatestSubmitterId(entityType, entityId) {
+  const result = await pool.query(`
+    SELECT reviewer_id
+    FROM approval_logs
+    WHERE entity_type=$1 AND entity_id=$2 AND action='submitted'
+    ORDER BY created_at DESC
+    LIMIT 1
+  `, [entityType, entityId]);
+  return result.rows[0]?.reviewer_id || null;
+}
+
+async function notifyApprovalNeeded(entityType, entityId, status, eventId) {
+  // Workflow callers pass the approval log id so dedupe keys stay stable.
+  if (!eventId) return;
+  const programPermMap = {
+    submitted: 'programs.approve_khoa',
+    approved_khoa: 'programs.approve_pdt',
+    approved_pdt: 'programs.approve_bgh'
+  };
+  const syllabusPermMap = {
+    submitted: 'syllabus.approve_tbm',
+    approved_tbm: 'syllabus.approve_khoa',
+    approved_khoa: 'syllabus.approve_pdt',
+    approved_pdt: 'syllabus.approve_bgh'
+  };
+
+  if (entityType === 'program_version') {
+    const ctx = await getProgramVersionNotificationContext(entityId);
+    if (!ctx) return;
+    const perm = programPermMap[status];
+    if (!perm) return;
+    const userIds = await getUsersWithPermissionForNotification(perm, ctx.department_id);
+    await Promise.all(userIds.map(userId => createNotification({
+      userId,
+      type: 'approval_needed',
+      title: 'Có CTĐT cần phê duyệt',
+      body: `${ctx.program_name} (${ctx.academic_year}) đang chờ bạn xử lý.`,
+      entityType,
+      entityId,
+      linkPage: 'version-editor',
+      linkParams: { versionId: entityId },
+      dedupeKey: `approval:${entityType}:${entityId}:${status}:pending:${eventId}`
+    })));
+    return;
+  }
+
+  if (entityType === 'syllabus') {
+    const ctx = await getSyllabusNotificationContext(entityId);
+    if (!ctx) return;
+    const perm = syllabusPermMap[status];
+    if (!perm) return;
+    const userIds = await getUsersWithPermissionForNotification(perm, ctx.department_id);
+    await Promise.all(userIds.map(userId => createNotification({
+      userId,
+      type: 'approval_needed',
+      title: 'Có đề cương cần phê duyệt',
+      body: `${ctx.course_code} - ${ctx.course_name} đang chờ bạn xử lý.`,
+      entityType,
+      entityId,
+      linkPage: 'syllabus-editor',
+      linkParams: { syllabusId: entityId },
+      dedupeKey: `approval:${entityType}:${entityId}:${status}:pending:${eventId}`
+    })));
+  }
+}
+
+async function notifyApprovalResult(entityType, entityId, newStatus, action, notes, eventId) {
+  if (!eventId) return;
+  const statusLabel = {
+    approved_khoa: 'đã được duyệt cấp Khoa',
+    approved_pdt: 'đã được duyệt cấp Phòng Đào tạo',
+    approved_tbm: 'đã được duyệt cấp Trưởng bộ môn',
+    published: 'đã được công bố',
+    draft: 'bị từ chối'
+  }[newStatus] || `chuyển sang trạng thái ${newStatus}`;
+
+  if (entityType === 'program_version') {
+    const ctx = await getProgramVersionNotificationContext(entityId);
+    if (!ctx) return;
+    const submitterId = await getLatestSubmitterId(entityType, entityId);
+    if (!submitterId) return;
+    await createNotification({
+      userId: submitterId,
+      type: action === 'reject' ? 'rejection_result' : 'approval_result',
+      title: action === 'reject' ? 'CTĐT bị từ chối' : 'CTĐT đã được phê duyệt',
+      body: action === 'reject'
+        ? `${ctx.program_name} (${ctx.academic_year}) bị từ chối: ${notes || 'Yêu cầu chỉnh sửa'}`
+        : `${ctx.program_name} (${ctx.academic_year}) ${statusLabel}.`,
+      entityType,
+      entityId,
+      linkPage: 'version-editor',
+      linkParams: { versionId: entityId },
+      dedupeKey: `result:${entityType}:${entityId}:${action}:${newStatus}:${eventId}`
+    });
+    return;
+  }
+
+  if (entityType === 'syllabus') {
+    const ctx = await getSyllabusNotificationContext(entityId);
+    if (!ctx) return;
+    const submitterId = ctx.author_id || await getLatestSubmitterId(entityType, entityId);
+    if (!submitterId) return;
+    await createNotification({
+      userId: submitterId,
+      type: action === 'reject' ? 'rejection_result' : 'approval_result',
+      title: action === 'reject' ? 'Đề cương bị từ chối' : 'Đề cương đã được phê duyệt',
+      body: action === 'reject'
+        ? `${ctx.course_code} - ${ctx.course_name} bị từ chối: ${notes || 'Yêu cầu chỉnh sửa'}`
+        : `${ctx.course_code} - ${ctx.course_name} ${statusLabel}.`,
+      entityType,
+      entityId,
+      linkPage: 'syllabus-editor',
+      linkParams: { syllabusId: entityId },
+      dedupeKey: `result:${entityType}:${entityId}:${action}:${newStatus}:${eventId}`
+    });
+  }
+}
+
+async function notifySyllabusAssignment(assignmentId) {
+  const result = await pool.query(`
+    SELECT sa.id, sa.assigned_to, sa.updated_at,
+           c.code as course_code, c.name as course_name,
+           p.name as program_name, pv.academic_year
+    FROM syllabus_assignments sa
+    JOIN courses c ON sa.course_id = c.id
+    JOIN program_versions pv ON sa.version_id = pv.id
+    JOIN programs p ON pv.program_id = p.id
+    WHERE sa.id = $1
+  `, [assignmentId]);
+  const a = result.rows[0];
+  if (!a) return;
+  await createNotification({
+    userId: a.assigned_to,
+    type: 'assignment',
+    title: 'Bạn được phân công soạn đề cương',
+    body: `${a.course_code} - ${a.course_name} trong CTĐT ${a.program_name} (${a.academic_year}).`,
+    entityType: 'syllabus_assignment',
+    entityId: a.id,
+    linkPage: 'my-assignments',
+    linkParams: { assignmentId: a.id },
+    dedupeKey: `assignment:${a.id}:assigned:${a.assigned_to}:${new Date(a.updated_at).getTime()}`
+  });
+}
+
 // ============ SYLLABUS ASSIGNMENTS ============
 
 // Helper: get eligible GV list scoped by assigner's role
@@ -1705,8 +1998,9 @@ app.post('/api/versions/:vId/assignments', authMiddleware, requirePerm('syllabus
 
     // Check existing assignment — override logic
     const existingRes = await pool.query(
-      'SELECT id, assigner_role_level FROM syllabus_assignments WHERE version_id=$1 AND course_id=$2', [vId, course_id]
+      'SELECT id, assigner_role_level, assigned_to FROM syllabus_assignments WHERE version_id=$1 AND course_id=$2', [vId, course_id]
     );
+    const previousAssignedTo = existingRes.rows[0]?.assigned_to || null;
     if (existingRes.rows.length) {
       const existing = existingRes.rows[0];
       if (maxLevel < existing.assigner_role_level) {
@@ -1740,6 +2034,14 @@ app.post('/api/versions/:vId/assignments', authMiddleware, requirePerm('syllabus
       'UPDATE version_syllabi SET author_id=$1, updated_at=NOW() WHERE version_id=$2 AND course_id=$3',
       [assigned_to, vId, course_id]
     );
+    if (previousAssignedTo !== assigned_to) {
+      if (result.rows[0]?.id && previousAssignedTo) {
+        await runNotificationSideEffect('assignment-retire-previous', () =>
+          resolveAssignmentNotifications(result.rows[0].id, previousAssignedTo)
+        );
+      }
+      await runNotificationSideEffect('assignment', () => notifySyllabusAssignment(result.rows[0].id));
+    }
 
     res.json(result.rows[0]);
   } catch (e) { res.status(400).json({ error: e.message }); }
@@ -1755,6 +2057,15 @@ app.delete('/api/versions/:vId/assignments/:courseId', authMiddleware, requirePe
     );
     if (sylRes.rows.length && sylRes.rows[0].status !== 'draft') {
       return res.status(400).json({ error: 'Phải trả đề cương về nháp trước khi xóa phân công' });
+    }
+    const assignmentRes = await pool.query(
+      'SELECT id FROM syllabus_assignments WHERE version_id=$1 AND course_id=$2',
+      [vId, courseId]
+    );
+    if (assignmentRes.rows[0]?.id) {
+      await runNotificationSideEffect('assignment-delete-retire', () =>
+        resolveAssignmentNotifications(assignmentRes.rows[0].id)
+      );
     }
     await pool.query('DELETE FROM syllabus_assignments WHERE version_id=$1 AND course_id=$2', [vId, courseId]);
     res.json({ success: true });
@@ -1995,9 +2306,15 @@ app.post('/api/approval/submit', authMiddleware, async (req, res) => {
     }
 
     await pool.query(`UPDATE ${table} SET ${statusField}='submitted', is_rejected=false, updated_at=NOW() WHERE id=$1`, [entity_id]);
-    await pool.query(
-      'INSERT INTO approval_logs (entity_type, entity_id, step, action, reviewer_id, notes) VALUES ($1,$2,$3,$4,$5,$6)',
+    const logResult = await pool.query(
+      'INSERT INTO approval_logs (entity_type, entity_id, step, action, reviewer_id, notes) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id',
       [entity_type, entity_id, 'submit', 'submitted', req.user.id, 'Nộp duyệt']
+    );
+    await runNotificationSideEffect('approval-submit-retire', () =>
+      resolveApprovalNeededNotifications(entity_type, entity_id)
+    );
+    await runNotificationSideEffect('approval-submit', () =>
+      notifyApprovalNeeded(entity_type, entity_id, 'submitted', logResult.rows[0].id)
     );
     res.json({ success: true, new_status: 'submitted' });
   } catch (e) { res.status(400).json({ error: e.message }); }
@@ -2070,9 +2387,15 @@ app.post('/api/approval/review', authMiddleware, async (req, res) => {
         `UPDATE ${table} SET status=$1, is_rejected=true, rejection_reason=$2, updated_at=NOW() WHERE id=$3`,
         [nextState, notes || 'Yêu cầu chỉnh sửa', entity_id]
       );
-      await pool.query(
-        'INSERT INTO approval_logs (entity_type, entity_id, step, action, reviewer_id, notes) VALUES ($1,$2,$3,$4,$5,$6)',
+      const logResult = await pool.query(
+        'INSERT INTO approval_logs (entity_type, entity_id, step, action, reviewer_id, notes) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id',
         [entity_type, entity_id, status, 'rejected', req.user.id, notes || 'Yêu cầu chỉnh sửa']
+      );
+      await runNotificationSideEffect('approval-reject-retire', () =>
+        resolveApprovalNeededNotifications(entity_type, entity_id)
+      );
+      await runNotificationSideEffect('approval-reject', () =>
+        notifyApprovalResult(entity_type, entity_id, nextState, 'reject', notes || 'Yêu cầu chỉnh sửa', logResult.rows[0].id)
       );
       return res.json({ success: true, new_status: nextState });
     }
@@ -2103,10 +2426,26 @@ app.post('/api/approval/review', authMiddleware, async (req, res) => {
       `UPDATE ${table} SET status=$1, is_rejected=false, rejection_reason=NULL, updated_at=NOW() ${isLocking ? ', is_locked=true' : ''} WHERE id=$2`,
       [nextStatus, entity_id]
     );
-    await pool.query(
-      'INSERT INTO approval_logs (entity_type, entity_id, step, action, reviewer_id, notes) VALUES ($1,$2,$3,$4,$5,$6)',
+    const logResult = await pool.query(
+      'INSERT INTO approval_logs (entity_type, entity_id, step, action, reviewer_id, notes) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id',
       [entity_type, entity_id, status, 'approved', req.user.id, notes || 'Đã duyệt']
     );
+    await runNotificationSideEffect('approval-approve-retire', () =>
+      resolveApprovalNeededNotifications(entity_type, entity_id)
+    );
+    if (entity_type === 'syllabus' && nextStatus === 'published') {
+      await runNotificationSideEffect('assignment-publish-retire', () =>
+        resolveAssignmentNotificationsForSyllabus(entity_id)
+      );
+    }
+    await runNotificationSideEffect('approval-approve-result', () =>
+      notifyApprovalResult(entity_type, entity_id, nextStatus, 'approve', notes || 'Đã duyệt', logResult.rows[0].id)
+    );
+    if (nextStatus !== 'published') {
+      await runNotificationSideEffect('approval-approve-needed', () =>
+        notifyApprovalNeeded(entity_type, entity_id, nextStatus, logResult.rows[0].id)
+      );
+    }
     res.json({ success: true, new_status: nextStatus });
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
@@ -2261,6 +2600,80 @@ app.get('/api/approval/pending', authMiddleware, async (req, res) => {
     });
 
     res.json({ programs: filteredPrograms, syllabi: filteredSyllabi });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// ============ NOTIFICATIONS API ============
+app.get('/api/notifications/unread-count', authMiddleware, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT COUNT(*)::int AS unread FROM notifications WHERE user_id=$1 AND is_read=false',
+      [req.user.id]
+    );
+    res.json({ unread: result.rows[0].unread });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/notifications', authMiddleware, async (req, res) => {
+  try {
+    const filter = req.query.filter || 'all';
+    const conditions = ['user_id = $1'];
+    const params = [req.user.id];
+
+    if (filter === 'unread') {
+      conditions.push('is_read = false');
+    } else if (filter === 'actionable') {
+      conditions.push("type IN ('assignment','approval_needed')");
+      conditions.push('is_read = false');
+    } else if (filter !== 'all') {
+      return res.status(400).json({ error: 'Bộ lọc thông báo không hợp lệ' });
+    }
+
+    const result = await pool.query(`
+      SELECT id, type, title, body, entity_type, entity_id, link_page, link_params,
+             is_read, read_at, created_at
+      FROM notifications
+      WHERE ${conditions.join(' AND ')}
+      ORDER BY is_read ASC, created_at DESC
+      LIMIT 50
+    `, params);
+
+    res.json({ notifications: result.rows });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/notifications/:id/read', authMiddleware, async (req, res) => {
+  try {
+    const rawId = req.params.id;
+    if (!/^[1-9]\d*$/.test(rawId)) {
+      return res.status(400).json({ error: 'ID thông báo không hợp lệ' });
+    }
+
+    const notificationId = Number(rawId);
+    if (notificationId > 2147483647) {
+      return res.status(400).json({ error: 'ID thông báo không hợp lệ' });
+    }
+
+    const result = await pool.query(`
+      UPDATE notifications
+      SET is_read=true, read_at=COALESCE(read_at, NOW())
+      WHERE id=$1 AND user_id=$2
+      RETURNING id
+    `, [notificationId, req.user.id]);
+
+    if (!result.rows.length) return res.status(404).json({ error: 'Thông báo không tồn tại' });
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/notifications/read-all', authMiddleware, async (req, res) => {
+  try {
+    await pool.query(`
+      UPDATE notifications
+      SET is_read=true, read_at=COALESCE(read_at, NOW())
+      WHERE user_id=$1 AND is_read=false
+    `, [req.user.id]);
+    res.json({ success: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

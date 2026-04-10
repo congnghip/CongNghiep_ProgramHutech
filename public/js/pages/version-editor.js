@@ -31,6 +31,28 @@ window.VersionEditorPage = {
     return map[status] || null;
   },
 
+  getApprovalPerm(status) {
+    return {
+      submitted: 'programs.approve_khoa',
+      approved_khoa: 'programs.approve_pdt',
+      approved_pdt: 'programs.approve_bgh'
+    }[status] || null;
+  },
+
+  getApprovalStepLabel(status) {
+    return {
+      submitted: 'cấp Khoa',
+      approved_khoa: 'cấp Phòng Đào tạo',
+      approved_pdt: 'cấp Ban Giám hiệu'
+    }[status] || '';
+  },
+
+  canCurrentUserApprove() {
+    if (!this.version || this.version.is_rejected) return false;
+    const perm = this.getApprovalPerm(this.version.status);
+    return !!perm && window.App.hasPerm(perm);
+  },
+
   async render(container, versionId) {
     this.versionId = versionId;
     container.innerHTML = '<div class="spinner"></div>';
@@ -75,6 +97,23 @@ window.VersionEditorPage = {
           </div>
         </div>
       </div>
+      ${this.canCurrentUserApprove() ? `
+        <div class="card" style="margin-bottom:16px;padding:16px;">
+          <div class="flex-between" style="align-items:flex-start;gap:16px;">
+            <div>
+              <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px;">Phê duyệt hồ sơ</div>
+              <div style="font-size:14px;font-weight:600;margin-bottom:6px;">CTĐT đang chờ bạn duyệt ở ${this.getApprovalStepLabel(this.version.status)}</div>
+              <div class="page-header-meta">
+                <span class="badge badge-info">${this.version.status}</span>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button class="btn btn-primary btn-sm" onclick="window.VersionEditorPage.approveInline()">Duyệt</button>
+              <button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="window.VersionEditorPage.showRejectModal()">Từ chối</button>
+            </div>
+          </div>
+        </div>
+      ` : ''}
       ${isRejected ? `
         <div class="rejection-banner">
           <div class="rejection-banner-content">
@@ -92,6 +131,19 @@ window.VersionEditorPage = {
         ${this.visibleTabs.map((t, i) => `<div class="tab-item ${i === 0 ? 'active' : ''}" data-index="${i}">${t.label}</div>`).join('')}
       </div>
       <div id="tab-content"><div class="spinner"></div></div>
+      <div class="modal-overlay" id="version-reject-modal">
+        <div class="modal">
+          <div class="modal-header"><h2>Từ chối phê duyệt CTĐT</h2></div>
+          <div class="modal-body">
+            <div class="input-group"><label>Lý do từ chối</label><textarea id="version-reject-notes" rows="3" placeholder="Nhập lý do..."></textarea></div>
+            <div class="modal-error" id="version-reject-error"></div>
+            <div class="modal-footer">
+              <button class="btn btn-secondary" onclick="document.getElementById('version-reject-modal').classList.remove('active')">Hủy</button>
+              <button class="btn btn-danger" onclick="window.VersionEditorPage.confirmRejectInline()">Từ chối</button>
+            </div>
+          </div>
+        </div>
+      </div>
     `;
 
     document.querySelectorAll('#editor-tabs .tab-item').forEach(el => {
@@ -941,7 +993,8 @@ window.VersionEditorPage = {
             const getVal = (field) => {
               const el = row.querySelector(`[data-field="${field}"]`);
               if (!el) return null;
-              if (el.tagName === 'SELECT') return el.value;
+              const input = el.matches('select, input, textarea') ? el : el.querySelector('select, input, textarea');
+              if (input) return input.value;
               return el.textContent.trim();
             };
             items.push({
@@ -1688,6 +1741,7 @@ window.VersionEditorPage = {
       });
       if (!res.ok) throw new Error((await res.json()).error);
       window.toast.success('Đã phân công');
+      if (window.App.refreshNotificationCount) window.App.refreshNotificationCount();
       this.renderTab();
     } catch (e) { window.toast.error(e.message); }
   },
@@ -1714,6 +1768,7 @@ window.VersionEditorPage = {
       if (!res.ok) throw new Error((await res.json()).error);
       document.getElementById('reassign-modal').classList.remove('active');
       window.toast.success('Đã đổi GV');
+      if (window.App.refreshNotificationCount) window.App.refreshNotificationCount();
       this.renderTab();
     } catch (e) { document.getElementById('reassign-error').textContent = e.message; }
   },
@@ -1766,10 +1821,54 @@ window.VersionEditorPage = {
       });
       if (!res.ok) throw new Error((await res.json()).error);
       window.toast.success('Đã nộp');
+      if (window.App.refreshNotificationCount) window.App.refreshNotificationCount();
       this.version.status = 'submitted';
       this.version.is_rejected = false;
       this.render(document.getElementById('page-content'), this.versionId);
     } catch (e) { window.toast.error(e.message); }
+  },
+
+  showRejectModal() {
+    document.getElementById('version-reject-notes').value = '';
+    document.getElementById('version-reject-error').textContent = '';
+    document.getElementById('version-reject-modal').classList.add('active');
+    App.modalGuard('version-reject-modal', () => this.confirmRejectInline());
+  },
+
+  async approveInline() {
+    const confirmed = await window.ui.confirm({
+      title: 'Phê duyệt CTĐT',
+      eyebrow: 'Xác nhận thao tác',
+      message: 'Bạn có chắc muốn phê duyệt CTĐT này?',
+      confirmText: 'Phê duyệt',
+      cancelText: 'Hủy'
+    });
+    if (!confirmed) return;
+    await this.reviewInline('approve');
+  },
+
+  async confirmRejectInline() {
+    await this.reviewInline('reject', document.getElementById('version-reject-notes').value.trim());
+  },
+
+  async reviewInline(action, notes = '') {
+    try {
+      const res = await fetch('/api/approval/review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entity_type: 'program_version', entity_id: this.versionId, action, notes })
+      });
+      if (!res.ok) throw new Error((await res.json()).error);
+      if (action === 'reject') document.getElementById('version-reject-modal').classList.remove('active');
+      window.toast.success(action === 'approve' ? 'Đã phê duyệt' : 'Đã từ chối');
+      if (window.App.refreshNotificationCount) await window.App.refreshNotificationCount();
+      await this.render(document.getElementById('page-content'), this.versionId);
+    } catch (e) {
+      if (action === 'reject') {
+        document.getElementById('version-reject-error').textContent = e.message;
+      }
+      window.toast.error(e.message);
+    }
   },
 
   showRejectionReason() {

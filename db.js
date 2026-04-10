@@ -269,6 +269,26 @@ async function initDB() {
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
 
+      -- Notifications (approval and syllabus assignment inbox)
+      CREATE TABLE IF NOT EXISTS notifications (
+        id SERIAL PRIMARY KEY,
+        user_id INT REFERENCES users(id) ON DELETE CASCADE,
+        type VARCHAR(50) NOT NULL,
+        title VARCHAR(200) NOT NULL,
+        body TEXT,
+        entity_type VARCHAR(50),
+        entity_id INT,
+        link_page VARCHAR(80),
+        link_params JSONB DEFAULT '{}',
+        dedupe_key VARCHAR(200),
+        is_read BOOLEAN DEFAULT false,
+        read_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+      CREATE INDEX IF NOT EXISTS idx_notifications_user_created ON notifications(user_id, created_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_notifications_user_unread ON notifications(user_id, is_read);
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_notifications_user_dedupe ON notifications(user_id, dedupe_key);
+
       -- Knowledge blocks (curriculum structure)
       CREATE TABLE IF NOT EXISTS knowledge_blocks (
         id SERIAL PRIMARY KEY,
@@ -470,232 +490,165 @@ async function seedData(client) {
     console.log('  ✅ Admin user exists');
   }
 
-  // ── Seed sample CTDT data ──────────────────────────────────────────
-  const hasProg = await client.query("SELECT id FROM programs WHERE code='7480201'");
-  if (!hasProg.rows.length) {
-    const kCNTT = await client.query("SELECT id FROM departments WHERE code='K.CNTT'");
-    const deptId = kCNTT.rows[0]?.id || 1;
+  await client.query(`
+    INSERT INTO notifications
+      (user_id, type, title, body, entity_type, entity_id, link_page, link_params, dedupe_key)
+    SELECT
+      oa.user_id,
+      'assignment',
+      'Bạn được phân công soạn đề cương',
+      oa.course_code || ' - ' || oa.course_name || ' trong CTĐT ' || oa.program_name || ' (' || oa.academic_year || ').',
+      'syllabus_assignment',
+      oa.assignment_id,
+      'my-assignments',
+      jsonb_build_object('assignmentId', oa.assignment_id),
+      'backfill:assignment:' || oa.assignment_id
+    FROM (
+      SELECT sa.id AS assignment_id,
+             sa.assigned_to AS user_id,
+             c.code AS course_code,
+             c.name AS course_name,
+             p.name AS program_name,
+             pv.academic_year
+      FROM syllabus_assignments sa
+      JOIN users u ON u.id = sa.assigned_to AND u.is_active = true
+      JOIN courses c ON sa.course_id = c.id
+      JOIN program_versions pv ON sa.version_id = pv.id
+      JOIN programs p ON pv.program_id = p.id
+      LEFT JOIN version_syllabi vs ON vs.version_id = sa.version_id AND vs.course_id = sa.course_id
+      WHERE pv.is_locked = false
+        AND COALESCE(vs.status, 'draft') != 'published'
+        AND NOT EXISTS (
+          SELECT 1
+          FROM notifications n
+          WHERE n.user_id = sa.assigned_to
+            AND n.type = 'assignment'
+            AND n.entity_type = 'syllabus_assignment'
+            AND n.entity_id = sa.id
+        )
+    ) oa
+    ON CONFLICT (user_id, dedupe_key) DO NOTHING
+  `);
 
-    // Program
-    const prog = await client.query(
-      `INSERT INTO programs (name, name_en, code, department_id, degree, total_credits, institution, degree_name, training_mode)
-       VALUES ('Công nghệ thông tin', 'Information Technology', '7480201', $1, 'Đại học', 130, 'Trường Đại học Công nghệ TP.HCM', 'Cử nhân Công nghệ thông tin', 'Chính quy')
-       RETURNING id`, [deptId]
-    );
-    const progId = prog.rows[0].id;
+  await client.query(`
+    INSERT INTO notifications
+      (user_id, type, title, body, entity_type, entity_id, link_page, link_params, dedupe_key)
+    WITH program_perm_map(status, perm_code) AS (
+      VALUES
+        ('submitted', 'programs.approve_khoa'),
+        ('approved_khoa', 'programs.approve_pdt'),
+        ('approved_pdt', 'programs.approve_bgh')
+    ),
+    pending_programs AS (
+      SELECT pv.id, pv.status, pv.academic_year, p.name AS program_name, p.department_id
+      FROM program_versions pv
+      JOIN programs p ON pv.program_id = p.id
+      WHERE pv.status IN ('submitted', 'approved_khoa', 'approved_pdt')
+    )
+    SELECT DISTINCT
+      u.id,
+      'approval_needed',
+      'Có CTĐT cần phê duyệt',
+      pp.program_name || ' (' || pp.academic_year || ') đang chờ bạn xử lý.',
+      'program_version',
+      pp.id,
+      'version-editor',
+      jsonb_build_object('versionId', pp.id),
+      'backfill:approval:program_version:' || pp.id || ':' || pp.status
+    FROM pending_programs pp
+    JOIN program_perm_map ppm ON ppm.status = pp.status
+    JOIN users u ON u.is_active = true
+    JOIN user_roles ur ON u.id = ur.user_id
+    JOIN roles r ON ur.role_id = r.id
+    LEFT JOIN role_permissions rp ON ur.role_id = rp.role_id
+    LEFT JOIN permissions p ON rp.permission_id = p.id
+    WHERE (p.code = ppm.perm_code OR r.code = 'ADMIN')
+      AND (
+        r.level >= 4
+        OR (
+          pp.department_id IS NOT NULL
+          AND (
+            ur.department_id = pp.department_id
+            OR ur.department_id = (SELECT parent_id FROM departments WHERE id = pp.department_id)
+          )
+        )
+      )
+      AND NOT EXISTS (
+        SELECT 1
+        FROM notifications n
+        WHERE n.user_id = u.id
+          AND n.type = 'approval_needed'
+          AND n.entity_type = 'program_version'
+          AND n.entity_id = pp.id
+          AND (
+            n.dedupe_key = 'backfill:approval:program_version:' || pp.id || ':' || pp.status
+            OR n.dedupe_key LIKE 'approval:program_version:' || pp.id || ':' || pp.status || ':pending:%'
+          )
+      )
+    ON CONFLICT (user_id, dedupe_key) DO NOTHING
+  `);
 
-    // Version
-    const ver = await client.query(
-      `INSERT INTO program_versions (program_id, academic_year, version_name, status, total_credits, training_duration,
-         general_objective, grading_scale, graduation_requirements, job_positions, further_education, training_process)
-       VALUES ($1, '2025-2026', 'CTĐT CNTT 2025-2026', 'draft', 130, '4 năm',
-         'Đào tạo kỹ sư CNTT có năng lực chuyên môn, tư duy sáng tạo, đạo đức nghề nghiệp, đáp ứng nhu cầu xã hội và hội nhập quốc tế.',
-         'Thang điểm 10 quy đổi sang thang 4 và xếp loại A/B/C/D/F',
-         'Hoàn thành tối thiểu 130 TC, đạt chuẩn ngoại ngữ, không nợ học phí',
-         'Lập trình viên, Kỹ sư phần mềm, Quản trị mạng, Chuyên viên CNTT, Tư vấn giải pháp CNTT',
-         'Thạc sĩ CNTT, Thạc sĩ Khoa học máy tính, MBA chuyên ngành CNTT',
-         'Đào tạo theo hệ thống tín chỉ, kết hợp lý thuyết và thực hành')
-       RETURNING id`, [progId]
-    );
-    const verId = ver.rows[0].id;
+  await client.query(`
+    INSERT INTO notifications
+      (user_id, type, title, body, entity_type, entity_id, link_page, link_params, dedupe_key)
+    WITH syllabus_perm_map(status, perm_code) AS (
+      VALUES
+        ('submitted', 'syllabus.approve_tbm'),
+        ('approved_tbm', 'syllabus.approve_khoa'),
+        ('approved_khoa', 'syllabus.approve_pdt'),
+        ('approved_pdt', 'syllabus.approve_bgh')
+    ),
+    pending_syllabi AS (
+      SELECT vs.id, vs.status, c.code AS course_code, c.name AS course_name, p.department_id
+      FROM version_syllabi vs
+      JOIN courses c ON vs.course_id = c.id
+      JOIN program_versions pv ON vs.version_id = pv.id
+      JOIN programs p ON pv.program_id = p.id
+      WHERE vs.status IN ('submitted', 'approved_tbm', 'approved_khoa', 'approved_pdt')
+    )
+    SELECT DISTINCT
+      u.id,
+      'approval_needed',
+      'Có đề cương cần phê duyệt',
+      ps.course_code || ' - ' || ps.course_name || ' đang chờ bạn xử lý.',
+      'syllabus',
+      ps.id,
+      'syllabus-editor',
+      jsonb_build_object('syllabusId', ps.id),
+      'backfill:approval:syllabus:' || ps.id || ':' || ps.status
+    FROM pending_syllabi ps
+    JOIN syllabus_perm_map spm ON spm.status = ps.status
+    JOIN users u ON u.is_active = true
+    JOIN user_roles ur ON u.id = ur.user_id
+    JOIN roles r ON ur.role_id = r.id
+    LEFT JOIN role_permissions rp ON ur.role_id = rp.role_id
+    LEFT JOIN permissions p ON rp.permission_id = p.id
+    WHERE (p.code = spm.perm_code OR r.code = 'ADMIN')
+      AND (
+        r.level >= 4
+        OR (
+          ps.department_id IS NOT NULL
+          AND (
+            ur.department_id = ps.department_id
+            OR ur.department_id = (SELECT parent_id FROM departments WHERE id = ps.department_id)
+          )
+        )
+      )
+      AND NOT EXISTS (
+        SELECT 1
+        FROM notifications n
+        WHERE n.user_id = u.id
+          AND n.type = 'approval_needed'
+          AND n.entity_type = 'syllabus'
+          AND n.entity_id = ps.id
+          AND (
+            n.dedupe_key = 'backfill:approval:syllabus:' || ps.id || ':' || ps.status
+            OR n.dedupe_key LIKE 'approval:syllabus:' || ps.id || ':' || ps.status || ':pending:%'
+          )
+      )
+    ON CONFLICT (user_id, dedupe_key) DO NOTHING
+  `);
 
-    // POs
-    const poData = [
-      ['PO1', 'Vận dụng kiến thức nền tảng CNTT để phân tích, thiết kế và phát triển phần mềm'],
-      ['PO2', 'Áp dụng quy trình phát triển phần mềm chuyên nghiệp và công nghệ hiện đại'],
-      ['PO3', 'Có năng lực làm việc nhóm, giao tiếp hiệu quả và phát triển nghề nghiệp liên tục'],
-    ];
-    const poIds = {};
-    for (const [code, desc] of poData) {
-      const r = await client.query('INSERT INTO version_objectives (version_id, code, description) VALUES ($1,$2,$3) RETURNING id', [verId, code, desc]);
-      poIds[code] = r.rows[0].id;
-    }
-
-    // PLOs
-    const ploData = [
-      ['PLO1', 3, 'Áp dụng kiến thức toán học, khoa học tự nhiên và CNTT vào giải quyết bài toán thực tế'],
-      ['PLO2', 4, 'Phân tích yêu cầu, thiết kế kiến trúc và triển khai hệ thống phần mềm'],
-      ['PLO3', 3, 'Lập trình thành thạo ít nhất 2 ngôn ngữ lập trình hiện đại'],
-      ['PLO4', 4, 'Thiết kế và quản trị cơ sở dữ liệu quan hệ và NoSQL'],
-      ['PLO5', 2, 'Làm việc nhóm hiệu quả, giao tiếp chuyên nghiệp bằng tiếng Việt và tiếng Anh'],
-      ['PLO6', 5, 'Nghiên cứu, đánh giá và ứng dụng công nghệ mới vào dự án thực tế'],
-    ];
-    const ploIds = {};
-    for (const [code, bloom, desc] of ploData) {
-      const r = await client.query('INSERT INTO version_plos (version_id, code, bloom_level, description) VALUES ($1,$2,$3,$4) RETURNING id', [verId, code, bloom, desc]);
-      ploIds[code] = r.rows[0].id;
-    }
-
-    // PIs
-    const piData = [
-      ['PLO1', 'PI1.1', 'Giải các bài toán tối ưu và xác suất thống kê trong CNTT'],
-      ['PLO1', 'PI1.2', 'Áp dụng cấu trúc dữ liệu và giải thuật phù hợp cho bài toán'],
-      ['PLO2', 'PI2.1', 'Phân tích yêu cầu chức năng và phi chức năng của hệ thống'],
-      ['PLO2', 'PI2.2', 'Thiết kế kiến trúc hệ thống theo mô hình phân lớp'],
-      ['PLO3', 'PI3.1', 'Viết mã nguồn sạch, có cấu trúc theo chuẩn coding convention'],
-      ['PLO4', 'PI4.1', 'Thiết kế lược đồ CSDL chuẩn hóa đến 3NF'],
-      ['PLO5', 'PI5.1', 'Trình bày ý tưởng kỹ thuật rõ ràng trước nhóm và khách hàng'],
-      ['PLO6', 'PI6.1', 'Đánh giá ưu nhược điểm của công nghệ mới so với giải pháp hiện tại'],
-    ];
-    const piIds = {};
-    for (const [ploCode, piCode, desc] of piData) {
-      const r = await client.query('INSERT INTO plo_pis (plo_id, pi_code, description) VALUES ($1,$2,$3) RETURNING id', [ploIds[ploCode], piCode, desc]);
-      piIds[piCode] = r.rows[0].id;
-    }
-
-    // PO-PLO map
-    const poPloMap = [['PO1','PLO1'],['PO1','PLO2'],['PO1','PLO3'],['PO1','PLO4'],['PO2','PLO2'],['PO2','PLO3'],['PO2','PLO6'],['PO3','PLO5'],['PO3','PLO6']];
-    for (const [po, plo] of poPloMap) {
-      await client.query('INSERT INTO po_plo_map (version_id, po_id, plo_id) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING', [verId, poIds[po], ploIds[plo]]);
-    }
-
-    // Courses (with credit breakdown)
-    const courseData = [
-      ['IT001','Nhập môn lập trình',3,2,1,0,0,'Giới thiệu tư duy lập trình, cú pháp C/C++, cấu trúc điều khiển, hàm, mảng'],
-      ['IT002','Cấu trúc dữ liệu và giải thuật',3,2,1,0,0,'Danh sách liên kết, ngăn xếp, hàng đợi, cây, đồ thị, sắp xếp, tìm kiếm'],
-      ['IT003','Cơ sở dữ liệu',3,2,1,0,0,'Mô hình quan hệ, SQL, chuẩn hóa, transaction, thiết kế CSDL'],
-      ['IT004','Lập trình hướng đối tượng',3,2,1,0,0,'OOP với Java: class, kế thừa, đa hình, interface, design pattern cơ bản'],
-      ['IT005','Mạng máy tính',3,2,1,0,0,'Mô hình OSI/TCP-IP, định tuyến, giao thức mạng, bảo mật mạng cơ bản'],
-      ['IT006','Công nghệ phần mềm',3,2,1,0,0,'Quy trình SDLC, Agile/Scrum, UML, kiểm thử phần mềm, quản lý dự án'],
-      ['IT007','Phát triển ứng dụng Web',3,1,2,0,0,'HTML/CSS/JS, React/Vue, Node.js, REST API, triển khai ứng dụng web'],
-      ['IT008','Trí tuệ nhân tạo',3,2,1,0,0,'Tìm kiếm, học máy, mạng nơ-ron, xử lý ngôn ngữ tự nhiên, ứng dụng AI'],
-      ['IT009','Đồ án chuyên ngành',3,0,0,3,0,'Thực hiện dự án CNTT theo nhóm, áp dụng quy trình phát triển phần mềm'],
-      ['IT010','Thực tập doanh nghiệp',3,0,0,0,3,'Thực tập tại doanh nghiệp CNTT, báo cáo kết quả thực tập'],
-      ['GE001','Triết học Mác - Lênin',3,3,0,0,0,'Các nguyên lý cơ bản của chủ nghĩa Mác-Lênin về triết học'],
-      ['GE002','Tiếng Anh 1',3,2,1,0,0,'Ngữ pháp, từ vựng, kỹ năng nghe-nói-đọc-viết trình độ A2-B1'],
-      ['GE003','Toán cao cấp',3,3,0,0,0,'Đại số tuyến tính, giải tích, xác suất thống kê ứng dụng trong CNTT'],
-      ['GE004','Vật lý đại cương',3,2,1,0,0,'Cơ học, điện từ, quang học — nền tảng cho kỹ thuật phần cứng'],
-      ['IT011','An toàn thông tin',3,2,1,0,0,'Mã hóa, xác thực, bảo mật hệ thống, tấn công và phòng thủ mạng'],
-      ['IT012','Điện toán đám mây',3,1,2,0,0,'AWS/Azure/GCP, container, microservices, CI/CD, serverless'],
-    ];
-    const courseIds = {};
-    for (const [code,name,credits,lt,th,da,tt,desc] of courseData) {
-      const r = await client.query(
-        `INSERT INTO courses (code, name, credits, credits_theory, credits_practice, credits_project, credits_internship, department_id, description)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT (code) DO UPDATE SET name=EXCLUDED.name RETURNING id`,
-        [code, name, credits, lt, th, da, tt, deptId, desc]
-      );
-      courseIds[code] = r.rows[0].id;
-    }
-
-    // Version courses (semester assignment)
-    const vcData = [
-      ['GE001',1,'required',null],['GE002',1,'required',null],['GE003',1,'required',null],['GE004',1,'required',null],
-      ['IT001',1,'required',null],
-      ['IT002',2,'required',null],['IT004',2,'required',null],
-      ['IT003',3,'required',null],['IT005',3,'required',null],
-      ['IT006',4,'required',null],['IT007',4,'required',null],
-      ['IT008',5,'required',null],['IT011',5,'elective','An toàn & Đám mây'],['IT012',5,'elective','An toàn & Đám mây'],
-      ['IT009',6,'required',null],
-      ['IT010',7,'required',null],
-    ];
-    const vcIds = {};
-    for (const [code,sem,type,group] of vcData) {
-      const r = await client.query(
-        `INSERT INTO version_courses (version_id, course_id, semester, course_type, elective_group) VALUES ($1,$2,$3,$4,$5) RETURNING id`,
-        [verId, courseIds[code], sem, type, group]
-      );
-      vcIds[code] = r.rows[0].id;
-    }
-
-    // Course-PLO map (contribution levels)
-    const cploMap = [
-      ['IT001','PLO1',2],['IT001','PLO3',3],
-      ['IT002','PLO1',3],['IT002','PLO3',2],
-      ['IT003','PLO4',3],['IT003','PLO2',2],
-      ['IT004','PLO2',2],['IT004','PLO3',3],
-      ['IT005','PLO1',1],['IT005','PLO2',2],
-      ['IT006','PLO2',3],['IT006','PLO5',2],['IT006','PLO6',1],
-      ['IT007','PLO2',2],['IT007','PLO3',3],['IT007','PLO6',2],
-      ['IT008','PLO1',2],['IT008','PLO6',3],
-      ['IT009','PLO2',3],['IT009','PLO5',2],['IT009','PLO6',2],
-      ['IT010','PLO5',3],['IT010','PLO6',2],
-    ];
-    for (const [cc,plo,lvl] of cploMap) {
-      if (vcIds[cc] && ploIds[plo]) {
-        await client.query('INSERT INTO course_plo_map (version_id, course_id, plo_id, contribution_level) VALUES ($1,$2,$3,$4) ON CONFLICT DO NOTHING',
-          [verId, vcIds[cc], ploIds[plo], lvl]);
-      }
-    }
-
-    // Course-PI map
-    const cpiMap = [
-      ['IT001','PI1.2',2],['IT001','PI3.1',3],
-      ['IT002','PI1.1',2],['IT002','PI1.2',3],
-      ['IT003','PI4.1',3],['IT003','PI2.1',2],
-      ['IT004','PI2.2',2],['IT004','PI3.1',3],
-      ['IT006','PI2.1',3],['IT006','PI2.2',2],['IT006','PI5.1',2],
-      ['IT007','PI2.2',2],['IT007','PI3.1',3],['IT007','PI6.1',2],
-      ['IT008','PI1.2',2],['IT008','PI6.1',3],
-    ];
-    for (const [cc,pi,lvl] of cpiMap) {
-      if (vcIds[cc] && piIds[pi]) {
-        await client.query('INSERT INTO version_pi_courses (version_id, pi_id, course_id, contribution_level) VALUES ($1,$2,$3,$4) ON CONFLICT DO NOTHING',
-          [verId, piIds[pi], vcIds[cc], lvl]);
-      }
-    }
-
-    // Knowledge blocks (default structure per spec)
-    const kbData = [
-      ['Kiến thức giáo dục đại cương', null, 1, 0, 0, 0],
-      ['Kiến thức giáo dục chuyên nghiệp', null, 1, 0, 0, 0],
-      ['Kiến thức bắt buộc', 'Kiến thức giáo dục chuyên nghiệp', 2, 0, 0, 0],
-      ['Kiến thức tự chọn', 'Kiến thức giáo dục chuyên nghiệp', 2, 0, 0, 0],
-      ['Kiến thức không tích lũy', null, 1, 0, 0, 0],
-    ];
-    const kbIds = {};
-    let kbOrder = 0;
-    for (const [name, parent, level, total, req, elec] of kbData) {
-      kbOrder++;
-      const parentId = parent ? (kbIds[parent] || null) : null;
-      const r = await client.query(
-        'INSERT INTO knowledge_blocks (version_id, name, parent_id, level, total_credits, required_credits, elective_credits, sort_order) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id',
-        [verId, name, parentId, level, total, req, elec, kbOrder]
-      );
-      kbIds[name] = r.rows[0].id;
-    }
-
-    // Teaching plan
-    const tpData = [
-      ['IT001',45,30,15,0,0,null,'K.CNTT','A'],
-      ['IT002',45,30,15,0,0,null,'K.CNTT','A'],
-      ['IT003',45,30,15,0,0,'MySQL Workbench','K.CNTT','B'],
-      ['IT004',45,30,15,0,0,'IntelliJ IDEA','K.CNTT','A'],
-      ['IT005',45,30,15,0,0,'Cisco Packet Tracer','K.CNTT','B'],
-      ['IT006',45,30,15,0,0,'Jira, Draw.io','K.CNTT','A'],
-      ['IT007',45,15,30,0,0,'VS Code, Node.js','K.CNTT','B'],
-      ['IT008',45,30,15,0,0,'Python, Jupyter','K.CNTT','A'],
-      ['IT009',90,0,0,90,0,null,'K.CNTT','A'],
-      ['IT010',135,0,0,0,135,null,'K.CNTT','B'],
-    ];
-    for (const [cc,total,lt,th,da,tt,sw,dept,batch] of tpData) {
-      if (vcIds[cc]) {
-        await client.query(
-          'INSERT INTO teaching_plan (version_course_id, total_hours, hours_theory, hours_practice, hours_project, hours_internship, software, managing_dept, batch) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)',
-          [vcIds[cc], total, lt, th, da, tt, sw, dept, batch]
-        );
-      }
-    }
-
-    // Assessment plans
-    const assessData = [
-      ['PLO1',null,'IT002','Bài kiểm tra cuối kỳ','Giải đúng bài toán CTDL','≥70% SV đạt từ 5/10','HK2','GV phụ trách'],
-      ['PLO2',null,'IT006','Đồ án môn học','Thiết kế đúng quy trình UML','≥70% SV đạt yêu cầu','HK4','GV + Doanh nghiệp'],
-      ['PLO3',null,'IT007','Bài tập thực hành','Chạy đúng chức năng web app','≥80% SV hoàn thành','HK4','GV phụ trách'],
-      ['PLO4',null,'IT003','Bài kiểm tra cuối kỳ','Thiết kế CSDL chuẩn 3NF','≥70% SV đạt từ 5/10','HK3','GV phụ trách'],
-      ['PLO5',null,'IT009','Báo cáo nhóm','Trình bày rõ ràng, logic','≥75% SV đạt','HK6','Hội đồng chấm'],
-      ['PLO6',null,'IT008','Tiểu luận','Phân tích công nghệ AI mới','≥70% SV đạt','HK5','GV phụ trách'],
-    ];
-    for (const [ploCode, piId, cc, tool, criteria, threshold, sem, assessor] of assessData) {
-      await client.query(
-        `INSERT INTO assessment_plans (version_id, plo_id, sample_course_id, assessment_tool, criteria, threshold, semester, assessor)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-        [verId, ploIds[ploCode], courseIds[cc] || null, tool, criteria, threshold, sem, assessor]
-      );
-    }
-
-    console.log('  ✅ Sample CTDT CNTT seeded (program + version + 16 courses + PO/PLO/PI + matrices + knowledge blocks + teaching plan + assessments)');
-  }
 }
 
 // ============ RBAC HELPERS ============
