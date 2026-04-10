@@ -13,6 +13,12 @@ async function login(page, username = 'admin', password = 'admin123') {
 
 test.describe.serial('Main content width', () => {
   test.beforeEach(async ({ page }) => {
+    await page.route('**/js/app.js', async route => {
+      await route.fulfill({
+        path: path.resolve(__dirname, '../public/js/app.js'),
+        contentType: 'application/javascript',
+      });
+    });
     await page.route('**/css/styles.css', async route => {
       await route.fulfill({
         path: path.resolve(__dirname, '../public/css/styles.css'),
