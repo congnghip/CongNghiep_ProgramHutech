@@ -1011,12 +1011,13 @@ app.get('/api/courses', authMiddleware, requirePerm('courses.view'), async (req,
       ? await pool.query(`
           SELECT c.*, d.name as dept_name, d.code as dept_code
           FROM courses c LEFT JOIN departments d ON c.department_id = d.id
-          WHERE c.department_id = ANY($1)
+          WHERE c.department_id = ANY($1) AND c.is_proposed = false
           ORDER BY c.code
         `, [deptIds])
       : await pool.query(`
           SELECT c.*, d.name as dept_name, d.code as dept_code
           FROM courses c LEFT JOIN departments d ON c.department_id = d.id
+          WHERE c.is_proposed = false
           ORDER BY c.code
         `);
     res.json(result.rows);
@@ -1028,6 +1029,7 @@ app.get('/api/courses/all', authMiddleware, requirePerm('courses.view'), async (
     const result = await pool.query(`
       SELECT c.*, d.name as dept_name, d.code as dept_code
       FROM courses c LEFT JOIN departments d ON c.department_id = d.id
+      WHERE c.is_proposed = false
       ORDER BY c.code
     `);
     res.json(result.rows);
@@ -1205,7 +1207,7 @@ app.get('/api/versions/:vId/courses', authMiddleware, requireViewVersion, async 
     const result = await pool.query(`
       SELECT vc.*, c.code as course_code, c.name as course_name, c.credits,
              c.credits_theory, c.credits_practice, c.credits_project, c.credits_internship,
-             c.description as course_desc, d.name as dept_name
+             c.description as course_desc, c.is_proposed, d.name as dept_name
       FROM version_courses vc
       JOIN courses c ON vc.course_id = c.id
       LEFT JOIN departments d ON c.department_id = d.id
@@ -2547,6 +2549,20 @@ app.post('/api/approval/review', authMiddleware, async (req, res) => {
     }
 
     if (!nextStatus) return res.status(400).json({ error: `Không thể duyệt ở trạng thái "${status}"` });
+
+    // Block approval if proposed courses still exist (for program_version approval at PDT level)
+    if (entity_type === 'program_version' && (status === 'approved_khoa' || status === 'approved_pdt')) {
+      const proposedCheck = await pool.query(`
+        SELECT COUNT(*) as cnt FROM version_courses vc
+        JOIN courses c ON c.id = vc.course_id
+        WHERE vc.version_id = $1 AND c.is_proposed = true
+      `, [entity_id]);
+      if (parseInt(proposedCheck.rows[0].cnt) > 0) {
+        return res.status(400).json({
+          error: `Còn ${proposedCheck.rows[0].cnt} học phần đề xuất chưa được gán mã. Vui lòng gán mã trước khi duyệt.`
+        });
+      }
+    }
 
     const isLocking = (nextStatus === 'published');
     await pool.query(
