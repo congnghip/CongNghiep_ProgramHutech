@@ -222,6 +222,16 @@ async function initDB() {
         updated_at TIMESTAMPTZ DEFAULT NOW()
       );
 
+      -- Course Base Syllabi (đề cương cơ bản)
+      CREATE TABLE IF NOT EXISTS course_base_syllabi (
+        id SERIAL PRIMARY KEY,
+        course_id INT REFERENCES courses(id) ON DELETE CASCADE UNIQUE,
+        content JSONB DEFAULT '{}',
+        updated_by INT REFERENCES users(id),
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+        created_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
       -- Syllabus Assignments (phân công GV soạn đề cương)
       CREATE TABLE IF NOT EXISTS syllabus_assignments (
         id SERIAL PRIMARY KEY,
