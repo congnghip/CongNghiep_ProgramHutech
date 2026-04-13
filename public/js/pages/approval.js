@@ -125,23 +125,38 @@ window.ApprovalPage = {
     }
   },
 
-  async approve(id, type) {
+  async approve(entityId, entityType) {
+    // For program_version: check for proposed courses first
+    if (entityType === 'program_version') {
+      try {
+        const proposedRes = await fetch(`/api/versions/${entityId}/proposed-courses`);
+        const proposed = await proposedRes.json();
+        if (proposed.length > 0) {
+          this.showAssignCodeModal(entityId, proposed);
+          return;
+        }
+      } catch (e) { /* proceed to normal approval */ }
+    }
+    this._doApprove(entityId, entityType);
+  },
+
+  async _doApprove(entityId, entityType) {
     const confirmed = await window.ui.confirm({
-      title: 'Phê duyệt hồ sơ',
-      eyebrow: 'Xác nhận thao tác',
-      message: 'Bạn có chắc muốn phê duyệt mục này?',
-      confirmText: 'Phê duyệt',
+      title: 'Xác nhận duyệt',
+      message: entityType === 'program_version'
+        ? 'Bạn có chắc muốn duyệt chương trình đào tạo này?'
+        : 'Bạn có chắc muốn duyệt đề cương này?',
+      confirmText: 'Duyệt',
       cancelText: 'Hủy'
     });
     if (!confirmed) return;
     try {
       const res = await fetch('/api/approval/review', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ entity_type: type, entity_id: id, action: 'approve' })
+        body: JSON.stringify({ entity_type: entityType, entity_id: entityId, action: 'approve' })
       });
       if (!res.ok) throw new Error((await res.json()).error);
-      window.toast.success('Đã phê duyệt');
-      if (window.App.refreshNotificationCount) window.App.refreshNotificationCount();
+      window.toast.success('Đã duyệt thành công');
       this.render(document.getElementById('page-content'));
     } catch (e) { window.toast.error(e.message); }
   },
@@ -186,6 +201,124 @@ window.ApprovalPage = {
       window.toast.success('Đã xóa');
       this.render(document.getElementById('page-content'));
     } catch (e) { window.toast.error(e.message); }
+  },
+
+  showAssignCodeModal(versionId, proposedCourses) {
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay active';
+    modal.id = 'assign-code-modal';
+    modal.innerHTML = `
+      <div class="modal" style="max-width:700px;">
+        <div class="modal-header"><h2>Gán mã học phần đề xuất</h2></div>
+        <div class="modal-body">
+          <p style="color:var(--warning);margin-bottom:16px;font-size:13px;">
+            CTĐT này có ${proposedCourses.length} học phần đề xuất cần gán mã trước khi duyệt.
+          </p>
+          <div id="proposed-list">
+            ${proposedCourses.map(c => `
+              <div class="proposed-item" data-course-id="${c.id}" style="padding:12px;border:1px solid var(--border);border-radius:var(--radius-md);margin-bottom:10px;">
+                <div style="font-weight:600;margin-bottom:6px;">${c.name} <span style="color:var(--text-muted);font-size:12px;">(${c.credits} TC)</span></div>
+                <div style="display:flex;gap:8px;align-items:end;">
+                  <div class="input-group" style="flex:1;margin:0;">
+                    <label>Gán mã mới</label>
+                    <input type="text" class="assign-code-input" data-cid="${c.id}" placeholder="Nhập mã HP" maxlength="20">
+                  </div>
+                  <span style="color:var(--text-muted);font-size:12px;padding-bottom:8px;">hoặc</span>
+                  <div class="input-group" style="flex:1;margin:0;">
+                    <label>Gộp vào HP đã có</label>
+                    <select class="merge-target-select" data-cid="${c.id}">
+                      <option value="">— Chọn HP —</option>
+                    </select>
+                  </div>
+                  <button class="btn btn-primary btn-sm assign-code-btn" data-cid="${c.id}" style="white-space:nowrap;" disabled>Xác nhận</button>
+                </div>
+                <div class="assign-status" data-cid="${c.id}" style="margin-top:4px;font-size:12px;"></div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="document.getElementById('assign-code-modal').remove()">Đóng</button>
+          <button class="btn btn-primary" id="approve-after-assign" disabled onclick="window.ApprovalPage.approveAfterAssign(${versionId})">Duyệt CTĐT</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    // Load catalog courses into merge dropdowns
+    fetch('/api/courses/all').then(r => r.json()).then(courses => {
+      modal.querySelectorAll('.merge-target-select').forEach(sel => {
+        courses.forEach(c => {
+          sel.innerHTML += `<option value="${c.id}">${c.code} — ${c.name}</option>`;
+        });
+      });
+    });
+
+    // Enable confirm buttons when input is provided
+    modal.querySelectorAll('.assign-code-input').forEach(input => {
+      input.addEventListener('input', () => {
+        const cid = input.dataset.cid;
+        const btn = modal.querySelector(`.assign-code-btn[data-cid="${cid}"]`);
+        const sel = modal.querySelector(`.merge-target-select[data-cid="${cid}"]`);
+        btn.disabled = !(input.value.trim() || sel.value);
+        if (input.value.trim()) sel.value = '';
+      });
+    });
+    modal.querySelectorAll('.merge-target-select').forEach(sel => {
+      sel.addEventListener('change', () => {
+        const cid = sel.dataset.cid;
+        const btn = modal.querySelector(`.assign-code-btn[data-cid="${cid}"]`);
+        const input = modal.querySelector(`.assign-code-input[data-cid="${cid}"]`);
+        btn.disabled = !(sel.value || input.value.trim());
+        if (sel.value) input.value = '';
+      });
+    });
+
+    // Handle confirm for individual course
+    modal.querySelectorAll('.assign-code-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const cid = btn.dataset.cid;
+        const input = modal.querySelector(`.assign-code-input[data-cid="${cid}"]`);
+        const sel = modal.querySelector(`.merge-target-select[data-cid="${cid}"]`);
+        const statusDiv = modal.querySelector(`.assign-status[data-cid="${cid}"]`);
+        const item = modal.querySelector(`.proposed-item[data-course-id="${cid}"]`);
+
+        try {
+          if (input.value.trim()) {
+            const res = await fetch(`/api/proposed-courses/${cid}/assign-code`, {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ code: input.value.trim() })
+            });
+            if (!res.ok) throw new Error((await res.json()).error);
+            statusDiv.innerHTML = `<span style="color:var(--success);">✓ Đã gán mã: ${input.value.trim()}</span>`;
+          } else if (sel.value) {
+            const res = await fetch(`/api/proposed-courses/${cid}/merge`, {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ target_course_id: parseInt(sel.value) })
+            });
+            if (!res.ok) throw new Error((await res.json()).error);
+            statusDiv.innerHTML = `<span style="color:var(--success);">✓ Đã gộp</span>`;
+          }
+          item.style.opacity = '0.5';
+          btn.disabled = true;
+          input.disabled = true;
+          sel.disabled = true;
+
+          // Check if all done
+          const remaining = modal.querySelectorAll('.proposed-item:not([style*="opacity"])');
+          if (remaining.length === 0) {
+            document.getElementById('approve-after-assign').disabled = false;
+          }
+        } catch (e) {
+          statusDiv.innerHTML = `<span style="color:var(--danger);">${e.message}</span>`;
+        }
+      });
+    });
+  },
+
+  async approveAfterAssign(versionId) {
+    document.getElementById('assign-code-modal')?.remove();
+    this._doApprove(versionId, 'program_version');
   },
 
   destroy() {}
