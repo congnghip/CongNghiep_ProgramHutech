@@ -15,8 +15,8 @@ window.CoursesPage = {
             <input type="text" id="course-search" placeholder="Tìm kiếm theo mã hoặc tên..." style="max-width:400px;">
           </div>
           <table class="data-table">
-            <thead><tr><th>Mã HP</th><th>Tên học phần</th><th>TC</th><th>Đơn vị quản lý</th><th>Thao tác</th></tr></thead>
-            <tbody id="courses-tbody"><tr><td colspan="5"><div class="spinner"></div></td></tr></tbody>
+            <thead><tr><th>Mã HP</th><th>Tên học phần</th><th>TC</th><th>Đơn vị quản lý</th><th>ĐC cơ bản</th><th>Thao tác</th></tr></thead>
+            <tbody id="courses-tbody"><tr><td colspan="6"><div class="spinner"></div></td></tr></tbody>
           </table>
         </div>
       </div>
@@ -88,13 +88,17 @@ window.CoursesPage = {
     const q = (document.getElementById('course-search')?.value || '').toLowerCase();
     const filtered = q ? this.courses.filter(c => c.code.toLowerCase().includes(q) || c.name.toLowerCase().includes(q)) : this.courses;
     document.getElementById('courses-tbody').innerHTML = filtered.length === 0
-      ? '<tr><td colspan="5" class="text-center text-muted">Không tìm thấy</td></tr>'
+      ? '<tr><td colspan="6" class="text-center text-muted">Không tìm thấy</td></tr>'
       : filtered.map(c => `<tr>
           <td><strong>${c.code}</strong></td>
           <td>${c.name}</td>
           <td class="text-center">${c.credits}</td>
           <td><span class="badge badge-info">${c.dept_name || '—'}</span></td>
+          <td class="text-center">
+            ${c.has_base_syllabus ? '<span class="badge badge-success">Có</span>' : '<span class="badge" style="background:var(--bg-secondary);color:var(--text-muted);">Chưa có</span>'}
+          </td>
           <td>
+            <button class="btn btn-secondary btn-sm" onclick="window.App.navigate('base-syllabus-editor',{courseId:${c.id}})">ĐC cơ bản</button>
             ${window.App.hasPerm('courses.edit') ? `<button class="btn btn-secondary btn-sm" onclick="window.CoursesPage.openModal(${c.id})">Sửa</button>
             <button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="window.CoursesPage.del(${c.id})">Xóa</button>` : ''}
           </td>
