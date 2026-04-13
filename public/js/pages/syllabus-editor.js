@@ -74,7 +74,7 @@ window.SyllabusEditorPage = {
             : `<a href="#" onclick="event.preventDefault();window.App.navigate('approval')" class="breadcrumb-link">Phê duyệt</a>`
           }
           <span class="breadcrumb-sep">›</span>
-          <span class="breadcrumb-current">${s.course_code} — ${s.course_name}</span>
+          <span class="breadcrumb-current">${s.is_proposed ? s.course_name : (s.course_code + ' — ' + s.course_name)}</span>
         </nav>
         <div class="flex-between">
           <div>

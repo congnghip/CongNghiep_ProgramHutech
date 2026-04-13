@@ -1683,7 +1683,7 @@ app.post('/api/versions/:vId/syllabi', authMiddleware, async (req, res) => {
 app.get('/api/syllabi/:id', authMiddleware, requireViewVersion, async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT vs.*, c.code as course_code, c.name as course_name, c.credits,
+      SELECT vs.*, c.code as course_code, c.name as course_name, c.credits, c.is_proposed,
              u.display_name as author_name, d.name as dept_name
       FROM version_syllabi vs
       JOIN courses c ON vs.course_id = c.id
