@@ -825,7 +825,7 @@ window.VersionEditorPage = {
 
   async saveProposedCourse() {
     const name = document.getElementById('pc-name').value.trim();
-    if (!name) return window.toast.success ? window.toast.error('Tên học phần là bắt buộc') : alert('Tên học phần là bắt buộc');
+    if (!name) return window.toast.error('Tên học phần là bắt buộc');
     const payload = {
       name,
       credits: parseInt(document.getElementById('pc-credits').value) || 3,

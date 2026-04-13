@@ -126,8 +126,8 @@ window.ApprovalPage = {
   },
 
   async approve(entityId, entityType) {
-    // For program_version: check for proposed courses first
-    if (entityType === 'program_version') {
+    // For program_version: check for proposed courses first (only if user has assign_code permission)
+    if (entityType === 'program_version' && window.App.hasPerm('courses.assign_code')) {
       try {
         const proposedRes = await fetch(`/api/versions/${entityId}/proposed-courses`);
         const proposed = await proposedRes.json();
@@ -299,13 +299,14 @@ window.ApprovalPage = {
             if (!res.ok) throw new Error((await res.json()).error);
             statusDiv.innerHTML = `<span style="color:var(--success);">✓ Đã gộp</span>`;
           }
+          item.dataset.resolved = 'true';
           item.style.opacity = '0.5';
           btn.disabled = true;
           input.disabled = true;
           sel.disabled = true;
 
           // Check if all done
-          const remaining = modal.querySelectorAll('.proposed-item:not([style*="opacity"])');
+          const remaining = modal.querySelectorAll('.proposed-item:not([data-resolved])');
           if (remaining.length === 0) {
             document.getElementById('approve-after-assign').disabled = false;
           }
