@@ -1075,6 +1075,43 @@ app.delete('/api/courses/:id', authMiddleware, requirePerm('courses.edit'), asyn
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
+// ============ COURSE BASE SYLLABUS ============
+app.get('/api/courses/:courseId/base-syllabus', authMiddleware, requirePerm('courses.view'), async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT bs.*, u.display_name as updated_by_name
+       FROM course_base_syllabi bs
+       LEFT JOIN users u ON bs.updated_by = u.id
+       WHERE bs.course_id = $1`,
+      [req.params.courseId]
+    );
+    if (!result.rows.length) return res.status(404).json({ error: 'Chưa có đề cương cơ bản' });
+    res.json(result.rows[0]);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/api/courses/:courseId/base-syllabus', authMiddleware, requirePerm('courses.edit'), async (req, res) => {
+  const { content } = req.body;
+  try {
+    const result = await pool.query(
+      `INSERT INTO course_base_syllabi (course_id, content, updated_by)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (course_id) DO UPDATE
+       SET content = $2, updated_by = $3, updated_at = NOW()
+       RETURNING *`,
+      [req.params.courseId, JSON.stringify(content || {}), req.user.id]
+    );
+    res.json(result.rows[0]);
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+app.delete('/api/courses/:courseId/base-syllabus', authMiddleware, requirePerm('courses.edit'), async (req, res) => {
+  try {
+    await pool.query('DELETE FROM course_base_syllabi WHERE course_id = $1', [req.params.courseId]);
+    res.status(204).end();
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
 // ===== Proposed Courses =====
 app.post('/api/versions/:vId/proposed-courses', authMiddleware, requireDraft(), requirePerm('courses.propose'), async (req, res) => {
   const { name, credits, credits_theory, credits_practice, credits_project, credits_internship, department_id, description, semester, course_type } = req.body;
