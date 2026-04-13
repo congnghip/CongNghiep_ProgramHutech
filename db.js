@@ -142,7 +142,7 @@ async function initDB() {
       -- Courses (master list)
       CREATE TABLE IF NOT EXISTS courses (
         id SERIAL PRIMARY KEY,
-        code VARCHAR(20) UNIQUE NOT NULL,
+        code VARCHAR(20) UNIQUE,
         name VARCHAR(300) NOT NULL,
         credits INT DEFAULT 3,
         credits_theory INT DEFAULT 0,
@@ -307,6 +307,12 @@ async function initDB() {
 
       ALTER TABLE programs ADD COLUMN IF NOT EXISTS archived_at TIMESTAMPTZ DEFAULT NULL;
 
+      ALTER TABLE courses ADD COLUMN IF NOT EXISTS is_proposed BOOLEAN DEFAULT false;
+      ALTER TABLE courses ADD COLUMN IF NOT EXISTS proposed_by_version_id INT REFERENCES program_versions(id);
+
+      -- Remove NOT NULL from code for existing databases
+      ALTER TABLE courses ALTER COLUMN code DROP NOT NULL;
+
       -- Teaching plan (detailed per-semester schedule)
       CREATE TABLE IF NOT EXISTS teaching_plan (
         id SERIAL PRIMARY KEY,
@@ -434,6 +440,8 @@ async function seedData(client) {
     ['courses.view', 'courses', 'Xem danh mục học phần'],
     ['courses.create', 'courses', 'Tạo học phần mới'],
     ['courses.edit', 'courses', 'Chỉnh sửa học phần'],
+    ['courses.propose', 'courses', 'Đề xuất học phần mới'],
+    ['courses.assign_code', 'courses', 'Gán mã học phần đề xuất'],
   ];
   for (const [code, module, desc] of perms) {
     await client.query(
@@ -446,10 +454,10 @@ async function seedData(client) {
 
   // Role-Permission mapping (from RBAC analysis doc)
   const rolePerms = {
-    GIANG_VIEN: ['programs.view_published', 'syllabus.view', 'syllabus.create', 'syllabus.edit', 'syllabus.submit', 'courses.view'],
-    TRUONG_NGANH: ['programs.view_published', 'programs.view_draft', 'syllabus.view', 'syllabus.approve_tbm', 'syllabus.assign', 'courses.view'],
-    LANH_DAO_KHOA: ['programs.view_published', 'programs.view_draft', 'programs.create', 'programs.edit', 'programs.delete_draft', 'programs.submit', 'programs.approve_khoa', 'programs.export', 'programs.import_word', 'syllabus.view', 'syllabus.create', 'syllabus.edit', 'syllabus.submit', 'syllabus.approve_khoa', 'syllabus.assign', 'courses.view'],
-    PHONG_DAO_TAO: ['programs.view_published', 'programs.view_draft', 'programs.create', 'programs.edit', 'programs.delete_draft', 'programs.approve_pdt', 'programs.export', 'programs.import_word', 'programs.manage_all', 'programs.create_version', 'syllabus.view', 'syllabus.create', 'syllabus.edit', 'syllabus.approve_pdt', 'syllabus.assign', 'courses.view', 'courses.create', 'courses.edit'],
+    GIANG_VIEN: ['programs.view_published', 'syllabus.view', 'syllabus.create', 'syllabus.edit', 'syllabus.submit', 'courses.view', 'courses.propose'],
+    TRUONG_NGANH: ['programs.view_published', 'programs.view_draft', 'syllabus.view', 'syllabus.approve_tbm', 'syllabus.assign', 'courses.view', 'courses.propose'],
+    LANH_DAO_KHOA: ['programs.view_published', 'programs.view_draft', 'programs.create', 'programs.edit', 'programs.delete_draft', 'programs.submit', 'programs.approve_khoa', 'programs.export', 'programs.import_word', 'syllabus.view', 'syllabus.create', 'syllabus.edit', 'syllabus.submit', 'syllabus.approve_khoa', 'syllabus.assign', 'courses.view', 'courses.propose'],
+    PHONG_DAO_TAO: ['programs.view_published', 'programs.view_draft', 'programs.create', 'programs.edit', 'programs.delete_draft', 'programs.approve_pdt', 'programs.export', 'programs.import_word', 'programs.manage_all', 'programs.create_version', 'syllabus.view', 'syllabus.create', 'syllabus.edit', 'syllabus.approve_pdt', 'syllabus.assign', 'courses.view', 'courses.create', 'courses.edit', 'courses.propose', 'courses.assign_code'],
     BAN_GIAM_HIEU: ['programs.view_published', 'programs.view_draft', 'programs.approve_bgh', 'programs.export', 'syllabus.view', 'syllabus.approve_bgh', 'syllabus.assign', 'courses.view'],
     ADMIN: ['programs.view_published', 'programs.view_draft', 'programs.delete_draft', 'programs.manage_all', 'programs.create_version', 'syllabus.view', 'courses.view'],
   };
