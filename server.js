@@ -1718,11 +1718,26 @@ app.post('/api/versions/:vId/syllabi', authMiddleware, async (req, res) => {
       await checkVersionEditAccess(req.user.id, req.params.vId, 'syllabus.edit');
     }
 
+    // Check for base syllabus to auto-populate
+    let initialContent = content || {};
+    let noBaseSyllabus = false;
+    if (!content || Object.keys(content).length === 0) {
+      const baseRes = await pool.query(
+        'SELECT content FROM course_base_syllabi WHERE course_id = $1',
+        [course_id]
+      );
+      if (baseRes.rows.length) {
+        initialContent = baseRes.rows[0].content;
+      } else {
+        noBaseSyllabus = true;
+      }
+    }
+
     const result = await pool.query(
       'INSERT INTO version_syllabi (version_id, course_id, author_id, content) VALUES ($1,$2,$3,$4) RETURNING *',
-      [req.params.vId, course_id, req.user.id, JSON.stringify(content || {})]
+      [req.params.vId, course_id, req.user.id, JSON.stringify(initialContent)]
     );
-    res.json(result.rows[0]);
+    res.json({ ...result.rows[0], no_base_syllabus: noBaseSyllabus });
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
@@ -2299,11 +2314,24 @@ app.post('/api/my-assignments/:assignmentId/create-syllabus', authMiddleware, as
       return res.status(400).json({ error: 'Phiên bản đã bị khóa' });
     }
 
+    // Check for base syllabus to auto-populate
+    let initialContent = {};
+    let noBaseSyllabus = false;
+    const baseRes = await pool.query(
+      'SELECT content FROM course_base_syllabi WHERE course_id = $1',
+      [assignment.course_id]
+    );
+    if (baseRes.rows.length) {
+      initialContent = baseRes.rows[0].content;
+    } else {
+      noBaseSyllabus = true;
+    }
+
     const result = await pool.query(
       'INSERT INTO version_syllabi (version_id, course_id, author_id, content) VALUES ($1,$2,$3,$4) RETURNING *',
-      [assignment.version_id, assignment.course_id, req.user.id, '{}']
+      [assignment.version_id, assignment.course_id, req.user.id, JSON.stringify(initialContent)]
     );
-    res.json(result.rows[0]);
+    res.json({ ...result.rows[0], no_base_syllabus: noBaseSyllabus });
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
