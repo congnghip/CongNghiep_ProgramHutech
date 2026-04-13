@@ -782,7 +782,7 @@ window.VersionEditorPage = {
 
   showProposeCourseModal() {
     const modal = document.createElement('div');
-    modal.className = 'modal-overlay active';
+    modal.className = 'modal-overlay';
     modal.id = 'propose-course-modal';
     modal.innerHTML = `
       <div class="modal">
@@ -833,6 +833,7 @@ window.VersionEditorPage = {
       </div>
     `;
     document.body.appendChild(modal);
+    requestAnimationFrame(() => modal.classList.add('active'));
     document.getElementById('pc-form').addEventListener('submit', (e) => { e.preventDefault(); window.VersionEditorPage.saveProposedCourse(); });
     // Load departments into dropdown
     fetch('/api/departments').then(r => r.json()).then(depts => {

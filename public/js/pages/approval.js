@@ -205,7 +205,7 @@ window.ApprovalPage = {
 
   showAssignCodeModal(versionId, proposedCourses) {
     const modal = document.createElement('div');
-    modal.className = 'modal-overlay active';
+    modal.className = 'modal-overlay';
     modal.id = 'assign-code-modal';
     modal.innerHTML = `
       <div class="modal" style="max-width:700px;">
@@ -238,12 +238,13 @@ window.ApprovalPage = {
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-secondary" onclick="document.getElementById('assign-code-modal').remove()">Đóng</button>
+          <button class="btn btn-secondary" onclick="document.getElementById('assign-code-modal').classList.remove('active')">Đóng</button>
           <button class="btn btn-primary" id="approve-after-assign" disabled onclick="window.ApprovalPage.approveAfterAssign(${versionId})">Duyệt CTĐT</button>
         </div>
       </div>
     `;
     document.body.appendChild(modal);
+    requestAnimationFrame(() => modal.classList.add('active'));
 
     // Load catalog courses into merge dropdowns
     fetch('/api/courses/all').then(r => r.json()).then(courses => {
@@ -318,7 +319,7 @@ window.ApprovalPage = {
   },
 
   async approveAfterAssign(versionId) {
-    document.getElementById('assign-code-modal')?.remove();
+    document.getElementById('assign-code-modal')?.classList.remove('active');
     this._doApprove(versionId, 'program_version');
   },
 
