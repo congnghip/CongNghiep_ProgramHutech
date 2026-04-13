@@ -1146,6 +1146,59 @@ app.delete('/api/proposed-courses/:courseId', authMiddleware, requirePerm('cours
   } finally { client.release(); }
 });
 
+app.post('/api/proposed-courses/:courseId/assign-code', authMiddleware, requirePerm('courses.assign_code'), async (req, res) => {
+  const { code } = req.body;
+  if (!code || !code.trim()) return res.status(400).json({ error: 'Mã học phần là bắt buộc' });
+  try {
+    const check = await pool.query('SELECT id FROM courses WHERE id=$1 AND is_proposed=true', [req.params.courseId]);
+    if (!check.rows.length) return res.status(404).json({ error: 'Học phần đề xuất không tồn tại' });
+    const dup = await pool.query('SELECT id FROM courses WHERE code=$1', [code.trim()]);
+    if (dup.rows.length) return res.status(400).json({ error: `Mã "${code.trim()}" đã tồn tại trong danh mục` });
+    const result = await pool.query(
+      'UPDATE courses SET code=$1, is_proposed=false, proposed_by_version_id=NULL WHERE id=$2 RETURNING *',
+      [code.trim(), req.params.courseId]
+    );
+    res.json(result.rows[0]);
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+app.post('/api/proposed-courses/:courseId/merge', authMiddleware, requirePerm('courses.assign_code'), async (req, res) => {
+  const { target_course_id } = req.body;
+  if (!target_course_id) return res.status(400).json({ error: 'Cần chọn học phần đích' });
+  const client = await pool.connect();
+  try {
+    const srcCheck = await client.query('SELECT id, proposed_by_version_id FROM courses WHERE id=$1 AND is_proposed=true', [req.params.courseId]);
+    if (!srcCheck.rows.length) return res.status(404).json({ error: 'Học phần đề xuất không tồn tại' });
+    const vId = srcCheck.rows[0].proposed_by_version_id;
+    const tgtCheck = await client.query('SELECT id FROM courses WHERE id=$1 AND is_proposed=false', [target_course_id]);
+    if (!tgtCheck.rows.length) return res.status(400).json({ error: 'Học phần đích không tồn tại hoặc chưa chính thức' });
+    const conflict = await client.query(
+      'SELECT id FROM version_syllabi WHERE version_id=$1 AND course_id=$2', [vId, target_course_id]
+    );
+    if (conflict.rows.length) return res.status(400).json({ error: 'Học phần đích đã có đề cương trong phiên bản này. Vui lòng xử lý xung đột trước.' });
+    const vcConflict = await client.query(
+      'SELECT id FROM version_courses WHERE version_id=$1 AND course_id=$2', [vId, target_course_id]
+    );
+    if (vcConflict.rows.length) return res.status(400).json({ error: 'Học phần đích đã có trong phiên bản CTĐT này.' });
+
+    await client.query('BEGIN');
+    await client.query(
+      'UPDATE version_courses SET course_id=$1 WHERE course_id=$2 AND version_id=$3',
+      [target_course_id, req.params.courseId, vId]
+    );
+    await client.query(
+      'UPDATE version_syllabi SET course_id=$1 WHERE course_id=$2 AND version_id=$3',
+      [target_course_id, req.params.courseId, vId]
+    );
+    await client.query('DELETE FROM courses WHERE id=$1', [req.params.courseId]);
+    await client.query('COMMIT');
+    res.json({ success: true, target_course_id });
+  } catch (e) {
+    await client.query('ROLLBACK');
+    res.status(400).json({ error: e.message });
+  } finally { client.release(); }
+});
+
 // ============ VERSION COURSES ============
 app.get('/api/versions/:vId/courses', authMiddleware, requireViewVersion, async (req, res) => {
   try {
