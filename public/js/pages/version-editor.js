@@ -825,7 +825,7 @@ window.VersionEditorPage = {
             </div>
             <div class="modal-error" id="pc-error"></div>
             <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" onclick="document.getElementById('propose-course-modal').classList.remove('active')">Hủy</button>
+              <button type="button" class="btn btn-secondary" onclick="window.VersionEditorPage.closeProposeCourseModal()">Hủy</button>
               <button type="submit" class="btn btn-primary">Tạo đề xuất</button>
             </div>
           </form>
@@ -835,6 +835,8 @@ window.VersionEditorPage = {
     document.body.appendChild(modal);
     requestAnimationFrame(() => modal.classList.add('active'));
     document.getElementById('pc-form').addEventListener('submit', (e) => { e.preventDefault(); window.VersionEditorPage.saveProposedCourse(); });
+    // Close on backdrop click
+    modal.addEventListener('click', (e) => { if (e.target === modal) window.VersionEditorPage.closeProposeCourseModal(); });
     // Load departments into dropdown
     fetch('/api/departments').then(r => r.json()).then(depts => {
       const sel = document.getElementById('pc-dept');
@@ -842,7 +844,14 @@ window.VersionEditorPage = {
       (Array.isArray(depts) ? depts : []).forEach(d => { opts += `<option value="${d.id}">${d.name}</option>`; });
       sel.insertAdjacentHTML('beforeend', opts);
     });
-    App.modalGuard('propose-course-modal', () => window.VersionEditorPage.saveProposedCourse());
+  },
+
+  closeProposeCourseModal() {
+    const modal = document.getElementById('propose-course-modal');
+    if (!modal) return;
+    modal.classList.remove('active');
+    document.body.classList.remove('modal-open');
+    setTimeout(() => modal.remove(), 200);
   },
 
   async saveProposedCourse() {
@@ -867,7 +876,7 @@ window.VersionEditorPage = {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
       });
       if (!res.ok) throw new Error((await res.json()).error);
-      document.getElementById('propose-course-modal').classList.remove('active');
+      this.closeProposeCourseModal();
       window.toast.success('Đã tạo học phần đề xuất');
       this.renderTab();
     } catch (e) { errEl.textContent = e.message; }
