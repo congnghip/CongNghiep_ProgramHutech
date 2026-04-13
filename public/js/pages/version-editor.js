@@ -711,8 +711,9 @@ window.VersionEditorPage = {
         <h3 style="font-size:15px;font-weight:600;">Cấu trúc học phần</h3>
         <span style="color:var(--text-muted);font-size:13px;">${vCourses.reduce((s, c) => s + (c.credits || 0), 0)} TC / ${vCourses.length} HP</span>
       </div>
-      ${editable && available.length ? `
-        <div style="display:flex;gap:10px;align-items:end;margin-bottom:16px;padding:14px;background:var(--bg-secondary);border-radius:var(--radius-lg);">
+      ${editable ? `
+        <div style="display:flex;gap:10px;align-items:end;margin-bottom:16px;padding:14px;background:var(--bg-secondary);border-radius:var(--radius-lg);flex-wrap:wrap;">
+          ${available.length ? `
           <div class="input-group" style="flex:1;margin:0;"><label>Thêm HP</label>
             <select id="add-vc-course">${available.map(c => `<option value="${c.id}">${c.code} — ${c.name} (${c.credits} TC)</option>`).join('')}</select>
           </div>
@@ -723,7 +724,8 @@ window.VersionEditorPage = {
             <select id="add-vc-type"><option value="required">Bắt buộc</option><option value="elective">Tự chọn</option></select>
           </div>
           <button class="btn btn-primary btn-sm" onclick="window.VersionEditorPage.addCourse()">Thêm</button>
-          <button class="btn btn-secondary btn-sm" style="margin-left:8px;" onclick="window.VersionEditorPage.showProposeCourseModal()">Đề xuất HP mới</button>
+          ` : ''}
+          <button class="btn btn-secondary btn-sm" onclick="window.VersionEditorPage.showProposeCourseModal()">Đề xuất HP mới</button>
         </div>
       ` : ''}
       <div style="overflow-x:auto;">
