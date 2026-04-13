@@ -785,49 +785,70 @@ window.VersionEditorPage = {
     modal.className = 'modal-overlay active';
     modal.id = 'propose-course-modal';
     modal.innerHTML = `
-      <div class="modal" style="max-width:520px;">
+      <div class="modal">
         <div class="modal-header"><h2>Đề xuất học phần mới</h2></div>
         <div class="modal-body">
-          <div class="input-group"><label>Tên học phần *</label><input type="text" id="pc-name" placeholder="Nhập tên học phần"></div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:8px;">
-            <div class="input-group"><label>Tín chỉ</label><input type="number" id="pc-credits" value="3" min="1"></div>
-            <div class="input-group"><label>LT</label><input type="number" id="pc-lt" value="0" min="0"></div>
-            <div class="input-group"><label>TH</label><input type="number" id="pc-th" value="0" min="0"></div>
-            <div class="input-group"><label>ĐA</label><input type="number" id="pc-da" value="0" min="0"></div>
-            <div class="input-group"><label>TT</label><input type="number" id="pc-tt" value="0" min="0"></div>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
-            <div class="input-group"><label>HK</label>
-              <select id="pc-sem">${[1,2,3,4,5,6,7,8].map(s => `<option value="${s}">HK ${s}</option>`).join('')}</select>
+          <form id="pc-form">
+            <div class="input-group">
+              <label>Tên học phần <span class="required-mark">*</span></label>
+              <input type="text" id="pc-name" required placeholder="VD: Trí tuệ nhân tạo ứng dụng">
             </div>
-            <div class="input-group"><label>Loại</label>
-              <select id="pc-type"><option value="required">Bắt buộc</option><option value="elective">Tự chọn</option></select>
+            <div class="input-group">
+              <label>Số tín chỉ</label>
+              <input type="number" id="pc-credits" value="3" min="1" max="20">
             </div>
-            <div class="input-group"><label>Khoa/Viện</label>
-              <select id="pc-dept"><option value="">— Chọn —</option></select>
+            <div class="flex-row">
+              <div class="input-group" style="flex:1;margin:0;"><label>LT</label><input type="text" id="pc-lt" value="0" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,'')"></div>
+              <div class="input-group" style="flex:1;margin:0;"><label>TH</label><input type="text" id="pc-th" value="0" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,'')"></div>
+              <div class="input-group" style="flex:1;margin:0;"><label>ĐA</label><input type="text" id="pc-da" value="0" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,'')"></div>
+              <div class="input-group" style="flex:1;margin:0;"><label>TT</label><input type="text" id="pc-tt" value="0" inputmode="numeric" pattern="[0-9]*" oninput="this.value=this.value.replace(/[^0-9]/g,'')"></div>
             </div>
-          </div>
-          <div class="input-group"><label>Mô tả</label><textarea id="pc-desc" rows="2" placeholder="Mô tả ngắn (tùy chọn)"></textarea></div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-secondary" onclick="document.getElementById('propose-course-modal').remove()">Hủy</button>
-          <button class="btn btn-primary" onclick="window.VersionEditorPage.saveProposedCourse()">Tạo đề xuất</button>
+            <div class="flex-row">
+              <div class="input-group" style="flex:1;margin:0;">
+                <label>HK</label>
+                <select id="pc-sem">${[1,2,3,4,5,6,7,8].map(s => `<option value="${s}">HK ${s}</option>`).join('')}</select>
+              </div>
+              <div class="input-group" style="flex:1;margin:0;">
+                <label>Loại</label>
+                <select id="pc-type"><option value="required">Bắt buộc</option><option value="elective">Tự chọn</option></select>
+              </div>
+            </div>
+            <div class="flex-row">
+              <div class="input-group" style="flex:1;margin:0;">
+                <label>Khoa/Viện</label>
+                <select id="pc-dept"><option value="">— Chọn —</option></select>
+              </div>
+            </div>
+            <div class="input-group">
+              <label>Mô tả</label>
+              <textarea id="pc-desc" placeholder="Mô tả tóm tắt HP (dưới 150 từ)"></textarea>
+            </div>
+            <div class="modal-error" id="pc-error"></div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" onclick="document.getElementById('propose-course-modal').classList.remove('active')">Hủy</button>
+              <button type="submit" class="btn btn-primary">Tạo đề xuất</button>
+            </div>
+          </form>
         </div>
       </div>
     `;
     document.body.appendChild(modal);
+    document.getElementById('pc-form').addEventListener('submit', (e) => { e.preventDefault(); window.VersionEditorPage.saveProposedCourse(); });
     // Load departments into dropdown
     fetch('/api/departments').then(r => r.json()).then(depts => {
       const sel = document.getElementById('pc-dept');
-      (Array.isArray(depts) ? depts : []).forEach(d => {
-        sel.innerHTML += `<option value="${d.id}">${d.name}</option>`;
-      });
+      let opts = '';
+      (Array.isArray(depts) ? depts : []).forEach(d => { opts += `<option value="${d.id}">${d.name}</option>`; });
+      sel.insertAdjacentHTML('beforeend', opts);
     });
+    App.modalGuard('propose-course-modal', () => window.VersionEditorPage.saveProposedCourse());
   },
 
   async saveProposedCourse() {
+    const errEl = document.getElementById('pc-error');
+    errEl.textContent = '';
     const name = document.getElementById('pc-name').value.trim();
-    if (!name) return window.toast.error('Tên học phần là bắt buộc');
+    if (!name) { errEl.textContent = 'Tên học phần là bắt buộc'; return; }
     const payload = {
       name,
       credits: parseInt(document.getElementById('pc-credits').value) || 3,
@@ -845,10 +866,10 @@ window.VersionEditorPage = {
         method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
       });
       if (!res.ok) throw new Error((await res.json()).error);
-      document.getElementById('propose-course-modal')?.remove();
+      document.getElementById('propose-course-modal').classList.remove('active');
       window.toast.success('Đã tạo học phần đề xuất');
       this.renderTab();
-    } catch (e) { window.toast.error(e.message); }
+    } catch (e) { errEl.textContent = e.message; }
   },
 
   // ===== TAB 7: Teaching Plan =====
