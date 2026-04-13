@@ -296,6 +296,12 @@
         this.checkPermissions(container);
         return;
       }
+      if (page === 'base-syllabus-editor' && params?.courseId) {
+        this.currentPage = window.BaseSyllabusEditorPage;
+        await window.BaseSyllabusEditorPage.render(container, params.courseId);
+        this.checkPermissions(container);
+        return;
+      }
 
       const pages = {
         dashboard: window.DashboardPage,
