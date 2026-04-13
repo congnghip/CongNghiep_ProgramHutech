@@ -1009,14 +1009,20 @@ app.get('/api/courses', authMiddleware, requirePerm('courses.view'), async (req,
 
     const result = deptIds
       ? await pool.query(`
-          SELECT c.*, d.name as dept_name, d.code as dept_code
-          FROM courses c LEFT JOIN departments d ON c.department_id = d.id
+          SELECT c.*, d.name as dept_name, d.code as dept_code,
+                 (cbs.id IS NOT NULL) as has_base_syllabus
+          FROM courses c
+          LEFT JOIN departments d ON c.department_id = d.id
+          LEFT JOIN course_base_syllabi cbs ON cbs.course_id = c.id
           WHERE c.department_id = ANY($1) AND c.is_proposed = false
           ORDER BY c.code
         `, [deptIds])
       : await pool.query(`
-          SELECT c.*, d.name as dept_name, d.code as dept_code
-          FROM courses c LEFT JOIN departments d ON c.department_id = d.id
+          SELECT c.*, d.name as dept_name, d.code as dept_code,
+                 (cbs.id IS NOT NULL) as has_base_syllabus
+          FROM courses c
+          LEFT JOIN departments d ON c.department_id = d.id
+          LEFT JOIN course_base_syllabi cbs ON cbs.course_id = c.id
           WHERE c.is_proposed = false
           ORDER BY c.code
         `);
@@ -1027,8 +1033,11 @@ app.get('/api/courses', authMiddleware, requirePerm('courses.view'), async (req,
 app.get('/api/courses/all', authMiddleware, requirePerm('courses.view'), async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT c.*, d.name as dept_name, d.code as dept_code
-      FROM courses c LEFT JOIN departments d ON c.department_id = d.id
+      SELECT c.*, d.name as dept_name, d.code as dept_code,
+             (cbs.id IS NOT NULL) as has_base_syllabus
+      FROM courses c
+      LEFT JOIN departments d ON c.department_id = d.id
+      LEFT JOIN course_base_syllabi cbs ON cbs.course_id = c.id
       WHERE c.is_proposed = false
       ORDER BY c.code
     `);
