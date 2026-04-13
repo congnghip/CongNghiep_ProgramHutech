@@ -1073,6 +1073,79 @@ app.delete('/api/courses/:id', authMiddleware, requirePerm('courses.edit'), asyn
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
+// ===== Proposed Courses =====
+app.post('/api/versions/:vId/proposed-courses', authMiddleware, requireDraft(), requirePerm('courses.propose'), async (req, res) => {
+  const { name, credits, credits_theory, credits_practice, credits_project, credits_internship, department_id, description, semester, course_type } = req.body;
+  if (!name) return res.status(400).json({ error: 'Tên học phần là bắt buộc' });
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const courseRes = await client.query(
+      `INSERT INTO courses (name, credits, credits_theory, credits_practice, credits_project, credits_internship, department_id, description, is_proposed, proposed_by_version_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,true,$9) RETURNING *`,
+      [name, credits || 3, credits_theory || 0, credits_practice || 0, credits_project || 0, credits_internship || 0, department_id, description, req.params.vId]
+    );
+    const course = courseRes.rows[0];
+    const vcRes = await client.query(
+      `INSERT INTO version_courses (version_id, course_id, semester, course_type) VALUES ($1,$2,$3,$4) RETURNING *`,
+      [req.params.vId, course.id, semester || 1, course_type || 'required']
+    );
+    await client.query('COMMIT');
+    res.json({ course, version_course: vcRes.rows[0] });
+  } catch (e) {
+    await client.query('ROLLBACK');
+    res.status(400).json({ error: e.message });
+  } finally { client.release(); }
+});
+
+app.get('/api/versions/:vId/proposed-courses', authMiddleware, requireViewVersion, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT c.*, vc.id as version_course_id, vc.semester, vc.course_type, d.name as dept_name
+      FROM version_courses vc
+      JOIN courses c ON vc.course_id = c.id
+      LEFT JOIN departments d ON c.department_id = d.id
+      WHERE vc.version_id = $1 AND c.is_proposed = true
+      ORDER BY c.name
+    `, [req.params.vId]);
+    res.json(result.rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/api/proposed-courses/:courseId', authMiddleware, requirePerm('courses.propose'), async (req, res) => {
+  const { name, credits, credits_theory, credits_practice, credits_project, credits_internship, department_id, description } = req.body;
+  try {
+    const check = await pool.query('SELECT id, proposed_by_version_id FROM courses WHERE id=$1 AND is_proposed=true', [req.params.courseId]);
+    if (!check.rows.length) return res.status(404).json({ error: 'Học phần đề xuất không tồn tại' });
+    const vId = check.rows[0].proposed_by_version_id;
+    await checkVersionEditAccess(req.user.id, vId, 'courses.propose');
+    const result = await pool.query(
+      `UPDATE courses SET name=$1, credits=$2, credits_theory=$3, credits_practice=$4, credits_project=$5, credits_internship=$6, department_id=$7, description=$8 WHERE id=$9 RETURNING *`,
+      [name, credits || 3, credits_theory || 0, credits_practice || 0, credits_project || 0, credits_internship || 0, department_id, description, req.params.courseId]
+    );
+    res.json(result.rows[0]);
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+app.delete('/api/proposed-courses/:courseId', authMiddleware, requirePerm('courses.propose'), async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const check = await client.query('SELECT id, proposed_by_version_id FROM courses WHERE id=$1 AND is_proposed=true', [req.params.courseId]);
+    if (!check.rows.length) return res.status(404).json({ error: 'Học phần đề xuất không tồn tại' });
+    const vId = check.rows[0].proposed_by_version_id;
+    await checkVersionEditAccess(req.user.id, vId, 'courses.propose');
+    await client.query('BEGIN');
+    await client.query('DELETE FROM version_syllabi WHERE course_id=$1 AND version_id=$2', [req.params.courseId, vId]);
+    await client.query('DELETE FROM version_courses WHERE course_id=$1 AND version_id=$2', [req.params.courseId, vId]);
+    await client.query('DELETE FROM courses WHERE id=$1', [req.params.courseId]);
+    await client.query('COMMIT');
+    res.json({ success: true });
+  } catch (e) {
+    await client.query('ROLLBACK');
+    res.status(400).json({ error: e.message });
+  } finally { client.release(); }
+});
+
 // ============ VERSION COURSES ============
 app.get('/api/versions/:vId/courses', authMiddleware, requireViewVersion, async (req, res) => {
   try {
