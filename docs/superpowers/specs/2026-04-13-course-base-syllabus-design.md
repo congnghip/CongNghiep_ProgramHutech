@@ -97,6 +97,8 @@ Trong trang Courses hiện tại (`public/js/pages/courses.js`):
 
 ### Editor đề cương cơ bản
 
+Full page (tương tự syllabus editor), navigate từ trang Courses. Route: `#base-syllabus-editor?courseId=...`
+
 Tái sử dụng layout tương tự syllabus editor, với 4 tabs:
 
 | Tab | Nội dung |
