@@ -118,7 +118,9 @@ window.MyAssignmentsPage = {
         }
         throw new Error(data.error);
       }
-      window.toast.success('Đã tạo đề cương');
+      if (data.no_base_syllabus) {
+        window.toast.info('Học phần này chưa có đề cương cơ bản. Nội dung đề cương sẽ được tạo trống.');
+      }
       window.App.navigate('syllabus-editor', { syllabusId: data.id });
     } catch (e) { window.toast.error(e.message); }
   }
