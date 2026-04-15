@@ -1963,13 +1963,62 @@ window.VersionEditorPage = {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ entity_type: 'program_version', entity_id: this.versionId })
       });
-      if (!res.ok) throw new Error((await res.json()).error);
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        if (body.details && (Array.isArray(body.details.missing) || Array.isArray(body.details.not_approved))) {
+          this.showSubmitBlockedModal(body.error || 'Chưa đủ điều kiện nộp CTĐT', body.details);
+          return;
+        }
+        throw new Error(body.error || 'Có lỗi xảy ra');
+      }
       window.toast.success('Đã nộp');
       if (window.App.refreshNotificationCount) window.App.refreshNotificationCount();
       this.version.status = 'submitted';
       this.version.is_rejected = false;
       this.render(document.getElementById('page-content'), this.versionId);
     } catch (e) { window.toast.error(e.message); }
+  },
+
+  showSubmitBlockedModal(errorMsg, details) {
+    const missing = Array.isArray(details.missing) ? details.missing : [];
+    const notApproved = Array.isArray(details.not_approved) ? details.not_approved : [];
+    const escape = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const renderSection = (title, items) => items.length
+      ? `<div style="margin-top:14px;">
+           <div style="font-weight:600;margin-bottom:6px;">${escape(title)} (${items.length})</div>
+           <ul style="margin:0;padding-left:20px;color:var(--text-secondary);font-size:13px;">
+             ${items.map(i => `<li>${escape(i)}</li>`).join('')}
+           </ul>
+         </div>`
+      : '';
+
+    const modal = document.createElement('div');
+    modal.className = 'modal-overlay';
+    modal.id = 'submit-blocked-modal';
+    modal.innerHTML = `
+      <div class="modal">
+        <div class="modal-header"><h2>Chưa thể nộp CTĐT</h2></div>
+        <div class="modal-body">
+          <p style="margin:0;">${escape(errorMsg)}</p>
+          ${renderSection('Chưa soạn đề cương', missing)}
+          ${renderSection('Đề cương chưa được Trưởng ngành duyệt', notApproved)}
+          <div class="modal-footer" style="margin-top:18px;">
+            <button type="button" class="btn btn-primary" onclick="window.VersionEditorPage.closeSubmitBlockedModal()">Đóng</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+    requestAnimationFrame(() => modal.classList.add('active'));
+    modal.addEventListener('click', (e) => { if (e.target === modal) window.VersionEditorPage.closeSubmitBlockedModal(); });
+  },
+
+  closeSubmitBlockedModal() {
+    const modal = document.getElementById('submit-blocked-modal');
+    if (!modal) return;
+    modal.classList.remove('active');
+    document.body.classList.remove('modal-open');
+    setTimeout(() => modal.remove(), 200);
   },
 
   showRejectModal() {
