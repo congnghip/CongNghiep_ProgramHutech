@@ -352,6 +352,14 @@ async function initDB() {
       );
     `);
 
+    // Migration: chuẩn hoá academic_year từ "YYYY-YYYY" sang "YYYY" (lấy 4 chữ số đầu).
+    // Idempotent: row đã đúng định dạng hoặc format lạ không match regex sẽ skip.
+    await client.query(`
+      UPDATE program_versions
+         SET academic_year = SUBSTRING(academic_year FROM 1 FOR 4)
+       WHERE academic_year ~ '^\\d{4}-\\d{4}$'
+    `);
+
     console.log('  ✅ Database schema initialized');
     await seedData(client);
   } finally {
