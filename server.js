@@ -1520,11 +1520,34 @@ app.put('/api/version-courses/:id', authMiddleware, async (req, res) => {
 
 app.delete('/api/version-courses/:id', authMiddleware, async (req, res) => {
   try {
-    const vcRes = await pool.query('SELECT version_id FROM version_courses WHERE id=$1', [req.params.id]);
+    const vcRes = await pool.query('SELECT version_id, course_id FROM version_courses WHERE id=$1', [req.params.id]);
     if (!vcRes.rows.length) throw new Error('Không tìm thấy HP trong phiên bản');
-    await checkVersionEditAccess(req.user.id, vcRes.rows[0].version_id);
+    const { version_id, course_id } = vcRes.rows[0];
+    await checkVersionEditAccess(req.user.id, version_id);
 
-    await pool.query('DELETE FROM version_courses WHERE id=$1', [req.params.id]);
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query('DELETE FROM version_courses WHERE id=$1', [req.params.id]);
+
+      // If the course is a proposed (unassigned-code) course and no other
+      // version_courses row still references it, delete the orphaned course row.
+      const courseRes = await client.query('SELECT is_proposed FROM courses WHERE id=$1', [course_id]);
+      if (courseRes.rows.length && courseRes.rows[0].is_proposed) {
+        const stillRef = await client.query('SELECT 1 FROM version_courses WHERE course_id=$1 LIMIT 1', [course_id]);
+        if (stillRef.rows.length === 0) {
+          await client.query('DELETE FROM courses WHERE id=$1', [course_id]);
+        }
+      }
+
+      await client.query('COMMIT');
+    } catch (txErr) {
+      await client.query('ROLLBACK');
+      throw txErr;
+    } finally {
+      client.release();
+    }
+
     res.json({ success: true });
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
