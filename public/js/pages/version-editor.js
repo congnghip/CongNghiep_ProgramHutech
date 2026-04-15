@@ -2000,8 +2000,10 @@ window.VersionEditorPage = {
         <div class="modal-header"><h2>Chưa thể nộp CTĐT</h2></div>
         <div class="modal-body">
           <p style="margin:0;">${escape(errorMsg)}</p>
-          ${renderSection('Chưa soạn đề cương', missing)}
-          ${renderSection('Đề cương chưa được Trưởng ngành duyệt', notApproved)}
+          <div style="max-height:55vh;overflow-y:auto;margin-top:4px;">
+            ${renderSection('Chưa soạn đề cương', missing)}
+            ${renderSection('Đề cương chưa được Trưởng ngành duyệt', notApproved)}
+          </div>
           <div class="modal-footer" style="margin-top:18px;">
             <button type="button" class="btn btn-primary" onclick="window.VersionEditorPage.closeSubmitBlockedModal()">Đóng</button>
           </div>
