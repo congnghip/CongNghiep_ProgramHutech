@@ -17,7 +17,7 @@ window.DashboardPage = {
 
         <div class="grid-3col mb-8" style="gap:0;">
           ${this.metric('Chương trình', stats.programs)}
-          ${this.metric('Phiên bản', vTotal)}
+          ${this.metric('Khóa', vTotal)}
           ${this.metric('Học phần', stats.courses)}
           ${this.metric('Đề cương', sTotal)}
           ${this.metric('Người dùng', stats.users)}
@@ -26,7 +26,7 @@ window.DashboardPage = {
 
         <div class="grid-2col mb-8" style="gap:40px;">
           <div>
-            <h3 class="section-title mb-3">Phiên bản CTĐT</h3>
+            <h3 class="section-title mb-3">Khóa CTĐT</h3>
             ${this.statusList(stats.versions || {}, {
               draft: 'Nháp', submitted: 'Đã nộp', approved_khoa: 'Khoa ✓', approved_pdt: 'PĐT ✓', published: 'Công bố'
             })}

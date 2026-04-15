@@ -23,9 +23,9 @@ window.AuditLogsPage = {
       // Programs
       [/^programs$/, 'chương trình ĐT'],
       [/^programs\/\d+$/, 'chương trình ĐT'],
-      [/^programs\/\d+\/versions$/, 'phiên bản CTĐT'],
+      [/^programs\/\d+\/versions$/, 'khóa CTĐT'],
       // Versions
-      [/^versions\/(\d+)$/, 'phiên bản CTĐT'],
+      [/^versions\/(\d+)$/, 'khóa CTĐT'],
       [/^versions\/(\d+)\/objectives$/, 'mục tiêu PO'],
       [/^versions\/(\d+)\/plos$/, 'chuẩn đầu ra PLO'],
       [/^versions\/(\d+)\/courses$/, 'học phần trong CTĐT'],

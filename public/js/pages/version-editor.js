@@ -221,7 +221,7 @@ window.VersionEditorPage = {
         <div class="input-group"><label>Năm học</label><input type="text" value="${esc(v.academic_year)}" disabled></div>
         <div class="input-group"><label>Trạng thái</label><input type="text" value="${esc(v.status)}" disabled></div>
 
-        <h3 style="font-size:15px;font-weight:600;margin:24px 0 16px;">Thông tin phiên bản</h3>
+        <h3 style="font-size:15px;font-weight:600;margin:24px 0 16px;">Thông tin khóa</h3>
         <div class="input-group"><label>Thời gian đào tạo</label><input type="text" id="info-training_duration" value="${esc(v.training_duration)}" ${dis}></div>
         <div class="input-group"><label>Thang điểm</label><input type="text" id="info-grading_scale" value="${esc(v.grading_scale)}" ${dis}></div>
         ${textField('Điều kiện tốt nghiệp', 'graduation_requirements', v.graduation_requirements)}
@@ -263,7 +263,7 @@ window.VersionEditorPage = {
         body: JSON.stringify(data),
       });
       if (!res.ok) throw new Error((await res.json()).error || 'Lỗi lưu');
-      window.toast?.success('Đã lưu thông tin phiên bản');
+      window.toast?.success('Đã lưu thông tin khóa');
       // refresh version data
       const vRes = await fetch(`/api/versions/${this.versionId}`);
       if (vRes.ok) this.version = await vRes.json();

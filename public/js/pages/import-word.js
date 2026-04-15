@@ -27,7 +27,7 @@ window.ImportWordPage = {
     return `
       <div id="iw-upload-step">
         <p style="color:var(--text-muted);margin-bottom:16px;">
-          Tải lên file <strong>.docx</strong> chứa nội dung chương trình đào tạo để hệ thống phân tích và tạo phiên bản mới.
+          Tải lên file <strong>.docx</strong> chứa nội dung chương trình đào tạo để hệ thống phân tích và tạo khóa mới.
         </p>
         <div id="iw-drop-zone" style="
           border: 2px dashed var(--border);
@@ -204,11 +204,11 @@ window.ImportWordPage = {
       ${this.existingProgram ? `
       <div style="padding:12px 16px;border-radius:var(--radius-lg);background:var(--info-bg, #e8f4fd);border:1px solid var(--info, #2196F3);color:var(--info, #1976D2);margin-bottom:12px;display:flex;align-items:center;gap:8px;">
         <strong>CTĐT đã tồn tại:</strong>
-        <span style="font-size:13px;">"${this._esc(this.existingProgram.name)}" (Mã: ${this._esc(this.existingProgram.code)}) — sẽ tạo phiên bản mới cho CTĐT này.</span>
+        <span style="font-size:13px;">"${this._esc(this.existingProgram.name)}" (Mã: ${this._esc(this.existingProgram.code)}) — sẽ tạo khóa mới cho CTĐT này.</span>
       </div>` : ''}
 
       <!-- Save area -->
-      <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;">${this.existingProgram ? 'Tạo phiên bản mới' : 'Tạo bản nháp CTĐT'}</h3>
+      <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;">${this.existingProgram ? 'Tạo khóa mới' : 'Tạo bản nháp CTĐT'}</h3>
       <div style="padding:16px;background:var(--bg-secondary);border-radius:var(--radius-lg);">
         <div class="flex-row" style="gap:10px;align-items:flex-end;flex-wrap:wrap;">
           ${this.existingProgram ? '' : `
@@ -229,7 +229,7 @@ window.ImportWordPage = {
         <div class="flex-row mt-4" style="justify-content:flex-end;">
           <button class="btn btn-secondary btn-sm" onclick="window.ImportWordPage._backToUpload()">← Chọn lại file</button>
           <button class="btn btn-primary btn-sm" id="iw-save-btn" ${errCount > 0 ? 'disabled' : ''} onclick="window.ImportWordPage._confirmSave()">
-            ${this.existingProgram ? 'Tạo phiên bản & Chỉnh sửa' : 'Tạo bản nháp & Chỉnh sửa'}
+            ${this.existingProgram ? 'Tạo khóa & Chỉnh sửa' : 'Tạo bản nháp & Chỉnh sửa'}
           </button>
         </div>
         ${errCount > 0 ? `<div style="color:var(--danger);font-size:13px;margin-top:8px;">Có ${errCount} lỗi — không thể tạo bản nháp. Sửa file Word và upload lại.</div>` : ''}
@@ -281,10 +281,10 @@ window.ImportWordPage = {
     const ploCount = (this.parsedData?.plos || []).length;
     const courseCount = (this.parsedData?.courses || []).length;
     const confirmMsg = this.existingProgram
-      ? `Xác nhận tạo phiên bản mới cho CTĐT "${this.existingProgram.name}"?\n\nNăm học: ${yearVal}\nNội dung: ${poCount} PO, ${ploCount} PLO, ${courseCount} học phần\n\nSau khi tạo, bạn sẽ được chuyển đến trang chỉnh sửa phiên bản.`
-      : `Xác nhận tạo bản nháp CTĐT?\n\nNgành: ${nganhSelect.options[nganhSelect.selectedIndex]?.text}\nNăm học: ${yearVal}\nNội dung: ${poCount} PO, ${ploCount} PLO, ${courseCount} học phần\n\nSau khi tạo, bạn sẽ được chuyển đến trang chỉnh sửa phiên bản.`;
+      ? `Xác nhận tạo khóa mới cho CTĐT "${this.existingProgram.name}"?\n\nNăm học: ${yearVal}\nNội dung: ${poCount} PO, ${ploCount} PLO, ${courseCount} học phần\n\nSau khi tạo, bạn sẽ được chuyển đến trang chỉnh sửa khóa.`
+      : `Xác nhận tạo bản nháp CTĐT?\n\nNgành: ${nganhSelect.options[nganhSelect.selectedIndex]?.text}\nNăm học: ${yearVal}\nNội dung: ${poCount} PO, ${ploCount} PLO, ${courseCount} học phần\n\nSau khi tạo, bạn sẽ được chuyển đến trang chỉnh sửa khóa.`;
     const confirmed = await window.ui.confirm({
-      title: this.existingProgram ? 'Tạo phiên bản mới' : 'Tạo bản nháp CTĐT',
+      title: this.existingProgram ? 'Tạo khóa mới' : 'Tạo bản nháp CTĐT',
       eyebrow: 'Xác nhận tạo dữ liệu',
       message: confirmMsg,
       confirmText: 'Tạo & mở',
