@@ -101,7 +101,7 @@ window.ProgramsPage = {
       <!-- Version Edit Modal (used for both Create and Edit) -->
       <div id="ver-edit-modal" class="modal-overlay">
         <div class="modal" style="max-width:720px;max-height:90vh;display:flex;flex-direction:column;">
-          <div class="modal-header" style="flex-shrink:0;"><h2 id="ver-edit-modal-title">Chỉnh Sửa Phiên Bản</h2></div>
+          <div class="modal-header" style="flex-shrink:0;"><h2 id="ver-edit-modal-title">Chỉnh Sửa Khóa</h2></div>
           <div class="modal-body" style="overflow-y:auto;flex:1;">
             <form id="ver-edit-form">
               <input type="hidden" id="ver-edit-id">
@@ -109,15 +109,15 @@ window.ProgramsPage = {
               <input type="hidden" id="ver-edit-program-name">
               <div class="grid-2col">
                 <div class="input-group">
-                  <label>Số Phiên Bản <span class="required-mark">*</span></label>
+                  <label>Số Khóa <span class="required-mark">*</span></label>
                   <input type="text" id="ver-edit-year" required placeholder="VD: 2025-2026" oninput="window.ProgramsPage.formatAcademicYear(this)">
                 </div>
                 <div class="input-group">
-                  <label>Tên Phiên Bản</label>
-                  <input type="text" id="ver-edit-name" placeholder="VD: phiên bản năm học 2025-2026">
+                  <label>Tên Khóa</label>
+                  <input type="text" id="ver-edit-name" placeholder="VD: khóa năm 2026">
                 </div>
                 <div class="input-group" id="ver-edit-copy-group" style="display:none;">
-                  <label>Copy từ phiên bản</label>
+                  <label>Copy từ khóa</label>
                   <select id="ver-copy-from"><option value="">— Tạo mới trắng —</option></select>
                 </div>
                 <div class="input-group">
@@ -271,7 +271,7 @@ window.ProgramsPage = {
           <div style="font-weight:600;font-size:14px;">${p.name}</div>
           <div style="font-size:11px;color:var(--text-muted);">
             Mã: ${p.code || '—'} · ${p.degree} · ${p.total_credits || '?'} TC ·
-            <span class="badge badge-neutral">${p.version_count} phiên bản</span>
+            <span class="badge badge-neutral">${p.version_count} khóa</span>
           </div>
         </div>
         <div class="flex-row" style="flex-shrink:0;" onclick="event.stopPropagation()">
@@ -301,7 +301,7 @@ window.ProgramsPage = {
     const confirmed = await window.ui.confirm({
       title: 'Xóa chương trình đào tạo',
       eyebrow: 'Hành động nguy hiểm',
-      message: `Bạn có chắc chắn muốn xóa CTĐT "${name}"?\n\nThao tác này sẽ xóa tất cả các phiên bản, PO, PLO và dữ liệu liên quan.`,
+      message: `Bạn có chắc chắn muốn xóa CTĐT "${name}"?\n\nThao tác này sẽ xóa tất cả các khóa, PO, PLO và dữ liệu liên quan.`,
       confirmText: 'Xóa CTĐT',
       cancelText: 'Hủy',
       tone: 'danger',
@@ -425,7 +425,7 @@ window.ProgramsPage = {
 
   // Version Modal — reuse ver-edit-modal for creating
   async openVersionModal(programId) {
-    document.getElementById('ver-edit-modal-title').textContent = 'Tạo phiên bản mới';
+    document.getElementById('ver-edit-modal-title').textContent = 'Tạo khóa mới';
     document.getElementById('ver-edit-id').value = '';
     document.getElementById('ver-edit-program-id').value = programId;
     document.getElementById('ver-edit-program-name').value = '';
@@ -447,7 +447,7 @@ window.ProgramsPage = {
     document.getElementById('ver-edit-training-process').value = '';
     document.getElementById('ver-edit-admission-targets').value = '';
     document.getElementById('ver-edit-admission-criteria').value = '';
-    document.getElementById('ver-edit-save-btn').textContent = 'Tạo phiên bản';
+    document.getElementById('ver-edit-save-btn').textContent = 'Tạo khóa';
 
     // Show copy dropdown
     document.getElementById('ver-edit-copy-group').style.display = '';
@@ -469,12 +469,12 @@ window.ProgramsPage = {
     const content = document.getElementById('programs-content');
     content.innerHTML = '<div class="spinner"></div>';
 
-    // Change header button from "Tạo CTĐT" to "Tạo phiên bản"
+    // Change header button from "Tạo CTĐT" to "Tạo khóa"
     const cardHeader = content.closest('.card').querySelector('.card-header');
     this._originalHeaderHTML = cardHeader.innerHTML;
     cardHeader.innerHTML = `
-      <div class="card-title">Phiên bản - ${programName}</div>
-      ${window.App.hasPerm('programs.create_version') ? `<button class="btn btn-primary" onclick="window.ProgramsPage.openVersionModal(${programId})">+ Tạo phiên bản</button>` : ''}
+      <div class="card-title">Khóa - ${programName}</div>
+      ${window.App.hasPerm('programs.create_version') ? `<button class="btn btn-primary" onclick="window.ProgramsPage.openVersionModal(${programId})">+ Tạo khóa</button>` : ''}
     `;
 
     try {
@@ -485,10 +485,10 @@ window.ProgramsPage = {
       content.innerHTML = `
         <div class="flex-row mb-4" style="gap:10px;">
           <button class="btn btn-secondary btn-sm" onclick="window.ProgramsPage.backToList()">← Quay lại</button>
-          <h3 class="section-title">Phiên bản: ${programName}</h3>
+          <h3 class="section-title">Khóa: ${programName}</h3>
         </div>
         ${versions.length === 0
-          ? '<div class="empty-state"><div class="icon">📭</div><p>Chưa có phiên bản nào</p></div>'
+          ? '<div class="empty-state"><div class="icon">📭</div><p>Chưa có khóa nào</p></div>'
           : `<div style="display:grid;gap:10px;">
             ${versions.map(v => `
               <div class="tree-node flex-between" style="cursor:pointer;"
@@ -503,11 +503,11 @@ window.ProgramsPage = {
                     ${v.is_rejected ? '<span class="badge badge-danger">Bị từ chối</span>' : ''}
                     · Hoàn thành: ${v.completion_pct || 0}%
                     · Tạo: ${new Date(v.created_at).toLocaleDateString('vi-VN')}
-                    ${v.copied_from_id ? ' · Copy từ phiên bản trước' : ''}
+                    ${v.copied_from_id ? ' · Copy từ khóa trước' : ''}
                   </div>
                 </div>
                 <div class="flex-row" style="flex-shrink:0;" onclick="event.stopPropagation()">
-                  ${window.App.hasPerm('programs.create_version') && v.status === 'published' ? `<button class="btn btn-secondary btn-sm" title="Nhân bản phiên bản này" onclick="window.ProgramsPage.cloneVersion(${programId}, ${v.id}, '${v.academic_year}')">📋 Nhân bản</button>` : ''}
+                  ${window.App.hasPerm('programs.create_version') && v.status === 'published' ? `<button class="btn btn-secondary btn-sm" title="Nhân bản khóa này" onclick="window.ProgramsPage.cloneVersion(${programId}, ${v.id}, '${v.academic_year}')">📋 Nhân bản</button>` : ''}
                   ${window.App.hasPerm('programs.edit') && v.status === 'draft' ? `<button class="btn btn-sm btn-outline-secondary" onclick="window.ProgramsPage.openVersionEditModal(${v.id}, ${programId}, '${programName.replace(/'/g, "\\'")}')">Chỉnh sửa</button>` : ''}
                   ${window.App.hasPerm('programs.delete_draft') && v.status === 'draft' ? `<button class="btn btn-sm btn-ghost" style="color:var(--danger);" onclick="window.ProgramsPage.deleteVersion(${v.id}, '${v.academic_year}', ${programId}, '${programName.replace(/'/g, "\\'")}')">Xóa</button>` : ''}
                 </div>
@@ -556,10 +556,10 @@ window.ProgramsPage = {
 
   async deleteVersion(id, year, programId, programName) {
     const confirmed = await window.ui.confirm({
-      title: 'Xóa phiên bản CTĐT',
+      title: 'Xóa khóa CTĐT',
       eyebrow: 'Xác nhận thao tác',
-      message: `Bạn có chắc muốn xóa phiên bản năm học "${year}" của CTĐT "${programName}"?`,
-      confirmText: 'Xóa phiên bản',
+      message: `Bạn có chắc muốn xóa khóa "${year}" của CTĐT "${programName}"?`,
+      confirmText: 'Xóa khóa',
       cancelText: 'Hủy',
       tone: 'danger',
       confirmVariant: 'danger'
@@ -568,7 +568,7 @@ window.ProgramsPage = {
     try {
       const res = await fetch(`/api/versions/${id}`, { method: 'DELETE' });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
-      window.toast.success(`Đã xóa phiên bản ${year}`);
+      window.toast.success(`Đã xóa khóa ${year}`);
       await this.viewVersions(programId, programName);
     } catch (e) {
       window.toast.error(e.message);
@@ -582,7 +582,7 @@ window.ProgramsPage = {
       document.getElementById('ver-edit-id').value = v.id;
       document.getElementById('ver-edit-program-id').value = programId;
       document.getElementById('ver-edit-program-name').value = programName;
-      document.getElementById('ver-edit-modal-title').textContent = `Chỉnh Sửa Phiên Bản - ${programName}`;
+      document.getElementById('ver-edit-modal-title').textContent = `Chỉnh Sửa Khóa - ${programName}`;
       document.getElementById('ver-edit-save-btn').textContent = 'Cập Nhật';
       document.getElementById('ver-edit-copy-group').style.display = 'none';
       document.getElementById('ver-edit-year').value = v.academic_year || '';
@@ -604,7 +604,7 @@ window.ProgramsPage = {
         document.getElementById('ver-edit-modal').classList.add('active');
         App.modalGuard('ver-edit-modal', () => ProgramsPage.saveVersionEdit());
     } catch (e) {
-      window.toast.error('Không thể tải dữ liệu phiên bản: ' + e.message);
+      window.toast.error('Không thể tải dữ liệu khóa: ' + e.message);
     }
   },
 
@@ -614,10 +614,8 @@ window.ProgramsPage = {
     const programName = document.getElementById('ver-edit-program-name').value;
     const academic_year = document.getElementById('ver-edit-year').value.trim();
 
-    if (!academic_year) { window.toast.error('Vui lòng nhập số phiên bản'); return; }
-    if (!/^\d{4}-\d{4}$/.test(academic_year)) { window.toast.error('Số phiên bản phải có dạng YYYY-YYYY (VD: 2025-2026)'); return; }
-    const [y1, y2] = academic_year.split('-').map(Number);
-    if (y2 !== y1 + 1) { window.toast.error('Số phiên bản phải là 2 năm liên tiếp (VD: 2025-2026)'); return; }
+    if (!academic_year) { window.toast.error('Vui lòng nhập số khóa'); return; }
+    if (!/^\d{4}$/.test(academic_year)) { window.toast.error('Số khóa phải có định dạng 4 chữ số (VD: 2026)'); return; }
 
     const body = {
       academic_year,
@@ -646,7 +644,7 @@ window.ProgramsPage = {
         });
         if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
         document.getElementById('ver-edit-modal').classList.remove('active');
-        window.toast.success('Đã cập nhật phiên bản');
+        window.toast.success('Đã cập nhật khóa');
         await this.viewVersions(parseInt(programId), programName);
       } else {
         // Create new version
@@ -657,7 +655,7 @@ window.ProgramsPage = {
         });
         if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
         document.getElementById('ver-edit-modal').classList.remove('active');
-        window.toast.success(`Đã tạo phiên bản ${academic_year}` + (copy_from_version_id ? ' (đã copy dữ liệu)' : ''));
+        window.toast.success(`Đã tạo khóa ${academic_year}` + (copy_from_version_id ? ' (đã copy dữ liệu)' : ''));
         await this.loadData();
       }
     } catch (e) {
