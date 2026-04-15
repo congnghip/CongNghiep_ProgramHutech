@@ -2541,6 +2541,44 @@ app.post('/api/approval/submit', authMiddleware, async (req, res) => {
       }
     }
 
+    // For program_version: all courses must have a syllabus approved by Trưởng ngành or higher
+    if (entity_type === 'program_version') {
+      const checkRes = await pool.query(`
+        SELECT vc.course_id, c.code, c.name,
+               EXISTS(
+                 SELECT 1 FROM version_syllabi vs
+                 WHERE vs.version_id = vc.version_id
+                   AND vs.course_id = vc.course_id
+                   AND vs.status IN ('approved_tbm','approved_khoa','approved_pdt','published')
+               ) AS has_approved,
+               EXISTS(
+                 SELECT 1 FROM version_syllabi vs
+                 WHERE vs.version_id = vc.version_id
+                   AND vs.course_id = vc.course_id
+               ) AS has_any
+        FROM version_courses vc
+        JOIN courses c ON c.id = vc.course_id
+        WHERE vc.version_id = $1
+        ORDER BY c.code NULLS LAST, c.name
+      `, [entity_id]);
+
+      const missing = [];
+      const notApproved = [];
+      for (const r of checkRes.rows) {
+        if (r.has_approved) continue;
+        const label = r.code ? `${r.code} \u2014 ${r.name}` : `(Chờ cấp mã) ${r.name}`;
+        if (r.has_any) notApproved.push(label);
+        else missing.push(label);
+      }
+
+      if (missing.length || notApproved.length) {
+        return res.status(400).json({
+          error: 'Chưa đủ điều kiện nộp CTĐT: cần Trưởng ngành duyệt đề cương cho tất cả học phần.',
+          details: { missing, not_approved: notApproved }
+        });
+      }
+    }
+
     await pool.query(`UPDATE ${table} SET ${statusField}='submitted', is_rejected=false, updated_at=NOW() WHERE id=$1`, [entity_id]);
     const logResult = await pool.query(
       'INSERT INTO approval_logs (entity_type, entity_id, step, action, reviewer_id, notes) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id',
