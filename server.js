@@ -2549,7 +2549,7 @@ app.post('/api/approval/submit', authMiddleware, async (req, res) => {
                  SELECT 1 FROM version_syllabi vs
                  WHERE vs.version_id = vc.version_id
                    AND vs.course_id = vc.course_id
-                   AND vs.status IN ('approved_tbm','approved_khoa','approved_pdt','published')
+                   AND vs.status = 'published'
                ) AS has_approved,
                EXISTS(
                  SELECT 1 FROM version_syllabi vs
@@ -2633,10 +2633,7 @@ app.post('/api/approval/review', authMiddleware, async (req, res) => {
       requiredPerm = perms[status];
     } else {
       const perms = {
-        submitted: 'syllabus.approve_tbm',
-        approved_tbm: 'syllabus.approve_khoa',
-        approved_khoa: 'syllabus.approve_pdt',
-        approved_pdt: 'syllabus.approve_bgh'
+        submitted: 'syllabus.approve_tbm'
       };
       requiredPerm = perms[status];
     }
@@ -2685,10 +2682,7 @@ app.post('/api/approval/review', authMiddleware, async (req, res) => {
       nextStatus = flow[status];
     } else {
       const flow = {
-        submitted: 'approved_tbm',
-        approved_tbm: 'approved_khoa',
-        approved_khoa: 'approved_pdt',
-        approved_pdt: 'published'
+        submitted: 'published'
       };
       nextStatus = flow[status];
     }
@@ -2709,7 +2703,7 @@ app.post('/api/approval/review', authMiddleware, async (req, res) => {
       }
     }
 
-    const isLocking = (nextStatus === 'published');
+    const isLocking = (nextStatus === 'published' && entity_type === 'program_version');
     await pool.query(
       `UPDATE ${table} SET status=$1, is_rejected=false, rejection_reason=NULL, updated_at=NOW() ${isLocking ? ', is_locked=true' : ''} WHERE id=$2`,
       [nextStatus, entity_id]

@@ -360,6 +360,15 @@ async function initDB() {
        WHERE academic_year ~ '^\\d{4}-\\d{4}$'
     `);
 
+    // Migration: syllabi đã qua bất kỳ bước duyệt cũ (approved_tbm/khoa/pdt) → published.
+    // Workflow syllabus đã đơn giản hoá: chỉ Trưởng ngành duyệt là thông qua.
+    // Idempotent: row đã ở trạng thái khác sẽ skip.
+    await client.query(`
+      UPDATE version_syllabi
+         SET status = 'published', updated_at = NOW()
+       WHERE status IN ('approved_tbm', 'approved_khoa', 'approved_pdt')
+    `);
+
     console.log('  ✅ Database schema initialized');
     await seedData(client);
   } finally {
