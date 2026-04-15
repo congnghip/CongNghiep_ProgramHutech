@@ -110,7 +110,7 @@ window.ProgramsPage = {
               <div class="grid-2col">
                 <div class="input-group">
                   <label>Số Khóa <span class="required-mark">*</span></label>
-                  <input type="text" id="ver-edit-year" required placeholder="VD: 2025-2026" oninput="window.ProgramsPage.formatAcademicYear(this)">
+                  <input type="text" id="ver-edit-year" required placeholder="VD: 2026" inputmode="numeric" maxlength="4" oninput="window.ProgramsPage.formatAcademicYear(this)">
                 </div>
                 <div class="input-group">
                   <label>Tên Khóa</label>
@@ -663,16 +663,9 @@ window.ProgramsPage = {
     }
   },
 
-  // Format academic year input: only digits and hyphen, auto-insert hyphen after 4 digits
+  // Format academic year input: chỉ chấp nhận tối đa 4 chữ số (YYYY).
   formatAcademicYear(input) {
-    let v = input.value.replace(/[^0-9-]/g, '');
-    // Remove extra hyphens, allow only one
-    const parts = v.split('-');
-    if (parts.length > 2) v = parts[0] + '-' + parts.slice(1).join('');
-    // Auto-insert hyphen after 4 digits
-    if (v.length === 4 && !v.includes('-')) v += '-';
-    // Limit to 9 chars (YYYY-YYYY)
-    input.value = v.substring(0, 9);
+    input.value = input.value.replace(/[^0-9]/g, '').substring(0, 4);
   },
 
   destroy() {}
