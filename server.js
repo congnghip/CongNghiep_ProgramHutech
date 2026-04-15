@@ -1995,10 +1995,7 @@ async function notifyApprovalNeeded(entityType, entityId, status, eventId) {
     approved_pdt: 'programs.approve_bgh'
   };
   const syllabusPermMap = {
-    submitted: 'syllabus.approve_tbm',
-    approved_tbm: 'syllabus.approve_khoa',
-    approved_khoa: 'syllabus.approve_pdt',
-    approved_pdt: 'syllabus.approve_bgh'
+    submitted: 'syllabus.approve_tbm'
   };
 
   if (entityType === 'program_version') {
@@ -2046,7 +2043,6 @@ async function notifyApprovalResult(entityType, entityId, newStatus, action, not
   const statusLabel = {
     approved_khoa: 'đã được duyệt cấp Khoa',
     approved_pdt: 'đã được duyệt cấp Phòng Đào tạo',
-    approved_tbm: 'đã được duyệt cấp Trưởng bộ môn',
     published: 'đã được công bố',
     draft: 'bị từ chối'
   }[newStatus] || `chuyển sang trạng thái ${newStatus}`;
@@ -2773,7 +2769,7 @@ app.delete('/api/approval/rejected/:entityType/:entityId', authMiddleware, async
       // Any approval permission in this department scope is sufficient
       const approvePerms = entityType === 'program_version'
         ? ['programs.approve_khoa', 'programs.approve_pdt', 'programs.approve_bgh']
-        : ['syllabus.approve_tbm', 'syllabus.approve_khoa', 'syllabus.approve_pdt', 'syllabus.approve_bgh'];
+        : ['syllabus.approve_tbm'];
       let hasAny = false;
       for (const perm of approvePerms) {
         if (await hasPermission(req.user.id, perm, deptId)) { hasAny = true; break; }
@@ -2803,10 +2799,7 @@ app.get('/api/approval/pending', authMiddleware, async (req, res) => {
       approved_pdt: 'programs.approve_bgh'
     };
     const syllabusPermMap = {
-      submitted: 'syllabus.approve_tbm',
-      approved_tbm: 'syllabus.approve_khoa',
-      approved_khoa: 'syllabus.approve_pdt',
-      approved_pdt: 'syllabus.approve_bgh'
+      submitted: 'syllabus.approve_tbm'
     };
 
     // Get pending items + rejected items (is_rejected=true even if back to draft), exclude published
@@ -2834,7 +2827,7 @@ app.get('/api/approval/pending', authMiddleware, async (req, res) => {
       JOIN program_versions pv ON vs.version_id = pv.id
       JOIN programs p ON pv.program_id = p.id
       JOIN departments d ON p.department_id = d.id
-      WHERE (vs.status IN ('submitted','approved_tbm','approved_khoa','approved_pdt') OR vs.is_rejected = true)
+      WHERE (vs.status = 'submitted' OR vs.is_rejected = true)
         AND vs.status != 'published'
       ORDER BY vs.updated_at DESC
     `);
@@ -2860,7 +2853,7 @@ app.get('/api/approval/pending', authMiddleware, async (req, res) => {
     const hasAnyApprovalPerm = (type, itemDeptId, itemDeptParentId) => {
       const perms = type === 'program'
         ? ['programs.approve_khoa', 'programs.approve_pdt', 'programs.approve_bgh']
-        : ['syllabus.approve_tbm', 'syllabus.approve_khoa', 'syllabus.approve_pdt', 'syllabus.approve_bgh'];
+        : ['syllabus.approve_tbm'];
       return perms.some(perm => hasDeptPerm(perm, itemDeptId, itemDeptParentId));
     };
 
@@ -3035,41 +3028,24 @@ app.get('/api/dashboard/stats', authMiddleware, async (req, res) => {
         deptParams
       );
     } else if (roleCode === 'LANH_DAO_KHOA') {
-      // Versions at 'submitted' + syllabi at 'approved_tbm'
-      const [pendV, pendS] = await Promise.all([
-        pool.query(
-          `SELECT COUNT(*) as c FROM program_versions pv
-           JOIN programs p ON pv.program_id = p.id
-           WHERE pv.status = 'submitted' ${deptFilter}`,
-          deptParams
-        ),
-        pool.query(
-          `SELECT COUNT(*) as c FROM version_syllabi vs
-           JOIN courses c ON vs.course_id = c.id
-           WHERE vs.status = 'approved_tbm' ${deptFilterCourse}`,
-          deptParams
-        ),
-      ]);
-      pendingQuery = { rows: [{ c: String(parseInt(pendV.rows[0].c) + parseInt(pendS.rows[0].c)) }] };
+      // Versions at 'submitted'. Syllabi không cần Khoa duyệt sau khi đơn giản hoá workflow.
+      pendingQuery = await pool.query(
+        `SELECT COUNT(*) as c FROM program_versions pv
+         JOIN programs p ON pv.program_id = p.id
+         WHERE pv.status = 'submitted' ${deptFilter}`,
+        deptParams
+      );
     } else if (roleCode === 'PHONG_DAO_TAO') {
-      // System-wide: versions at 'approved_khoa' + syllabi at 'approved_khoa'
-      const [pendV, pendS] = await Promise.all([
-        pool.query("SELECT COUNT(*) as c FROM program_versions WHERE status = 'approved_khoa'"),
-        pool.query("SELECT COUNT(*) as c FROM version_syllabi WHERE status = 'approved_khoa'"),
-      ]);
-      pendingQuery = { rows: [{ c: String(parseInt(pendV.rows[0].c) + parseInt(pendS.rows[0].c)) }] };
+      // System-wide: versions at 'approved_khoa'. Syllabi không cần PĐT duyệt sau simplify.
+      pendingQuery = await pool.query("SELECT COUNT(*) as c FROM program_versions WHERE status = 'approved_khoa'");
     } else if (roleCode === 'BAN_GIAM_HIEU') {
-      // System-wide: versions at 'approved_pdt' + syllabi at 'approved_pdt'
-      const [pendV, pendS] = await Promise.all([
-        pool.query("SELECT COUNT(*) as c FROM program_versions WHERE status = 'approved_pdt'"),
-        pool.query("SELECT COUNT(*) as c FROM version_syllabi WHERE status = 'approved_pdt'"),
-      ]);
-      pendingQuery = { rows: [{ c: String(parseInt(pendV.rows[0].c) + parseInt(pendS.rows[0].c)) }] };
+      // System-wide: versions at 'approved_pdt'. Syllabi không cần BGH duyệt sau simplify.
+      pendingQuery = await pool.query("SELECT COUNT(*) as c FROM program_versions WHERE status = 'approved_pdt'");
     } else if (roleCode === 'ADMIN') {
-      // ADMIN: all pending versions + syllabi across all statuses
+      // ADMIN: all pending versions + syllabi at 'submitted' (chỉ trạng thái pending còn tồn tại sau simplify)
       const [pendV, pendS] = await Promise.all([
         pool.query("SELECT COUNT(*) as c FROM program_versions WHERE status IN ('submitted','approved_khoa','approved_pdt')"),
-        pool.query("SELECT COUNT(*) as c FROM version_syllabi WHERE status IN ('submitted','approved_tbm','approved_khoa','approved_pdt')"),
+        pool.query("SELECT COUNT(*) as c FROM version_syllabi WHERE status = 'submitted'"),
       ]);
       pendingQuery = { rows: [{ c: String(parseInt(pendV.rows[0].c) + parseInt(pendS.rows[0].c)) }] };
     } else {
