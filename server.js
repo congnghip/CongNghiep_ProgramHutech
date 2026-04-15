@@ -558,6 +558,13 @@ app.delete('/api/programs/:id', authMiddleware, requirePerm('programs.delete_dra
     if (versionIds.rows.length > 0) {
       const ids = versionIds.rows.map(r => r.id);
       await pool.query('UPDATE program_versions SET copied_from_id = NULL WHERE copied_from_id = ANY($1)', [ids]);
+
+      // 2b. Delete proposed courses tied to versions of this program
+      //     (proposed_by_version_id FK has NO ACTION; must clean up before CASCADE)
+      await pool.query(
+        'DELETE FROM courses WHERE is_proposed = true AND proposed_by_version_id = ANY($1)',
+        [ids]
+      );
     }
 
     // 3. Cascade delete will be handled by DB foreign keys (ON DELETE CASCADE)
@@ -566,6 +573,9 @@ app.delete('/api/programs/:id', authMiddleware, requirePerm('programs.delete_dra
   } catch (e) {
     if (e.code === '23503' && e.constraint && e.constraint.includes('copied_from_id')) {
       return res.status(400).json({ error: 'Không thể xóa CTĐT vì có phiên bản khác được tạo từ bản này. Hãy xóa các phiên bản phụ thuộc trước.' });
+    }
+    if (e.code === '23503' && e.constraint && e.constraint.includes('proposed_by_version_id')) {
+      return res.status(400).json({ error: 'Không thể xóa CTĐT vì có học phần đề xuất đang tham chiếu phiên bản này. Liên hệ Admin.' });
     }
     res.status(500).json({ error: e.message });
   }
