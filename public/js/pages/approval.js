@@ -7,7 +7,6 @@ window.ApprovalPage = {
       const statusLabels = {
         draft: 'Nháp',
         submitted: 'Đã nộp',
-        approved_tbm: 'TBM ✓',
         approved_khoa: 'Khoa ✓',
         approved_pdt: 'PĐT ✓'
       };
@@ -22,10 +21,7 @@ window.ApprovalPage = {
           }[status];
         } else {
           return {
-            submitted: 'syllabus.approve_tbm',
-            approved_tbm: 'syllabus.approve_khoa',
-            approved_khoa: 'syllabus.approve_pdt',
-            approved_pdt: 'syllabus.approve_bgh'
+            submitted: 'syllabus.approve_tbm'
           }[status];
         }
       };
@@ -34,7 +30,7 @@ window.ApprovalPage = {
       const hasAnyApproval = (type) => {
         const perms = type === 'program_version'
           ? ['programs.approve_khoa', 'programs.approve_pdt', 'programs.approve_bgh']
-          : ['syllabus.approve_tbm', 'syllabus.approve_khoa', 'syllabus.approve_pdt', 'syllabus.approve_bgh'];
+          : ['syllabus.approve_tbm'];
         return perms.some(p => window.App.hasPerm(p));
       };
 

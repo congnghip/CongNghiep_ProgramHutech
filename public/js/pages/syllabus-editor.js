@@ -62,7 +62,7 @@ window.SyllabusEditorPage = {
       this.syllabus.content = content;
     } catch (e) { container.innerHTML = `<div class="empty-state"><div class="icon">!</div><p>${e.message}</p></div>`; return; }
 
-    const statusLabels = { draft:'Nháp', submitted:'Đã nộp', approved_tbm:'TBM duyệt', approved_khoa:'Khoa duyệt', approved_pdt:'PĐT duyệt', published:'Công bố' };
+    const statusLabels = { draft:'Nháp', submitted:'Đã nộp', published:'Công bố' };
     const s = this.syllabus;
     const editable = s.status === 'draft';
 

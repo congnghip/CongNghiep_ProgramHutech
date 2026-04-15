@@ -48,8 +48,7 @@ window.MyAssignmentsPage = {
   renderTable() {
     const tbody = document.getElementById('my-assignments-tbody');
     const statusLabels = {
-      draft: 'Nháp', submitted: 'Đã nộp', approved_tbm: 'TBM ✓',
-      approved_khoa: 'Khoa ✓', approved_pdt: 'PĐT ✓', published: 'Công bố'
+      draft: 'Nháp', submitted: 'Đã nộp', published: 'Công bố'
     };
 
     if (!this.assignments.length) {
