@@ -816,7 +816,11 @@ window.VersionEditorPage = {
             <div class="flex-row">
               <div class="input-group" style="flex:1;margin:0;">
                 <label>Khoa/Viện</label>
-                <select id="pc-dept"><option value="">— Chọn —</option></select>
+                <select id="pc-khoa"><option value="">— Chọn —</option></select>
+              </div>
+              <div class="input-group" style="flex:1;margin:0;">
+                <label>Ngành</label>
+                <select id="pc-nganh"><option value="">— Toàn khoa —</option></select>
               </div>
             </div>
             <div class="input-group">
@@ -837,12 +841,23 @@ window.VersionEditorPage = {
     document.getElementById('pc-form').addEventListener('submit', (e) => { e.preventDefault(); window.VersionEditorPage.saveProposedCourse(); });
     // Close on backdrop click
     modal.addEventListener('click', (e) => { if (e.target === modal) window.VersionEditorPage.closeProposeCourseModal(); });
-    // Load departments into dropdown
+    // Load departments into cascading Khoa → Ngành dropdowns
     fetch('/api/departments').then(r => r.json()).then(depts => {
-      const sel = document.getElementById('pc-dept');
-      let opts = '';
-      (Array.isArray(depts) ? depts : []).forEach(d => { opts += `<option value="${d.id}">${d.name}</option>`; });
-      sel.insertAdjacentHTML('beforeend', opts);
+      const list = Array.isArray(depts) ? depts : [];
+      const khoaSel = document.getElementById('pc-khoa');
+      const nganhSel = document.getElementById('pc-nganh');
+
+      const khoaList = list.filter(d => ['KHOA', 'VIEN', 'TRUNG_TAM', 'PHONG'].includes(d.type));
+      khoaSel.innerHTML = '<option value="">— Chọn —</option>' +
+        khoaList.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+
+      const populateNganh = (khoaId) => {
+        const children = list.filter(d => d.parent_id == khoaId && d.type === 'BO_MON');
+        nganhSel.innerHTML = '<option value="">— Toàn khoa —</option>' +
+          children.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+      };
+      khoaSel.onchange = () => { populateNganh(khoaSel.value); nganhSel.value = ''; };
+      populateNganh(null);
     });
   },
 
@@ -868,7 +883,7 @@ window.VersionEditorPage = {
       credits_internship: parseInt(document.getElementById('pc-tt').value) || 0,
       semester: parseInt(document.getElementById('pc-sem').value) || 1,
       course_type: document.getElementById('pc-type').value || 'required',
-      department_id: document.getElementById('pc-dept').value || null,
+      department_id: document.getElementById('pc-nganh').value || document.getElementById('pc-khoa').value || null,
       description: document.getElementById('pc-desc').value.trim(),
     };
     try {
