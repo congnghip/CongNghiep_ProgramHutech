@@ -807,11 +807,20 @@ app.delete('/api/versions/:id', authMiddleware, requirePerm('programs.delete_dra
     // Nullify copied_from_id references pointing to this version
     await pool.query('UPDATE program_versions SET copied_from_id = NULL WHERE copied_from_id = $1', [req.params.id]);
 
+    // Delete proposed courses tied to this version (proposed_by_version_id FK has NO ACTION)
+    await pool.query(
+      'DELETE FROM courses WHERE is_proposed = true AND proposed_by_version_id = $1',
+      [req.params.id]
+    );
+
     await pool.query('DELETE FROM program_versions WHERE id = $1', [req.params.id]);
     res.json({ success: true });
   } catch (e) {
     if (e.code === '23503' && e.constraint && e.constraint.includes('copied_from_id')) {
-      return res.status(400).json({ error: 'Không thể xóa phiên bản vì có phiên bản khác được tạo từ bản này. Hãy xóa các phiên bản phụ thuộc trước.' });
+      return res.status(400).json({ error: 'Không thể xóa khóa vì có khóa khác được tạo từ bản này. Hãy xóa các khóa phụ thuộc trước.' });
+    }
+    if (e.code === '23503' && e.constraint && e.constraint.includes('proposed_by_version_id')) {
+      return res.status(400).json({ error: 'Không thể xóa khóa vì có học phần đề xuất đang tham chiếu. Liên hệ Admin.' });
     }
     res.status(500).json({ error: e.message });
   }
