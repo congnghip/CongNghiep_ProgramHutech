@@ -55,7 +55,8 @@ window.ApprovalPage = {
                     </td>
                     <td style="white-space:nowrap;" onclick="event.stopPropagation()">
                       ${p.is_rejected ? `
-                        ${hasAnyApproval('program_version') ? `<button class="btn btn-danger btn-sm" onclick="window.ApprovalPage.deleteRejected(${p.id},'program_version')">Xóa</button>` : '<span style="color:var(--danger);font-size:12px;">Đã bị từ chối</span>'}
+                        ${''}
+
                       ` : canApprove ? `
                         <button class="btn btn-primary btn-sm" onclick="window.ApprovalPage.approve(${p.id},'program_version')">Duyệt</button>
                         <button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="window.ApprovalPage.showRejectModal(${p.id},'program_version')">Từ chối</button>
