@@ -2706,7 +2706,7 @@ app.post('/api/approval/submit', authMiddleware, async (req, res) => {
                  SELECT 1 FROM version_syllabi vs
                  WHERE vs.version_id = vc.version_id
                    AND vs.course_id = vc.course_id
-                   AND vs.status = 'published'
+                   AND vs.status IN ('approved', 'published')
                ) AS has_approved,
                EXISTS(
                  SELECT 1 FROM version_syllabi vs
@@ -2839,7 +2839,7 @@ app.post('/api/approval/review', authMiddleware, async (req, res) => {
       nextStatus = flow[status];
     } else {
       const flow = {
-        submitted: 'published'
+        submitted: 'approved'
       };
       nextStatus = flow[status];
     }
@@ -2865,6 +2865,14 @@ app.post('/api/approval/review', authMiddleware, async (req, res) => {
       `UPDATE ${table} SET status=$1, is_rejected=false, rejection_reason=NULL, updated_at=NOW() ${isLocking ? ', is_locked=true' : ''} WHERE id=$2`,
       [nextStatus, entity_id]
     );
+
+    // When CTĐT is published, auto-publish all its syllabi
+    if (entity_type === 'program_version' && nextStatus === 'published') {
+      await pool.query(
+        "UPDATE version_syllabi SET status='published', updated_at=NOW() WHERE version_id=$1 AND status != 'published'",
+        [entity_id]
+      );
+    }
     const logResult = await pool.query(
       'INSERT INTO approval_logs (entity_type, entity_id, step, action, reviewer_id, notes) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id',
       [entity_type, entity_id, status, 'approved', req.user.id, notes || 'Đã duyệt']

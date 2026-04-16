@@ -372,13 +372,24 @@ async function initDB() {
        WHERE academic_year ~ '^\\d{4}-\\d{4}$'
     `);
 
-    // Migration: syllabi đã qua bất kỳ bước duyệt cũ (approved_tbm/khoa/pdt) → published.
-    // Workflow syllabus đã đơn giản hoá: chỉ Trưởng ngành duyệt là thông qua.
-    // Idempotent: row đã ở trạng thái khác sẽ skip.
+    // Migration: syllabi đã qua bước duyệt cũ → approved (không phải published).
+    // Syllabi chỉ published khi CTĐT published. Trước đó ở trạng thái approved (sẵn sàng).
+    // Idempotent.
     await client.query(`
       UPDATE version_syllabi
-         SET status = 'published', updated_at = NOW()
+         SET status = 'approved', updated_at = NOW()
        WHERE status IN ('approved_tbm', 'approved_khoa', 'approved_pdt')
+    `);
+
+    // Migration: syllabi đang published nhưng CTĐT chưa published → revert về approved.
+    await client.query(`
+      UPDATE version_syllabi vs
+         SET status = 'approved', updated_at = NOW()
+       WHERE vs.status = 'published'
+         AND EXISTS (
+           SELECT 1 FROM program_versions pv
+           WHERE pv.id = vs.version_id AND pv.status != 'published'
+         )
     `);
 
     console.log('  ✅ Database schema initialized');

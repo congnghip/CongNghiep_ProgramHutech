@@ -1757,7 +1757,7 @@ window.VersionEditorPage = {
     assignments.forEach(a => { this._assignmentsMap[a.course_id] = a; });
     this._eligibleGV = eligibleGV || [];
 
-    const statusLabels = { draft: 'Nháp', submitted: 'Đã nộp', published: 'Công bố' };
+    const statusLabels = { draft: 'Nháp', submitted: 'Đã nộp', approved: 'Đã duyệt', published: 'Công bố' };
 
     body.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">

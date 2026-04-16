@@ -62,9 +62,9 @@ window.SyllabusEditorPage = {
       this.syllabus.content = content;
     } catch (e) { container.innerHTML = `<div class="empty-state"><div class="icon">!</div><p>${e.message}</p></div>`; return; }
 
-    const statusLabels = { draft:'Nháp', submitted:'Đã nộp', published:'Công bố' };
+    const statusLabels = { draft:'Nháp', submitted:'Đã nộp', approved:'Đã duyệt', published:'Công bố' };
     const s = this.syllabus;
-    const editable = s.status === 'draft';
+    const editable = ['draft', 'approved'].includes(s.status);
 
     container.innerHTML = `
       <div class="page-header">

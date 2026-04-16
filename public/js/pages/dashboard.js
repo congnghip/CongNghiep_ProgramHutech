@@ -34,7 +34,7 @@ window.DashboardPage = {
           <div>
             <h3 class="section-title mb-3">Đề cương</h3>
             ${this.statusList(stats.syllabi || {}, {
-              draft: 'Nháp', submitted: 'Đã nộp', published: 'Công bố'
+              draft: 'Nháp', submitted: 'Đã nộp', approved: 'Đã duyệt', published: 'Công bố'
             })}
           </div>
         </div>
