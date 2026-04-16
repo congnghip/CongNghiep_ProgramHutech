@@ -232,6 +232,15 @@ async function initDB() {
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
 
+      -- Base Syllabus CLOs
+      CREATE TABLE IF NOT EXISTS base_syllabus_clos (
+        id SERIAL PRIMARY KEY,
+        course_id INT REFERENCES courses(id) ON DELETE CASCADE,
+        code VARCHAR(20),
+        description TEXT,
+        bloom_level INT DEFAULT 1
+      );
+
       -- Syllabus Assignments (phân công GV soạn đề cương)
       CREATE TABLE IF NOT EXISTS syllabus_assignments (
         id SERIAL PRIMARY KEY,
@@ -319,6 +328,8 @@ async function initDB() {
 
       ALTER TABLE courses ADD COLUMN IF NOT EXISTS is_proposed BOOLEAN DEFAULT false;
       ALTER TABLE courses ADD COLUMN IF NOT EXISTS proposed_by_version_id INT REFERENCES program_versions(id);
+
+      ALTER TABLE course_clos ADD COLUMN IF NOT EXISTS bloom_level INT DEFAULT 1;
 
       -- Remove NOT NULL from code for existing databases
       ALTER TABLE courses ALTER COLUMN code DROP NOT NULL;
