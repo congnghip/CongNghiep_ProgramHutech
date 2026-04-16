@@ -109,7 +109,7 @@ window.SyllabusEditorPage = {
       <div class="tab-bar" id="syl-tabs">
         <div class="tab-item active" data-tab="0">Thông tin chung</div>
         <div class="tab-item" data-tab="1">CLO</div>
-        <div class="tab-item" data-tab="2">CLO ↔ PLO</div>
+        <div class="tab-item" data-tab="2">CLO ↔ PI</div>
         <div class="tab-item" data-tab="3">Nội dung chi tiết</div>
         <div class="tab-item" data-tab="4">Đánh giá</div>
         <div class="tab-item" data-tab="5">Tài liệu</div>
@@ -211,7 +211,7 @@ window.SyllabusEditorPage = {
       switch (this.activeTab) {
         case 0: this.renderGeneralTab(body, editable, c); break;
         case 1: await this.renderCLOTab(body, editable); break;
-        case 2: await this.renderCLOPLOTab(body, editable); break;
+        case 2: await this.renderCLOPITab(body, editable); break;
         case 3: this.renderOutlineTab(body, editable, c); break;
         case 4: this.renderGradingTab(body, editable, c); break;
         case 5: this.renderResourcesTab(body, editable, c); break;
@@ -250,7 +250,7 @@ window.SyllabusEditorPage = {
   _collectCurrentTabIntoState() {
     switch (this.activeTab) {
       case 0: this._collectGeneral(); break;
-      case 2: this._collectCloPloMap(); break;
+      case 2: this._collectCloPiMap(); break;
       case 3: this._collectOutline(); break;
       case 4: this._collectGrading(); break;
       case 5: this._collectResources(); break;
@@ -422,18 +422,7 @@ window.SyllabusEditorPage = {
       const created = await res.json();
       cloIdMap[c.code] = created.id;
     }
-    // Step 3: Save CLO-PLO mappings
-    if (this.importedMappings && this.importedMappings.length) {
-      const mappings = this.importedMappings
-        .filter(m => cloIdMap[m.clo_code] && m.plo_id)
-        .map(m => ({ clo_id: cloIdMap[m.clo_code], plo_id: m.plo_id, contribution_level: m.contribution_level }));
-      if (mappings.length) {
-        await fetch(`/api/syllabi/${this.syllabusId}/clo-plo-map`, {
-          method: 'PUT', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mappings }),
-        });
-      }
-    }
+    // Step 3: CLO-PI mappings skipped during import — user maps manually in tab CLO ↔ PI
     this.importedClos = null;
     this.importedMappings = null;
   },
@@ -441,56 +430,82 @@ window.SyllabusEditorPage = {
   async saveImportedClos() {
     try {
       await this._persistImportedClos();
-      window.toast.success('Đã lưu CLO và CLO-PLO mapping');
+      window.toast.success('Đã lưu CLO');
       this.renderSylTab();
     } catch (e) { window.toast.error(e.message); }
   },
 
-  _collectCloPloMap() {
-    const table = document.getElementById('clo-plo-table');
-    if (!table) return; // Tab 2 not mounted
+  _collectCloPiMap() {
+    const table = document.getElementById('clo-pi-table');
+    if (!table) return;
     const selects = table.querySelectorAll('select');
     const mappings = [];
     selects.forEach(s => {
       const v = parseInt(s.value);
       if (v > 0) mappings.push({
         clo_id: parseInt(s.dataset.clo),
-        plo_id: parseInt(s.dataset.plo),
+        pi_id: parseInt(s.dataset.pi),
         contribution_level: v,
       });
     });
     this.dirtyMapChanges = mappings;
   },
 
-  // ============ TAB 2: CLO ↔ PLO ============
-  async renderCLOPLOTab(body, editable) {
+  // ============ TAB 2: CLO ↔ PI ============
+  async renderCLOPITab(body, editable) {
     const [clos, maps] = await Promise.all([
       fetch(`/api/syllabi/${this.syllabusId}/clos`).then(r => r.json()),
-      fetch(`/api/syllabi/${this.syllabusId}/clo-plo-map`).then(r => r.json()),
+      fetch(`/api/syllabi/${this.syllabusId}/clo-pi-map`).then(r => r.json()),
     ]);
     const plos = await fetch(`/api/versions/${this.syllabus.version_id}/plos`).then(r => r.json());
-    if (!clos.length || !plos.length) {
-      body.innerHTML = '<p style="color:var(--text-muted);font-size:13px;">Cần có CLO và PLO trước.</p>';
+    // PLOs endpoint already includes nested pis array
+    const allPIs = [];
+    for (const plo of plos) {
+      (plo.pis || []).forEach(pi => { pi._plo_code = plo.code; pi._plo_id = plo.id; });
+      allPIs.push(...(plo.pis || []));
+    }
+    if (!clos.length || !allPIs.length) {
+      body.innerHTML = '<p style="color:var(--text-muted);font-size:13px;">Cần có CLO và PI (chỉ số thực hiện của PLO) trước.</p>';
       return;
     }
     const mapObj = {};
-    maps.forEach(m => { mapObj[`${m.clo_id}-${m.plo_id}`] = m.contribution_level; });
+    maps.forEach(m => { mapObj[`${m.clo_id}-${m.pi_id}`] = m.contribution_level; });
+
+    // Group PIs by PLO for 2-level header
+    const ploGroups = [];
+    let lastPlo = null;
+    allPIs.forEach(pi => {
+      if (!lastPlo || lastPlo.plo_id !== pi._plo_id) {
+        lastPlo = { plo_id: pi._plo_id, plo_code: pi._plo_code, pis: [] };
+        ploGroups.push(lastPlo);
+      }
+      lastPlo.pis.push(pi);
+    });
+
     body.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <h3 style="font-size:15px;font-weight:600;">Ma trận CLO ↔ PLO</h3>
-        ${editable ? '<button class="btn btn-primary btn-sm" id="save-clo-plo-btn">Lưu</button>' : ''}
+        <h3 style="font-size:15px;font-weight:600;">Ma trận CLO ↔ PI</h3>
+        ${editable ? '<button class="btn btn-primary btn-sm" id="save-clo-pi-btn">Lưu</button>' : ''}
       </div>
       <p style="color:var(--text-muted);font-size:12px;margin-bottom:12px;">— = Không · 1 = Thấp · 2 = TB · 3 = Cao</p>
       <div style="overflow-x:auto;">
-        <table class="data-table" id="clo-plo-table">
-          <thead><tr><th></th>${plos.map(p => `<th style="text-align:center;min-width:50px;font-size:11px;">${p.code}</th>`).join('')}</tr></thead>
+        <table class="data-table" id="clo-pi-table">
+          <thead>
+            <tr>
+              <th rowspan="2" style="vertical-align:middle;"></th>
+              ${ploGroups.map(g => `<th colspan="${g.pis.length}" style="text-align:center;font-size:11px;border-bottom:none;">${g.plo_code}</th>`).join('')}
+            </tr>
+            <tr>
+              ${allPIs.map(pi => `<th style="text-align:center;min-width:45px;font-size:10px;">${pi.pi_code}</th>`).join('')}
+            </tr>
+          </thead>
           <tbody>
             ${clos.map(c => `<tr>
               <td><strong>${c.code}</strong></td>
-              ${plos.map(p => {
-                const val = mapObj[`${c.id}-${p.id}`] || 0;
+              ${allPIs.map(pi => {
+                const val = mapObj[`${c.id}-${pi.id}`] || 0;
                 return `<td style="text-align:center;">
-                  <select data-clo="${c.id}" data-plo="${p.id}" style="width:40px;padding:2px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius);font-family:inherit;" ${editable ? '' : 'disabled'}>
+                  <select data-clo="${c.id}" data-pi="${pi.id}" style="width:40px;padding:2px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius);font-family:inherit;" ${editable ? '' : 'disabled'}>
                     <option value="0" ${val===0?'selected':''}>—</option><option value="1" ${val===1?'selected':''}>1</option>
                     <option value="2" ${val===2?'selected':''}>2</option><option value="3" ${val===3?'selected':''}>3</option>
                   </select>
@@ -501,11 +516,11 @@ window.SyllabusEditorPage = {
         </table>
       </div>
     `;
-    document.getElementById('save-clo-plo-btn')?.addEventListener('click', async () => {
-      this._collectCloPloMap();
+    document.getElementById('save-clo-pi-btn')?.addEventListener('click', async () => {
+      this._collectCloPiMap();
       const mappings = this.dirtyMapChanges || [];
       try {
-        const res = await fetch(`/api/syllabi/${this.syllabusId}/clo-plo-map`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mappings }) });
+        const res = await fetch(`/api/syllabi/${this.syllabusId}/clo-pi-map`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mappings }) });
         if (!res.ok) throw new Error((await res.json()).error);
         this.dirtyMapChanges = null;
         window.toast.success(`Đã lưu ${mappings.length} liên kết`);
@@ -783,7 +798,7 @@ window.SyllabusEditorPage = {
         const json = await res.json();
         if (!res.ok) throw new Error(json.error || 'Import thất bại');
 
-        const { content, clos, clo_plo_map, warnings, course_info } = json.data;
+        const { content, clos, warnings, course_info } = json.data;
 
         // Apply content
         this.syllabus.content = { ...content, _schema_version: 2 };
@@ -796,7 +811,7 @@ window.SyllabusEditorPage = {
 
         // Store CLOs and mappings for later save
         this.importedClos = clos;
-        this.importedMappings = clo_plo_map;
+        this.importedMappings = null;
 
         // Show warnings
         const warningsEl = document.getElementById('syl-import-warnings');
@@ -885,12 +900,12 @@ window.SyllabusEditorPage = {
       //    server already has an empty mapping (selects are rendered from server
       //    state), so PUT [] is a safe no-op.
       if (this.dirtyMapChanges) {
-        const res2 = await fetch(`/api/syllabi/${this.syllabusId}/clo-plo-map`, {
+        const res2 = await fetch(`/api/syllabi/${this.syllabusId}/clo-pi-map`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ mappings: this.dirtyMapChanges }),
         });
-        if (!res2.ok) throw new Error((await res2.json()).error || 'Lỗi lưu CLO-PLO');
+        if (!res2.ok) throw new Error((await res2.json()).error || 'Lỗi lưu CLO-PI');
         this.dirtyMapChanges = null;
       }
 

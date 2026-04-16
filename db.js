@@ -200,13 +200,14 @@ async function initDB() {
         description TEXT
       );
 
-      -- CLO-PLO Map
-      CREATE TABLE IF NOT EXISTS clo_plo_map (
+      -- CLO-PI Map (CLO mapped to Performance Indicators, not PLOs directly)
+      CREATE TABLE IF NOT EXISTS clo_pi_map (
         clo_id INT REFERENCES course_clos(id) ON DELETE CASCADE,
-        plo_id INT REFERENCES version_plos(id) ON DELETE CASCADE,
+        pi_id INT REFERENCES plo_pis(id) ON DELETE CASCADE,
         contribution_level INT DEFAULT 1,
-        PRIMARY KEY (clo_id, plo_id)
+        PRIMARY KEY (clo_id, pi_id)
       );
+      DROP TABLE IF EXISTS clo_plo_map;
 
       -- Version Syllabi (đề cương)
       CREATE TABLE IF NOT EXISTS version_syllabi (

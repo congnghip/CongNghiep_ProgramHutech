@@ -298,7 +298,7 @@ async function parseSyllabusPdf(buffer, versionId, courseId, pool) {
   return {
     content,
     clos: validated.clos,
-    clo_plo_map: mappings,
+    clo_plo_map: [],
     warnings,
     course_info: {
       pdf_course_code: validated.course_code,

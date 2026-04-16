@@ -2526,8 +2526,8 @@ app.delete('/api/clos/:id', authMiddleware, async (req, res) => {
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
-// ============ CLO-PLO MAP ============
-app.get('/api/syllabi/:sId/clo-plo-map', authMiddleware, requireViewVersion, async (req, res) => {
+// ============ CLO-PI MAP ============
+app.get('/api/syllabi/:sId/clo-pi-map', authMiddleware, requireViewVersion, async (req, res) => {
   try {
     const syl = await pool.query('SELECT version_id, course_id FROM version_syllabi WHERE id=$1', [req.params.sId]);
     if (!syl.rows.length) return res.json([]);
@@ -2535,29 +2535,30 @@ app.get('/api/syllabi/:sId/clo-plo-map', authMiddleware, requireViewVersion, asy
       [syl.rows[0].version_id, syl.rows[0].course_id]);
     if (!vc.rows.length) return res.json([]);
     const result = await pool.query(`
-      SELECT cm.*, cc.code as clo_code, vp.code as plo_code
-      FROM clo_plo_map cm
+      SELECT cm.clo_id, cm.pi_id, cm.contribution_level,
+             cc.code as clo_code, pi.pi_code, vp.code as plo_code
+      FROM clo_pi_map cm
       JOIN course_clos cc ON cm.clo_id = cc.id
-      JOIN version_plos vp ON cm.plo_id = vp.id
+      JOIN plo_pis pi ON cm.pi_id = pi.id
+      JOIN version_plos vp ON pi.plo_id = vp.id
       WHERE cc.version_course_id = $1
     `, [vc.rows[0].id]);
     res.json(result.rows);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.put('/api/syllabi/:sId/clo-plo-map', authMiddleware, async (req, res) => {
-  const { mappings } = req.body; // [{ clo_id, plo_id, contribution_level }]
+app.put('/api/syllabi/:sId/clo-pi-map', authMiddleware, async (req, res) => {
+  const { mappings } = req.body; // [{ clo_id, pi_id, contribution_level }]
   try {
     const syl = await pool.query('SELECT version_id, course_id FROM version_syllabi WHERE id=$1', [req.params.sId]);
     if (!syl.rows.length) return res.status(404).json({ error: 'Not found' });
     const vc = await pool.query('SELECT id FROM version_courses WHERE version_id=$1 AND course_id=$2',
       [syl.rows[0].version_id, syl.rows[0].course_id]);
     if (!vc.rows.length) return res.status(400).json({ error: 'No version course' });
-    // Delete old mappings for this course's CLOs
-    await pool.query('DELETE FROM clo_plo_map WHERE clo_id IN (SELECT id FROM course_clos WHERE version_course_id=$1)', [vc.rows[0].id]);
+    await pool.query('DELETE FROM clo_pi_map WHERE clo_id IN (SELECT id FROM course_clos WHERE version_course_id=$1)', [vc.rows[0].id]);
     for (const m of mappings) {
-      await pool.query('INSERT INTO clo_plo_map (clo_id, plo_id, contribution_level) VALUES ($1,$2,$3)',
-        [m.clo_id, m.plo_id, m.contribution_level || 1]);
+      await pool.query('INSERT INTO clo_pi_map (clo_id, pi_id, contribution_level) VALUES ($1,$2,$3)',
+        [m.clo_id, m.pi_id, m.contribution_level || 1]);
     }
     res.json({ success: true, count: mappings.length });
   } catch (e) { res.status(400).json({ error: e.message }); }
