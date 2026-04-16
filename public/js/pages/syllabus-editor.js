@@ -283,14 +283,15 @@ window.SyllabusEditorPage = {
         </div>
       </div>
       <table class="data-table">
-        <thead><tr><th>Mã</th><th>Mô tả</th>${editable ? '<th style="width:100px;"></th>' : ''}</tr></thead>
+        <thead><tr><th>Mã</th><th>Mô tả</th><th style="width:140px;">Bloom</th>${editable ? '<th style="width:100px;"></th>' : ''}</tr></thead>
         <tbody>
-          ${this.clos.length === 0 ? `<tr><td colspan="${editable ? 3 : 2}" style="color:var(--text-muted);text-align:center;">Chưa có CLO</td></tr>` : this.clos.map(c => `
+          ${this.clos.length === 0 ? `<tr><td colspan="${editable ? 4 : 3}" style="color:var(--text-muted);text-align:center;">Chưa có CLO</td></tr>` : this.clos.map(c => `
             <tr>
               <td><strong style="color:var(--primary);">${c.code}</strong></td>
               <td style="font-size:13px;">${c.description || ''}</td>
+              <td><span class="badge badge-info">${['','Nhớ','Hiểu','Áp dụng','Phân tích','Đánh giá','Sáng tạo'][c.bloom_level] || c.bloom_level || ''}</span></td>
               ${editable ? `<td style="white-space:nowrap;">
-                ${c.id ? `<button class="btn btn-secondary btn-sm" onclick="window.SyllabusEditorPage.editCLO(${c.id},'${c.code}',\`${(c.description||'').replace(/`/g,"'")}\`)">Sửa</button>
+                ${c.id ? `<button class="btn btn-secondary btn-sm" onclick="window.SyllabusEditorPage.editCLO(${c.id},'${c.code}',\`${(c.description||'').replace(/`/g,"'")}\`,${c.bloom_level||1})">Sửa</button>
                 <button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="window.SyllabusEditorPage.deleteCLO(${c.id})">Xóa</button>` : ''}
               </td>` : ''}
             </tr>
@@ -303,6 +304,17 @@ window.SyllabusEditorPage = {
         <div style="display:flex;gap:10px;align-items:end;">
           <div class="input-group" style="width:100px;margin:0;"><label>Mã</label><input type="text" id="clo-code" placeholder="CLO1"></div>
           <div class="input-group" style="flex:1;margin:0;"><label>Mô tả</label><input type="text" id="clo-desc" placeholder="Mô tả CLO"></div>
+          <div class="input-group" style="width:150px;margin:0;">
+            <label>Bloom</label>
+            <select id="clo-bloom">
+              <option value="1">1 — Nhớ</option>
+              <option value="2">2 — Hiểu</option>
+              <option value="3">3 — Áp dụng</option>
+              <option value="4">4 — Phân tích</option>
+              <option value="5">5 — Đánh giá</option>
+              <option value="6">6 — Sáng tạo</option>
+            </select>
+          </div>
           <button class="btn btn-primary btn-sm" onclick="window.SyllabusEditorPage.saveCLO()">Lưu</button>
           <button class="btn btn-secondary btn-sm" onclick="document.getElementById('clo-form-area').style.display='none'">Hủy</button>
         </div>
@@ -310,10 +322,11 @@ window.SyllabusEditorPage = {
     `;
   },
 
-  editCLO(id, code, desc) {
+  editCLO(id, code, desc, bloom) {
     document.getElementById('clo-edit-id').value = id;
     document.getElementById('clo-code').value = code;
     document.getElementById('clo-desc').value = desc;
+    document.getElementById('clo-bloom').value = bloom || 1;
     document.getElementById('clo-form-area').style.display = 'block';
   },
 
@@ -321,10 +334,11 @@ window.SyllabusEditorPage = {
     const id = document.getElementById('clo-edit-id').value;
     const code = document.getElementById('clo-code').value.trim();
     const description = document.getElementById('clo-desc').value.trim();
+    const bloom_level = parseInt(document.getElementById('clo-bloom').value) || 1;
     if (!code) { window.toast.warning('Nhập mã CLO'); return; }
     try {
       const url = id ? `/api/clos/${id}` : `/api/syllabi/${this.syllabusId}/clos`;
-      const res = await fetch(url, { method: id ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code, description }) });
+      const res = await fetch(url, { method: id ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code, description, bloom_level }) });
       if (!res.ok) throw new Error((await res.json()).error);
       window.toast.success(id ? 'Đã cập nhật' : 'Đã thêm');
       this.renderSylTab();
@@ -354,6 +368,8 @@ window.SyllabusEditorPage = {
     const errorEl = document.getElementById('clo-add-error');
     errorEl.classList.remove('show');
     errorEl.textContent = '';
+    const bloomEl = document.getElementById('clo-bloom');
+    if (bloomEl) bloomEl.value = '1';
     document.getElementById('clo-add-modal').classList.add('active');
     App.modalGuard('clo-add-modal', () => this.submitAddCLO());
   },
