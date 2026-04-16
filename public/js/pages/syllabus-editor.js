@@ -69,10 +69,7 @@ window.SyllabusEditorPage = {
     container.innerHTML = `
       <div class="page-header">
         <nav class="breadcrumb-nav mb-3">
-          ${s.author_id === window.App.currentUser?.id
-            ? `<a href="#" onclick="event.preventDefault();window.App.navigate('my-assignments')" class="breadcrumb-link">Đề cương của tôi</a>`
-            : `<a href="#" onclick="event.preventDefault();window.App.navigate('approval')" class="breadcrumb-link">Phê duyệt</a>`
-          }
+          <a href="#" onclick="event.preventDefault();window.App.navigate('version-editor',{versionId:${s.version_id}})" class="breadcrumb-link">${s.program_name || 'CTĐT'} — ${s.academic_year || ''}</a>
           <span class="breadcrumb-sep">›</span>
           <span class="breadcrumb-current">${s.is_proposed ? s.course_name : (s.course_code + ' — ' + s.course_name)}</span>
         </nav>
