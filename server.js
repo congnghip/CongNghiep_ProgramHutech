@@ -1227,28 +1227,41 @@ app.post('/api/proposed-courses/:courseId/merge', authMiddleware, requirePerm('c
   try {
     const srcCheck = await client.query('SELECT id, proposed_by_version_id FROM courses WHERE id=$1 AND is_proposed=true', [req.params.courseId]);
     if (!srcCheck.rows.length) return res.status(404).json({ error: 'Học phần đề xuất không tồn tại' });
-    const vId = srcCheck.rows[0].proposed_by_version_id;
     const tgtCheck = await client.query('SELECT id FROM courses WHERE id=$1 AND is_proposed=false', [target_course_id]);
     if (!tgtCheck.rows.length) return res.status(400).json({ error: 'Học phần đích không tồn tại hoặc chưa chính thức' });
-    const conflict = await client.query(
-      'SELECT id FROM version_syllabi WHERE version_id=$1 AND course_id=$2', [vId, target_course_id]
-    );
-    if (conflict.rows.length) return res.status(400).json({ error: 'Học phần đích đã có đề cương trong phiên bản này. Vui lòng xử lý xung đột trước.' });
-    const vcConflict = await client.query(
-      'SELECT id FROM version_courses WHERE version_id=$1 AND course_id=$2', [vId, target_course_id]
-    );
-    if (vcConflict.rows.length) return res.status(400).json({ error: 'Học phần đích đã có trong phiên bản CTĐT này.' });
 
     await client.query('BEGIN');
+
+    // Faculty-wide merge: replace source with target across ALL versions.
+    // Step 1: Remove version_courses for source where version already has target (avoid duplicate)
+    await client.query(`
+      DELETE FROM version_courses
+      WHERE course_id = $1
+        AND version_id IN (SELECT version_id FROM version_courses WHERE course_id = $2)
+    `, [req.params.courseId, target_course_id]);
+
+    // Step 2: Remove version_syllabi for source where version already has target syllabus
+    await client.query(`
+      DELETE FROM version_syllabi
+      WHERE course_id = $1
+        AND version_id IN (SELECT version_id FROM version_syllabi WHERE course_id = $2)
+    `, [req.params.courseId, target_course_id]);
+
+    // Step 3: Update remaining version_courses from source → target (non-conflicting versions)
     await client.query(
-      'UPDATE version_courses SET course_id=$1 WHERE course_id=$2 AND version_id=$3',
-      [target_course_id, req.params.courseId, vId]
+      'UPDATE version_courses SET course_id = $1 WHERE course_id = $2',
+      [target_course_id, req.params.courseId]
     );
+
+    // Step 4: Update remaining version_syllabi from source → target
     await client.query(
-      'UPDATE version_syllabi SET course_id=$1 WHERE course_id=$2 AND version_id=$3',
-      [target_course_id, req.params.courseId, vId]
+      'UPDATE version_syllabi SET course_id = $1 WHERE course_id = $2',
+      [target_course_id, req.params.courseId]
     );
+
+    // Step 5: Delete the proposed course (now fully replaced)
     await client.query('DELETE FROM courses WHERE id=$1', [req.params.courseId]);
+
     await client.query('COMMIT');
     res.json({ success: true, target_course_id });
   } catch (e) {
