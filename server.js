@@ -1553,6 +1553,12 @@ app.delete('/api/version-courses/:id', authMiddleware, async (req, res) => {
       await client.query('BEGIN');
       await client.query('DELETE FROM version_courses WHERE id=$1', [req.params.id]);
 
+      // Clean up orphaned version_syllabi for this (version, course) pair
+      await client.query(
+        'DELETE FROM version_syllabi WHERE version_id=$1 AND course_id=$2',
+        [version_id, course_id]
+      );
+
       // If the course is a proposed (unassigned-code) course and no other
       // version_courses row still references it, delete the orphaned course row.
       const courseRes = await client.query('SELECT is_proposed FROM courses WHERE id=$1', [course_id]);
