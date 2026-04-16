@@ -232,10 +232,10 @@ window.ApprovalPage = {
               </div>
             `).join('')}
           </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" onclick="window.ApprovalPage.closeAssignCodeModal()">Đóng</button>
-          <button type="button" class="btn btn-primary" id="approve-after-assign" disabled onclick="window.ApprovalPage.approveAfterAssign(${versionId})">Duyệt CTĐT</button>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" onclick="window.ApprovalPage.closeAssignCodeModal()">Đóng</button>
+            <button type="button" class="btn btn-primary" id="approve-after-assign" disabled onclick="window.ApprovalPage.approveAfterAssign(${versionId})">Duyệt CTĐT</button>
+          </div>
         </div>
       </div>
     `;
