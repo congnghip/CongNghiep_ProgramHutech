@@ -1770,6 +1770,20 @@ app.post('/api/versions/:vId/syllabi', authMiddleware, async (req, res) => {
       'INSERT INTO version_syllabi (version_id, course_id, author_id, content) VALUES ($1,$2,$3,$4) RETURNING *',
       [req.params.vId, course_id, req.user.id, JSON.stringify(initialContent)]
     );
+
+    // Auto-copy base syllabus CLOs into version course_clos
+    const vc = await pool.query(
+      'SELECT id FROM version_courses WHERE version_id=$1 AND course_id=$2',
+      [req.params.vId, course_id]
+    );
+    if (vc.rows.length) {
+      await pool.query(`
+        INSERT INTO course_clos (version_course_id, code, description, bloom_level)
+        SELECT $1, code, description, bloom_level
+        FROM base_syllabus_clos WHERE course_id = $2
+      `, [vc.rows[0].id, course_id]);
+    }
+
     res.json({ ...result.rows[0], no_base_syllabus: noBaseSyllabus });
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
@@ -2360,7 +2374,61 @@ app.post('/api/my-assignments/:assignmentId/create-syllabus', authMiddleware, as
       'INSERT INTO version_syllabi (version_id, course_id, author_id, content) VALUES ($1,$2,$3,$4) RETURNING *',
       [assignment.version_id, assignment.course_id, req.user.id, JSON.stringify(initialContent)]
     );
+
+    // Auto-copy base syllabus CLOs
+    const assignVc = await pool.query(
+      'SELECT id FROM version_courses WHERE version_id=$1 AND course_id=$2',
+      [assignment.version_id, assignment.course_id]
+    );
+    if (assignVc.rows.length) {
+      await pool.query(`
+        INSERT INTO course_clos (version_course_id, code, description, bloom_level)
+        SELECT $1, code, description, bloom_level
+        FROM base_syllabus_clos WHERE course_id = $2
+      `, [assignVc.rows[0].id, assignment.course_id]);
+    }
+
     res.json({ ...result.rows[0], no_base_syllabus: noBaseSyllabus });
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+// ============ BASE SYLLABUS CLOs ============
+app.get('/api/courses/:courseId/base-syllabus/clos', authMiddleware, requirePerm('courses.view'), async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT * FROM base_syllabus_clos WHERE course_id = $1 ORDER BY code',
+      [req.params.courseId]
+    );
+    res.json(result.rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/courses/:courseId/base-syllabus/clos', authMiddleware, requirePerm('courses.edit'), async (req, res) => {
+  const { code, description, bloom_level } = req.body;
+  try {
+    const result = await pool.query(
+      'INSERT INTO base_syllabus_clos (course_id, code, description, bloom_level) VALUES ($1,$2,$3,$4) RETURNING *',
+      [req.params.courseId, code, description || '', bloom_level || 1]
+    );
+    res.json(result.rows[0]);
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+app.put('/api/base-clos/:id', authMiddleware, requirePerm('courses.edit'), async (req, res) => {
+  const { code, description, bloom_level } = req.body;
+  try {
+    const result = await pool.query(
+      'UPDATE base_syllabus_clos SET code=COALESCE($1,code), description=COALESCE($2,description), bloom_level=COALESCE($3,bloom_level) WHERE id=$4 RETURNING *',
+      [code, description, bloom_level, req.params.id]
+    );
+    res.json(result.rows[0]);
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+app.delete('/api/base-clos/:id', authMiddleware, requirePerm('courses.edit'), async (req, res) => {
+  try {
+    await pool.query('DELETE FROM base_syllabus_clos WHERE id=$1', [req.params.id]);
+    res.json({ success: true });
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
@@ -2379,7 +2447,7 @@ app.get('/api/syllabi/:sId/clos', authMiddleware, requireViewVersion, async (req
 });
 
 app.post('/api/syllabi/:sId/clos', authMiddleware, async (req, res) => {
-  const { code, description } = req.body;
+  const { code, description, bloom_level } = req.body;
   try {
     const syl = await pool.query('SELECT version_id, course_id FROM version_syllabi WHERE id=$1', [req.params.sId]);
     if (!syl.rows.length) return res.status(404).json({ error: 'Syllabus not found' });
@@ -2390,19 +2458,19 @@ app.post('/api/syllabi/:sId/clos', authMiddleware, async (req, res) => {
         [syl.rows[0].version_id, syl.rows[0].course_id]);
     }
     const result = await pool.query(
-      'INSERT INTO course_clos (version_course_id, code, description) VALUES ($1,$2,$3) RETURNING *',
-      [vc.rows[0].id, code, description]
+      'INSERT INTO course_clos (version_course_id, code, description, bloom_level) VALUES ($1,$2,$3,$4) RETURNING *',
+      [vc.rows[0].id, code, description, bloom_level || 1]
     );
     res.json(result.rows[0]);
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
 app.put('/api/clos/:id', authMiddleware, async (req, res) => {
-  const { code, description } = req.body;
+  const { code, description, bloom_level } = req.body;
   try {
     const result = await pool.query(
-      'UPDATE course_clos SET code=COALESCE($1,code), description=COALESCE($2,description) WHERE id=$3 RETURNING *',
-      [code, description, req.params.id]
+      'UPDATE course_clos SET code=COALESCE($1,code), description=COALESCE($2,description), bloom_level=COALESCE($3,bloom_level) WHERE id=$4 RETURNING *',
+      [code, description, bloom_level, req.params.id]
     );
     res.json(result.rows[0]);
   } catch (e) { res.status(400).json({ error: e.message }); }
