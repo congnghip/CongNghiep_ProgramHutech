@@ -234,13 +234,14 @@ window.ApprovalPage = {
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-secondary" onclick="document.getElementById('assign-code-modal').classList.remove('active')">Đóng</button>
-          <button class="btn btn-primary" id="approve-after-assign" disabled onclick="window.ApprovalPage.approveAfterAssign(${versionId})">Duyệt CTĐT</button>
+          <button type="button" class="btn btn-secondary" onclick="window.ApprovalPage.closeAssignCodeModal()">Đóng</button>
+          <button type="button" class="btn btn-primary" id="approve-after-assign" disabled onclick="window.ApprovalPage.approveAfterAssign(${versionId})">Duyệt CTĐT</button>
         </div>
       </div>
     `;
     document.body.appendChild(modal);
     requestAnimationFrame(() => modal.classList.add('active'));
+    modal.addEventListener('click', (e) => { if (e.target === modal) window.ApprovalPage.closeAssignCodeModal(); });
 
     // Load catalog courses into merge dropdowns
     fetch('/api/courses/all').then(r => r.json()).then(courses => {
@@ -314,8 +315,16 @@ window.ApprovalPage = {
     });
   },
 
+  closeAssignCodeModal() {
+    const modal = document.getElementById('assign-code-modal');
+    if (!modal) return;
+    modal.classList.remove('active');
+    document.body.classList.remove('modal-open');
+    setTimeout(() => modal.remove(), 200);
+  },
+
   async approveAfterAssign(versionId) {
-    document.getElementById('assign-code-modal')?.classList.remove('active');
+    this.closeAssignCodeModal();
     this._doApprove(versionId, 'program_version');
   },
 
