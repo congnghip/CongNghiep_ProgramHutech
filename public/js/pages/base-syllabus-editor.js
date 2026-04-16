@@ -67,9 +67,10 @@ window.BaseSyllabusEditorPage = {
       </div>
       <div class="tab-bar" id="bs-tabs">
         <div class="tab-item active" data-tab="0">Thông tin chung</div>
-        <div class="tab-item" data-tab="1">Nội dung giảng dạy</div>
-        <div class="tab-item" data-tab="2">Đánh giá</div>
-        <div class="tab-item" data-tab="3">Tài liệu</div>
+        <div class="tab-item" data-tab="1">CLO</div>
+        <div class="tab-item" data-tab="2">Nội dung giảng dạy</div>
+        <div class="tab-item" data-tab="3">Đánh giá</div>
+        <div class="tab-item" data-tab="4">Tài liệu</div>
       </div>
       <div id="bs-tab-content"><div class="spinner"></div></div>
 
@@ -135,9 +136,10 @@ window.BaseSyllabusEditorPage = {
     const c = this.baseSyllabus.content || {};
     switch (this.activeTab) {
       case 0: this.renderGeneralTab(body, editable, c); break;
-      case 1: this.renderOutlineTab(body, editable, c); break;
-      case 2: this.renderGradingTab(body, editable, c); break;
-      case 3: this.renderResourcesTab(body, editable, c); break;
+      case 1: this.renderCLOTab(body, editable); break;
+      case 2: this.renderOutlineTab(body, editable, c); break;
+      case 3: this.renderGradingTab(body, editable, c); break;
+      case 4: this.renderResourcesTab(body, editable, c); break;
     }
   },
 
@@ -169,7 +171,107 @@ window.BaseSyllabusEditorPage = {
     };
   },
 
-  // ============ TAB 1: Nội dung giảng dạy ============
+  // ============ TAB 1: CLOs ============
+  async renderCLOTab(body, editable) {
+    const bloomLabels = ['', '1 — Nhớ', '2 — Hiểu', '3 — Áp dụng', '4 — Phân tích', '5 — Đánh giá', '6 — Sáng tạo'];
+    let clos = [];
+    try {
+      clos = await fetch(`/api/courses/${this.courseId}/base-syllabus/clos`).then(r => r.json());
+    } catch (e) { /* empty */ }
+
+    body.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <h3 style="font-size:15px;font-weight:600;">Chuẩn đầu ra môn học (CLO)</h3>
+        ${editable ? '<button class="btn btn-primary btn-sm" onclick="window.BaseSyllabusEditorPage.showBaseCLOForm()">+ Thêm CLO</button>' : ''}
+      </div>
+      <table class="data-table">
+        <thead><tr><th>Mã</th><th>Mô tả</th><th style="width:140px;">Bloom Level</th>${editable ? '<th style="width:100px;"></th>' : ''}</tr></thead>
+        <tbody>
+          ${clos.length === 0 ? `<tr><td colspan="${editable ? 4 : 3}" style="color:var(--text-muted);text-align:center;">Chưa có CLO</td></tr>` : clos.map(c => `
+            <tr>
+              <td><strong style="color:var(--primary);">${c.code || ''}</strong></td>
+              <td style="font-size:13px;">${c.description || ''}</td>
+              <td><span class="badge badge-info">${bloomLabels[c.bloom_level] || c.bloom_level}</span></td>
+              ${editable ? `<td style="white-space:nowrap;">
+                <button class="btn btn-secondary btn-sm" onclick="window.BaseSyllabusEditorPage.editBaseCLO(${c.id})">Sửa</button>
+                <button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="window.BaseSyllabusEditorPage.deleteBaseCLO(${c.id})">Xóa</button>
+              </td>` : ''}
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      <div id="bs-clo-form" style="display:none;margin-top:16px;padding:16px;background:var(--bg-secondary);border-radius:var(--radius-lg);">
+        <input type="hidden" id="bs-clo-edit-id">
+        <div style="display:flex;gap:10px;align-items:end;flex-wrap:wrap;">
+          <div class="input-group" style="width:100px;margin:0;"><label>Mã</label><input type="text" id="bs-clo-code" placeholder="CLO1"></div>
+          <div class="input-group" style="flex:1;margin:0;"><label>Mô tả</label><input type="text" id="bs-clo-desc" placeholder="Trình bày được..."></div>
+          <div class="input-group" style="width:160px;margin:0;">
+            <label>Bloom Level</label>
+            <select id="bs-clo-bloom">
+              <option value="1">1 — Nhớ</option>
+              <option value="2">2 — Hiểu</option>
+              <option value="3">3 — Áp dụng</option>
+              <option value="4">4 — Phân tích</option>
+              <option value="5">5 — Đánh giá</option>
+              <option value="6">6 — Sáng tạo</option>
+            </select>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="window.BaseSyllabusEditorPage.saveBaseCLO()">Lưu</button>
+          <button class="btn btn-secondary btn-sm" onclick="document.getElementById('bs-clo-form').style.display='none'">Hủy</button>
+        </div>
+      </div>
+    `;
+  },
+
+  showBaseCLOForm(id, code, desc, bloom) {
+    document.getElementById('bs-clo-edit-id').value = id || '';
+    document.getElementById('bs-clo-code').value = code || '';
+    document.getElementById('bs-clo-desc').value = desc || '';
+    document.getElementById('bs-clo-bloom').value = bloom || 1;
+    document.getElementById('bs-clo-form').style.display = 'block';
+  },
+
+  editBaseCLO(id) {
+    fetch(`/api/courses/${this.courseId}/base-syllabus/clos`).then(r => r.json()).then(clos => {
+      const c = clos.find(x => x.id === id);
+      if (c) this.showBaseCLOForm(c.id, c.code, c.description, c.bloom_level);
+    });
+  },
+
+  async saveBaseCLO() {
+    const id = document.getElementById('bs-clo-edit-id').value;
+    const code = document.getElementById('bs-clo-code').value.trim();
+    const description = document.getElementById('bs-clo-desc').value.trim();
+    const bloom_level = parseInt(document.getElementById('bs-clo-bloom').value) || 1;
+    if (!code) { window.toast.warning('Nhập mã CLO'); return; }
+    try {
+      const url = id ? `/api/base-clos/${id}` : `/api/courses/${this.courseId}/base-syllabus/clos`;
+      const res = await fetch(url, {
+        method: id ? 'PUT' : 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, description, bloom_level })
+      });
+      if (!res.ok) throw new Error((await res.json()).error);
+      window.toast.success(id ? 'Đã cập nhật CLO' : 'Đã thêm CLO');
+      document.getElementById('bs-clo-form').style.display = 'none';
+      this.renderTab();
+    } catch (e) { window.toast.error(e.message); }
+  },
+
+  async deleteBaseCLO(id) {
+    const confirmed = await window.ui.confirm({
+      title: 'Xóa CLO', message: 'Bạn có chắc muốn xóa CLO này?',
+      confirmText: 'Xóa', cancelText: 'Hủy', tone: 'warning'
+    });
+    if (!confirmed) return;
+    try {
+      await fetch(`/api/base-clos/${id}`, { method: 'DELETE' });
+      window.toast.success('Đã xóa CLO');
+      this.renderTab();
+    } catch (e) { window.toast.error(e.message); }
+  },
+
+  // ============ TAB 2: Nội dung giảng dạy ============
   renderOutlineTab(body, editable, c) {
     const lessons = c.course_outline || [];
     body.innerHTML = `
@@ -357,9 +459,10 @@ window.BaseSyllabusEditorPage = {
   _collectCurrentTabIntoState() {
     switch (this.activeTab) {
       case 0: this._collectGeneral(); break;
-      case 1: this._collectOutline(); break;
-      case 2: this._collectGrading(); break;
-      case 3: this._collectResources(); break;
+      // case 1: CLO tab uses API CRUD directly — no local state collection needed
+      case 2: this._collectOutline(); break;
+      case 3: this._collectGrading(); break;
+      case 4: this._collectResources(); break;
     }
   },
 
