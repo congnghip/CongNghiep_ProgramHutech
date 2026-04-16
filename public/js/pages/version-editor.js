@@ -1787,6 +1787,9 @@ window.VersionEditorPage = {
 
         if (syl) {
           actionCell = `<button class="btn btn-secondary btn-sm" onclick="window.App.navigate('syllabus-editor',{syllabusId:${syl.id}})">${(editable && syl.status === 'draft') ? 'Soạn' : 'Xem'}</button>`;
+          if (syl.status === 'published' && window.App.hasPerm('courses.edit')) {
+            actionCell += ` <button class="btn btn-secondary btn-sm" onclick="window.VersionEditorPage.promoteToBase(${syl.id})" title="Đặt làm đề cương cơ bản cho HP này">Đặt ĐC cơ bản</button>`;
+          }
         }
         // Allow reassign only when draft and has assign perm
         if (canAssign && isDraft) {
@@ -1844,6 +1847,25 @@ window.VersionEditorPage = {
         </div>
       </div>
     `;
+  },
+
+  async promoteToBase(syllabusId) {
+    const confirmed = await window.ui.confirm({
+      title: 'Đặt làm đề cương cơ bản',
+      eyebrow: 'Xác nhận thao tác',
+      message: 'Đặt đề cương này làm đề cương cơ bản cho học phần? Nội dung + CLO sẽ ghi đè đề cương cơ bản hiện tại (nếu có).',
+      confirmText: 'Đặt ĐC cơ bản',
+      cancelText: 'Hủy'
+    });
+    if (!confirmed) return;
+    try {
+      const res = await fetch(`/api/syllabi/${syllabusId}/promote-to-base`, { method: 'POST' });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error || 'Có lỗi xảy ra');
+      }
+      window.toast.success('Đã đặt làm đề cương cơ bản');
+    } catch (e) { window.toast.error(e.message); }
   },
 
   async assignSyllabus(courseId) {

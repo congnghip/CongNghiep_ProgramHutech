@@ -1876,6 +1876,36 @@ app.post('/api/syllabi/:sId/load-from-base', authMiddleware, async (req, res) =>
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
+app.post('/api/syllabi/:sId/promote-to-base', authMiddleware, requirePerm('courses.edit'), async (req, res) => {
+  try {
+    const syl = await pool.query('SELECT version_id, course_id, status, content FROM version_syllabi WHERE id=$1', [req.params.sId]);
+    if (!syl.rows.length) return res.status(404).json({ error: 'Không tìm thấy đề cương' });
+    const { version_id, course_id, status, content } = syl.rows[0];
+
+    if (status !== 'published') return res.status(400).json({ error: 'Chỉ đề cương đã công bố mới có thể đặt làm đề cương cơ bản' });
+
+    // Upsert base syllabus content
+    await pool.query(`
+      INSERT INTO course_base_syllabi (course_id, content, updated_by, updated_at)
+      VALUES ($1, $2, $3, NOW())
+      ON CONFLICT (course_id) DO UPDATE SET content=$2, updated_by=$3, updated_at=NOW()
+    `, [course_id, JSON.stringify(content), req.user.id]);
+
+    // Replace base CLOs: delete old, copy from version
+    await pool.query('DELETE FROM base_syllabus_clos WHERE course_id=$1', [course_id]);
+    const vc = await pool.query('SELECT id FROM version_courses WHERE version_id=$1 AND course_id=$2', [version_id, course_id]);
+    if (vc.rows.length) {
+      await pool.query(`
+        INSERT INTO base_syllabus_clos (course_id, code, description, bloom_level)
+        SELECT $1, code, description, bloom_level
+        FROM course_clos WHERE version_course_id = $2
+      `, [course_id, vc.rows[0].id]);
+    }
+
+    res.json({ success: true });
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
 app.delete('/api/syllabi/:id', authMiddleware, async (req, res) => {
   try {
     await pool.query('DELETE FROM version_syllabi WHERE id=$1', [req.params.id]);
