@@ -1833,6 +1833,49 @@ app.put('/api/syllabi/:id', authMiddleware, async (req, res) => {
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
+app.post('/api/syllabi/:sId/load-from-base', authMiddleware, async (req, res) => {
+  try {
+    const syl = await pool.query('SELECT version_id, course_id, status FROM version_syllabi WHERE id=$1', [req.params.sId]);
+    if (!syl.rows.length) return res.status(404).json({ error: 'Không tìm thấy đề cương' });
+    const { version_id, course_id, status } = syl.rows[0];
+
+    if (status === 'published') return res.status(400).json({ error: 'Đề cương đã công bố, không thể thay đổi' });
+
+    // Permission: assigned GV or syllabus.edit
+    const assignRes = await pool.query(
+      'SELECT id FROM syllabus_assignments WHERE version_id=$1 AND course_id=$2 AND assigned_to=$3',
+      [version_id, course_id, req.user.id]
+    );
+    if (!assignRes.rows.length) {
+      await checkVersionEditAccess(req.user.id, version_id, 'syllabus.edit');
+    }
+
+    // Fetch base syllabus
+    const baseRes = await pool.query('SELECT content FROM course_base_syllabi WHERE course_id = $1', [course_id]);
+    if (!baseRes.rows.length) return res.status(400).json({ error: 'Học phần này chưa có đề cương cơ bản' });
+
+    // Overwrite content
+    await pool.query(
+      'UPDATE version_syllabi SET content=$1, updated_at=NOW() WHERE id=$2',
+      [JSON.stringify(baseRes.rows[0].content), req.params.sId]
+    );
+
+    // Replace CLOs: delete old, copy from base
+    const vc = await pool.query('SELECT id FROM version_courses WHERE version_id=$1 AND course_id=$2', [version_id, course_id]);
+    if (vc.rows.length) {
+      await pool.query('DELETE FROM course_clos WHERE version_course_id=$1', [vc.rows[0].id]);
+      await pool.query(`
+        INSERT INTO course_clos (version_course_id, code, description, bloom_level)
+        SELECT $1, code, description, bloom_level
+        FROM base_syllabus_clos WHERE course_id = $2
+      `, [vc.rows[0].id, course_id]);
+    }
+
+    const result = await pool.query('SELECT * FROM version_syllabi WHERE id=$1', [req.params.sId]);
+    res.json(result.rows[0]);
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
 app.delete('/api/syllabi/:id', authMiddleware, async (req, res) => {
   try {
     await pool.query('DELETE FROM version_syllabi WHERE id=$1', [req.params.id]);
