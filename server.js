@@ -1821,13 +1821,15 @@ app.get('/api/syllabi/:id', authMiddleware, requireViewVersion, async (req, res)
     const result = await pool.query(`
       SELECT vs.*, c.code as course_code, c.name as course_name, c.credits, c.is_proposed,
              u.display_name as author_name, d.name as dept_name,
-             p.name as program_name, pv.academic_year
+             p.name as program_name, pv.academic_year,
+             (cbs.id IS NOT NULL) as has_base_syllabus
       FROM version_syllabi vs
       JOIN courses c ON vs.course_id = c.id
       LEFT JOIN users u ON vs.author_id = u.id
       LEFT JOIN departments d ON c.department_id = d.id
       LEFT JOIN program_versions pv ON vs.version_id = pv.id
       LEFT JOIN programs p ON pv.program_id = p.id
+      LEFT JOIN course_base_syllabi cbs ON cbs.course_id = c.id
       WHERE vs.id = $1
     `, [req.params.id]);
     if (!result.rows.length) return res.status(404).json({ error: 'Không tìm thấy' });

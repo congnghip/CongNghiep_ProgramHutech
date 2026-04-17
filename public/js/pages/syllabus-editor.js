@@ -82,13 +82,18 @@ window.SyllabusEditorPage = {
             </div>
           </div>
           <div class="page-header-actions">
-            ${editable ? '<button class="btn btn-secondary btn-sm" onclick="window.SyllabusEditorPage.loadFromBase()">Lấy từ ĐC cơ bản</button>' : ''}
+            ${editable && s.has_base_syllabus ? '<button class="btn btn-secondary btn-sm" onclick="window.SyllabusEditorPage.loadFromBase()">Lấy từ ĐC cơ bản</button>' : ''}
             ${editable ? '<button class="btn btn-primary btn-sm" onclick="window.SyllabusEditorPage.saveAll()">Lưu tất cả</button>' : ''}
             ${editable ? '<button class="btn btn-secondary btn-sm" onclick="window.SyllabusEditorPage.importPdf()">Import từ PDF</button>' : ''}
             ${editable ? '<button class="btn btn-primary btn-sm" onclick="window.SyllabusEditorPage.submitForApproval()">Nộp duyệt</button>' : ''}
           </div>
         </div>
       </div>
+      ${!s.has_base_syllabus && editable ? `
+        <div style="background:var(--warning-bg, #fff3cd);border:1px solid var(--warning, #ffc107);border-radius:var(--radius-lg);padding:12px;margin-bottom:16px;font-size:13px;">
+          <strong>Lưu ý:</strong> Học phần này chưa có đề cương cơ bản. Nội dung đề cương cần được soạn thủ công.
+        </div>
+      ` : ''}
       ${s.is_rejected ? `
         <div class="rejection-banner">
           <div class="rejection-banner-content">
