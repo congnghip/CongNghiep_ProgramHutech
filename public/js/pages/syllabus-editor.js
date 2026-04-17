@@ -89,7 +89,7 @@ window.SyllabusEditorPage = {
           </div>
         </div>
       </div>
-      ${!s.has_base_syllabus && editable ? `
+      ${s.has_base_syllabus === false && editable ? `
         <div style="background:var(--warning-bg, #fff3cd);border:1px solid var(--warning, #ffc107);border-radius:var(--radius-lg);padding:12px;margin-bottom:16px;font-size:13px;">
           <strong>Lưu ý:</strong> Học phần này chưa có đề cương cơ bản. Nội dung đề cương cần được soạn thủ công.
         </div>
