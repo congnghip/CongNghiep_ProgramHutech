@@ -1,0 +1,1036 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]:
+          - generic [ref=e6]:
+            - generic [ref=e7]: 🎓
+            - heading "HUTECH Program" [level=1] [ref=e8]
+          - button "Thu gọn sidebar" [expanded] [ref=e9] [cursor=pointer]: «
+        - navigation [ref=e10]:
+          - generic "Tổng quan" [ref=e11] [cursor=pointer]:
+            - generic [ref=e12]: 📊
+            - generic [ref=e13]: Tổng quan
+          - generic "Thông báo" [ref=e14] [cursor=pointer]:
+            - generic [ref=e15]: 🔔
+            - generic [ref=e16]: Thông báo
+          - generic [ref=e17]: Đào tạo
+          - generic "Chương trình ĐT" [ref=e18] [cursor=pointer]:
+            - generic [ref=e19]: 📋
+            - generic [ref=e20]: Chương trình ĐT
+          - generic "Học phần" [ref=e21] [cursor=pointer]:
+            - generic [ref=e22]: 📚
+            - generic [ref=e23]: Học phần
+          - generic "Phê duyệt" [ref=e24] [cursor=pointer]:
+            - generic [ref=e25]: 📬
+            - generic [ref=e26]: Phê duyệt
+          - generic [ref=e27]: Cài đặt
+          - generic "Phân quyền" [ref=e28] [cursor=pointer]:
+            - generic [ref=e29]: ⚙️
+            - generic [ref=e30]: Phân quyền
+          - generic "Nhật ký" [ref=e31] [cursor=pointer]:
+            - generic [ref=e32]: 📜
+            - generic [ref=e33]: Nhật ký
+        - generic [ref=e34]:
+          - generic [ref=e35]:
+            - generic [ref=e36]: Quản trị viên
+            - generic [ref=e37]: Quản trị hệ thống
+          - generic [ref=e38]:
+            - button "Đổi MK" [ref=e39] [cursor=pointer]
+            - button "Đăng xuất" [ref=e40] [cursor=pointer]
+      - main [ref=e41]:
+        - generic [ref=e1108]:
+          - generic [ref=e1109]:
+            - generic [ref=e1110]: Danh mục Học phần
+            - button "+ Thêm HP" [ref=e1111] [cursor=pointer]
+          - generic [ref=e1112]:
+            - textbox "Tìm kiếm theo mã hoặc tên..." [ref=e1114]
+            - table [ref=e1115]:
+              - rowgroup [ref=e1116]:
+                - row "Mã HP Tên học phần TC Đơn vị quản lý ĐC cơ bản Thao tác" [ref=e1117]:
+                  - columnheader "Mã HP" [ref=e1118]
+                  - columnheader "Tên học phần" [ref=e1119]
+                  - columnheader "TC" [ref=e1120]
+                  - columnheader "Đơn vị quản lý" [ref=e1121]
+                  - columnheader "ĐC cơ bản" [ref=e1122]
+                  - columnheader "Thao tác" [ref=e1123]
+              - rowgroup [ref=e1124]:
+                - row "AIT1021 Ứng dụng AI trong dịch thuật tiếng Trung 3 Khoa Trung Quốc học Có ĐC cơ bản Sửa Xóa" [ref=e1125]:
+                  - cell "AIT1021" [ref=e1126]:
+                    - strong [ref=e1127]: AIT1021
+                  - cell "Ứng dụng AI trong dịch thuật tiếng Trung" [ref=e1128]
+                  - cell "3" [ref=e1129]
+                  - cell "Khoa Trung Quốc học" [ref=e1130]:
+                    - generic [ref=e1131]: Khoa Trung Quốc học
+                  - cell "Có" [ref=e1132]:
+                    - generic [ref=e1133]: Có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1134]:
+                    - button "ĐC cơ bản" [ref=e1135] [cursor=pointer]
+                    - button "Sửa" [ref=e1136] [cursor=pointer]
+                    - button "Xóa" [ref=e1137] [cursor=pointer]
+                - row "AIT1022 Ứng dụng AI trong giảng dạy tiếng Trung 3 Khoa Trung Quốc học Chưa có ĐC cơ bản Sửa Xóa" [ref=e1138]:
+                  - cell "AIT1022" [ref=e1139]:
+                    - strong [ref=e1140]: AIT1022
+                  - cell "Ứng dụng AI trong giảng dạy tiếng Trung" [ref=e1141]
+                  - cell "3" [ref=e1142]
+                  - cell "Khoa Trung Quốc học" [ref=e1143]:
+                    - generic [ref=e1144]: Khoa Trung Quốc học
+                  - cell "Chưa có" [ref=e1145]:
+                    - generic [ref=e1146]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1147]:
+                    - button "ĐC cơ bản" [ref=e1148] [cursor=pointer]
+                    - button "Sửa" [ref=e1149] [cursor=pointer]
+                    - button "Xóa" [ref=e1150] [cursor=pointer]
+                - row "AIT129 Trí tuệ nhân tạo ứng dụng 3 Khoa CNTT Chưa có ĐC cơ bản Sửa Xóa" [ref=e1151]:
+                  - cell "AIT129" [ref=e1152]:
+                    - strong [ref=e1153]: AIT129
+                  - cell "Trí tuệ nhân tạo ứng dụng" [ref=e1154]
+                  - cell "3" [ref=e1155]
+                  - cell "Khoa CNTT" [ref=e1156]:
+                    - generic [ref=e1157]: Khoa CNTT
+                  - cell "Chưa có" [ref=e1158]:
+                    - generic [ref=e1159]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1160]:
+                    - button "ĐC cơ bản" [ref=e1161] [cursor=pointer]
+                    - button "Sửa" [ref=e1162] [cursor=pointer]
+                    - button "Xóa" [ref=e1163] [cursor=pointer]
+                - row "CHN1003 Thiết kế giáo án và thực hành giảng dạy tiếng Trung 3 Khoa Trung Quốc học Chưa có ĐC cơ bản Sửa Xóa" [ref=e1164]:
+                  - cell "CHN1003" [ref=e1165]:
+                    - strong [ref=e1166]: CHN1003
+                  - cell "Thiết kế giáo án và thực hành giảng dạy tiếng Trung" [ref=e1167]
+                  - cell "3" [ref=e1168]
+                  - cell "Khoa Trung Quốc học" [ref=e1169]:
+                    - generic [ref=e1170]: Khoa Trung Quốc học
+                  - cell "Chưa có" [ref=e1171]:
+                    - generic [ref=e1172]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1173]:
+                    - button "ĐC cơ bản" [ref=e1174] [cursor=pointer]
+                    - button "Sửa" [ref=e1175] [cursor=pointer]
+                    - button "Xóa" [ref=e1176] [cursor=pointer]
+                - row "CHN1004 Kỹ năng giảng dạy tiếng Trung 3 Khoa Trung Quốc học Chưa có ĐC cơ bản Sửa Xóa" [ref=e1177]:
+                  - cell "CHN1004" [ref=e1178]:
+                    - strong [ref=e1179]: CHN1004
+                  - cell "Kỹ năng giảng dạy tiếng Trung" [ref=e1180]
+                  - cell "3" [ref=e1181]
+                  - cell "Khoa Trung Quốc học" [ref=e1182]:
+                    - generic [ref=e1183]: Khoa Trung Quốc học
+                  - cell "Chưa có" [ref=e1184]:
+                    - generic [ref=e1185]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1186]:
+                    - button "ĐC cơ bản" [ref=e1187] [cursor=pointer]
+                    - button "Sửa" [ref=e1188] [cursor=pointer]
+                    - button "Xóa" [ref=e1189] [cursor=pointer]
+                - row "CHN107 Tiếng Trung – Nghe 1 3 Khoa Trung Quốc học Chưa có ĐC cơ bản Sửa Xóa" [ref=e1190]:
+                  - cell "CHN107" [ref=e1191]:
+                    - strong [ref=e1192]: CHN107
+                  - cell "Tiếng Trung – Nghe 1" [ref=e1193]
+                  - cell "3" [ref=e1194]
+                  - cell "Khoa Trung Quốc học" [ref=e1195]:
+                    - generic [ref=e1196]: Khoa Trung Quốc học
+                  - cell "Chưa có" [ref=e1197]:
+                    - generic [ref=e1198]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1199]:
+                    - button "ĐC cơ bản" [ref=e1200] [cursor=pointer]
+                    - button "Sửa" [ref=e1201] [cursor=pointer]
+                    - button "Xóa" [ref=e1202] [cursor=pointer]
+                - row "CHN108 Tiếng Trung – Nghe 2 3 Khoa Trung Quốc học Chưa có ĐC cơ bản Sửa Xóa" [ref=e1203]:
+                  - cell "CHN108" [ref=e1204]:
+                    - strong [ref=e1205]: CHN108
+                  - cell "Tiếng Trung – Nghe 2" [ref=e1206]
+                  - cell "3" [ref=e1207]
+                  - cell "Khoa Trung Quốc học" [ref=e1208]:
+                    - generic [ref=e1209]: Khoa Trung Quốc học
+                  - cell "Chưa có" [ref=e1210]:
+                    - generic [ref=e1211]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1212]:
+                    - button "ĐC cơ bản" [ref=e1213] [cursor=pointer]
+                    - button "Sửa" [ref=e1214] [cursor=pointer]
+                    - button "Xóa" [ref=e1215] [cursor=pointer]
+                - row "CHN109 Tiếng Trung – Nghe 3 3 Khoa Trung Quốc học Chưa có ĐC cơ bản Sửa Xóa" [ref=e1216]:
+                  - cell "CHN109" [ref=e1217]:
+                    - strong [ref=e1218]: CHN109
+                  - cell "Tiếng Trung – Nghe 3" [ref=e1219]
+                  - cell "3" [ref=e1220]
+                  - cell "Khoa Trung Quốc học" [ref=e1221]:
+                    - generic [ref=e1222]: Khoa Trung Quốc học
+                  - cell "Chưa có" [ref=e1223]:
+                    - generic [ref=e1224]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1225]:
+                    - button "ĐC cơ bản" [ref=e1226] [cursor=pointer]
+                    - button "Sửa" [ref=e1227] [cursor=pointer]
+                    - button "Xóa" [ref=e1228] [cursor=pointer]
+                - row "CHN110 Tiếng Trung – Nghe 4 3 Khoa Trung Quốc học Chưa có ĐC cơ bản Sửa Xóa" [ref=e1229]:
+                  - cell "CHN110" [ref=e1230]:
+                    - strong [ref=e1231]: CHN110
+                  - cell "Tiếng Trung – Nghe 4" [ref=e1232]
+                  - cell "3" [ref=e1233]
+                  - cell "Khoa Trung Quốc học" [ref=e1234]:
+                    - generic [ref=e1235]: Khoa Trung Quốc học
+                  - cell "Chưa có" [ref=e1236]:
+                    - generic [ref=e1237]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1238]:
+                    - button "ĐC cơ bản" [ref=e1239] [cursor=pointer]
+                    - button "Sửa" [ref=e1240] [cursor=pointer]
+                    - button "Xóa" [ref=e1241] [cursor=pointer]
+                - row "CHN111 Tiếng Trung – Nghe 5 3 Khoa Trung Quốc học Chưa có ĐC cơ bản Sửa Xóa" [ref=e1242]:
+                  - cell "CHN111" [ref=e1243]:
+                    - strong [ref=e1244]: CHN111
+                  - cell "Tiếng Trung – Nghe 5" [ref=e1245]
+                  - cell "3" [ref=e1246]
+                  - cell "Khoa Trung Quốc học" [ref=e1247]:
+                    - generic [ref=e1248]: Khoa Trung Quốc học
+                  - cell "Chưa có" [ref=e1249]:
+                    - generic [ref=e1250]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1251]:
+                    - button "ĐC cơ bản" [ref=e1252] [cursor=pointer]
+                    - button "Sửa" [ref=e1253] [cursor=pointer]
+                    - button "Xóa" [ref=e1254] [cursor=pointer]
+                - row "CHN112 Tiếng Trung – Nói 1 3 Khoa Trung Quốc học Chưa có ĐC cơ bản Sửa Xóa" [ref=e1255]:
+                  - cell "CHN112" [ref=e1256]:
+                    - strong [ref=e1257]: CHN112
+                  - cell "Tiếng Trung – Nói 1" [ref=e1258]
+                  - cell "3" [ref=e1259]
+                  - cell "Khoa Trung Quốc học" [ref=e1260]:
+                    - generic [ref=e1261]: Khoa Trung Quốc học
+                  - cell "Chưa có" [ref=e1262]:
+                    - generic [ref=e1263]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1264]:
+                    - button "ĐC cơ bản" [ref=e1265] [cursor=pointer]
+                    - button "Sửa" [ref=e1266] [cursor=pointer]
+                    - button "Xóa" [ref=e1267] [cursor=pointer]
+                - row "CHN113 Tiếng Trung – Nói 2 3 Khoa Trung Quốc học Chưa có ĐC cơ bản Sửa Xóa" [ref=e1268]:
+                  - cell "CHN113" [ref=e1269]:
+                    - strong [ref=e1270]: CHN113
+                  - cell "Tiếng Trung – Nói 2" [ref=e1271]
+                  - cell "3" [ref=e1272]
+                  - cell "Khoa Trung Quốc học" [ref=e1273]:
+                    - generic [ref=e1274]: Khoa Trung Quốc học
+                  - cell "Chưa có" [ref=e1275]:
+                    - generic [ref=e1276]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1277]:
+                    - button "ĐC cơ bản" [ref=e1278] [cursor=pointer]
+                    - button "Sửa" [ref=e1279] [cursor=pointer]
+                    - button "Xóa" [ref=e1280] [cursor=pointer]
+                - row "CHN114 Tiếng Trung – Nói 3 3 Khoa Trung Quốc học Chưa có ĐC cơ bản Sửa Xóa" [ref=e1281]:
+                  - cell "CHN114" [ref=e1282]:
+                    - strong [ref=e1283]: CHN114
+                  - cell "Tiếng Trung – Nói 3" [ref=e1284]
+                  - cell "3" [ref=e1285]
+                  - cell "Khoa Trung Quốc học" [ref=e1286]:
+                    - generic [ref=e1287]: Khoa Trung Quốc học
+                  - cell "Chưa có" [ref=e1288]:
+                    - generic [ref=e1289]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1290]:
+                    - button "ĐC cơ bản" [ref=e1291] [cursor=pointer]
+                    - button "Sửa" [ref=e1292] [cursor=pointer]
+                    - button "Xóa" [ref=e1293] [cursor=pointer]
+                - row "CHN115 Tiếng Trung – Nói 4 3 Khoa Trung Quốc học Chưa có ĐC cơ bản Sửa Xóa" [ref=e1294]:
+                  - cell "CHN115" [ref=e1295]:
+                    - strong [ref=e1296]: CHN115
+                  - cell "Tiếng Trung – Nói 4" [ref=e1297]
+                  - cell "3" [ref=e1298]
+                  - cell "Khoa Trung Quốc học" [ref=e1299]:
+                    - generic [ref=e1300]: Khoa Trung Quốc học
+                  - cell "Chưa có" [ref=e1301]:
+                    - generic [ref=e1302]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1303]:
+                    - button "ĐC cơ bản" [ref=e1304] [cursor=pointer]
+                    - button "Sửa" [ref=e1305] [cursor=pointer]
+                    - button "Xóa" [ref=e1306] [cursor=pointer]
+                - row "CHN116 Tiếng Trung – Nói 5 3 Khoa Trung Quốc học Chưa có ĐC cơ bản Sửa Xóa" [ref=e1307]:
+                  - cell "CHN116" [ref=e1308]:
+                    - strong [ref=e1309]: CHN116
+                  - cell "Tiếng Trung – Nói 5" [ref=e1310]
+                  - cell "3" [ref=e1311]
+                  - cell "Khoa Trung Quốc học" [ref=e1312]:
+                    - generic [ref=e1313]: Khoa Trung Quốc học
+                  - cell "Chưa có" [ref=e1314]:
+                    - generic [ref=e1315]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1316]:
+                    - button "ĐC cơ bản" [ref=e1317] [cursor=pointer]
+                    - button "Sửa" [ref=e1318] [cursor=pointer]
+                    - button "Xóa" [ref=e1319] [cursor=pointer]
+                - row "CHN117 Tiếng Trung – Đọc 1 3 Khoa Trung Quốc học Chưa có ĐC cơ bản Sửa Xóa" [ref=e1320]:
+                  - cell "CHN117" [ref=e1321]:
+                    - strong [ref=e1322]: CHN117
+                  - cell "Tiếng Trung – Đọc 1" [ref=e1323]
+                  - cell "3" [ref=e1324]
+                  - cell "Khoa Trung Quốc học" [ref=e1325]:
+                    - generic [ref=e1326]: Khoa Trung Quốc học
+                  - cell "Chưa có" [ref=e1327]:
+                    - generic [ref=e1328]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1329]:
+                    - button "ĐC cơ bản" [ref=e1330] [cursor=pointer]
+                    - button "Sửa" [ref=e1331] [cursor=pointer]
+                    - button "Xóa" [ref=e1332] [cursor=pointer]
+                - row "CHN118 Tiếng Trung – Đọc 2 3 Khoa Trung Quốc học Chưa có ĐC cơ bản Sửa Xóa" [ref=e1333]:
+                  - cell "CHN118" [ref=e1334]:
+                    - strong [ref=e1335]: CHN118
+                  - cell "Tiếng Trung – Đọc 2" [ref=e1336]
+                  - cell "3" [ref=e1337]
+                  - cell "Khoa Trung Quốc học" [ref=e1338]:
+                    - generic [ref=e1339]: Khoa Trung Quốc học
+                  - cell "Chưa có" [ref=e1340]:
+                    - generic [ref=e1341]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1342]:
+                    - button "ĐC cơ bản" [ref=e1343] [cursor=pointer]
+                    - button "Sửa" [ref=e1344] [cursor=pointer]
+                    - button "Xóa" [ref=e1345] [cursor=pointer]
+                - row "CHN119 Tiếng Trung – Đọc 3 3 Khoa Trung Quốc học Chưa có ĐC cơ bản Sửa Xóa" [ref=e1346]:
+                  - cell "CHN119" [ref=e1347]:
+                    - strong [ref=e1348]: CHN119
+                  - cell "Tiếng Trung – Đọc 3" [ref=e1349]
+                  - cell "3" [ref=e1350]
+                  - cell "Khoa Trung Quốc học" [ref=e1351]:
+                    - generic [ref=e1352]: Khoa Trung Quốc học
+                  - cell "Chưa có" [ref=e1353]:
+                    - generic [ref=e1354]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1355]:
+                    - button "ĐC cơ bản" [ref=e1356] [cursor=pointer]
+                    - button "Sửa" [ref=e1357] [cursor=pointer]
+                    - button "Xóa" [ref=e1358] [cursor=pointer]
+                - row "CHN120 Tiếng Trung – Đọc 4 3 Khoa Trung Quốc học Chưa có ĐC cơ bản Sửa Xóa" [ref=e1359]:
+                  - cell "CHN120" [ref=e1360]:
+                    - strong [ref=e1361]: CHN120
+                  - cell "Tiếng Trung – Đọc 4" [ref=e1362]
+                  - cell "3" [ref=e1363]
+                  - cell "Khoa Trung Quốc học" [ref=e1364]:
+                    - generic [ref=e1365]: Khoa Trung Quốc học
+                  - cell "Chưa có" [ref=e1366]:
+                    - generic [ref=e1367]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1368]:
+                    - button "ĐC cơ bản" [ref=e1369] [cursor=pointer]
+                    - button "Sửa" [ref=e1370] [cursor=pointer]
+                    - button "Xóa" [ref=e1371] [cursor=pointer]
+                - row "CHN121 Tiếng Trung – Đọc 5 3 Khoa Trung Quốc học Chưa có ĐC cơ bản Sửa Xóa" [ref=e1372]:
+                  - cell "CHN121" [ref=e1373]:
+                    - strong [ref=e1374]: CHN121
+                  - cell "Tiếng Trung – Đọc 5" [ref=e1375]
+                  - cell "3" [ref=e1376]
+                  - cell "Khoa Trung Quốc học" [ref=e1377]:
+                    - generic [ref=e1378]: Khoa Trung Quốc học
+                  - cell "Chưa có" [ref=e1379]:
+                    - generic [ref=e1380]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1381]:
+                    - button "ĐC cơ bản" [ref=e1382] [cursor=pointer]
+                    - button "Sửa" [ref=e1383] [cursor=pointer]
+                    - button "Xóa" [ref=e1384] [cursor=pointer]
+                - row "CHN122 Tiếng Trung – Viết 1 3 Khoa Trung Quốc học Chưa có ĐC cơ bản Sửa Xóa" [ref=e1385]:
+                  - cell "CHN122" [ref=e1386]:
+                    - strong [ref=e1387]: CHN122
+                  - cell "Tiếng Trung – Viết 1" [ref=e1388]
+                  - cell "3" [ref=e1389]
+                  - cell "Khoa Trung Quốc học" [ref=e1390]:
+                    - generic [ref=e1391]: Khoa Trung Quốc học
+                  - cell "Chưa có" [ref=e1392]:
+                    - generic [ref=e1393]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1394]:
+                    - button "ĐC cơ bản" [ref=e1395] [cursor=pointer]
+                    - button "Sửa" [ref=e1396] [cursor=pointer]
+                    - button "Xóa" [ref=e1397] [cursor=pointer]
+                - row "CHN123 Tiếng Trung – Viết 2 3 Khoa Trung Quốc học Chưa có ĐC cơ bản Sửa Xóa" [ref=e1398]:
+                  - cell "CHN123" [ref=e1399]:
+                    - strong [ref=e1400]: CHN123
+                  - cell "Tiếng Trung – Viết 2" [ref=e1401]
+                  - cell "3" [ref=e1402]
+                  - cell "Khoa Trung Quốc học" [ref=e1403]:
+                    - generic [ref=e1404]: Khoa Trung Quốc học
+                  - cell "Chưa có" [ref=e1405]:
+                    - generic [ref=e1406]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1407]:
+                    - button "ĐC cơ bản" [ref=e1408] [cursor=pointer]
+                    - button "Sửa" [ref=e1409] [cursor=pointer]
+                    - button "Xóa" [ref=e1410] [cursor=pointer]
+                - row "CHN124 Tiếng Trung – Viết 3 3 Khoa Trung Quốc học Chưa có ĐC cơ bản Sửa Xóa" [ref=e1411]:
+                  - cell "CHN124" [ref=e1412]:
+                    - strong [ref=e1413]: CHN124
+                  - cell "Tiếng Trung – Viết 3" [ref=e1414]
+                  - cell "3" [ref=e1415]
+                  - cell "Khoa Trung Quốc học" [ref=e1416]:
+                    - generic [ref=e1417]: Khoa Trung Quốc học
+                  - cell "Chưa có" [ref=e1418]:
+                    - generic [ref=e1419]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1420]:
+                    - button "ĐC cơ bản" [ref=e1421] [cursor=pointer]
+                    - button "Sửa" [ref=e1422] [cursor=pointer]
+                    - button "Xóa" [ref=e1423] [cursor=pointer]
+                - row "CHN125 Tiếng Trung – Viết 4 3 Khoa Trung Quốc học Chưa có ĐC cơ bản Sửa Xóa" [ref=e1424]:
+                  - cell "CHN125" [ref=e1425]:
+                    - strong [ref=e1426]: CHN125
+                  - cell "Tiếng Trung – Viết 4" [ref=e1427]
+                  - cell "3" [ref=e1428]
+                  - cell "Khoa Trung Quốc học" [ref=e1429]:
+                    - generic [ref=e1430]: Khoa Trung Quốc học
+                  - cell "Chưa có" [ref=e1431]:
+                    - generic [ref=e1432]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1433]:
+                    - button "ĐC cơ bản" [ref=e1434] [cursor=pointer]
+                    - button "Sửa" [ref=e1435] [cursor=pointer]
+                    - button "Xóa" [ref=e1436] [cursor=pointer]
+                - row "CHN126 Tiếng Trung – Viết 5 3 Khoa Trung Quốc học Chưa có ĐC cơ bản Sửa Xóa" [ref=e1437]:
+                  - cell "CHN126" [ref=e1438]:
+                    - strong [ref=e1439]: CHN126
+                  - cell "Tiếng Trung – Viết 5" [ref=e1440]
+                  - cell "3" [ref=e1441]
+                  - cell "Khoa Trung Quốc học" [ref=e1442]:
+                    - generic [ref=e1443]: Khoa Trung Quốc học
+                  - cell "Chưa có" [ref=e1444]:
+                    - generic [ref=e1445]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1446]:
+                    - button "ĐC cơ bản" [ref=e1447] [cursor=pointer]
+                    - button "Sửa" [ref=e1448] [cursor=pointer]
+                    - button "Xóa" [ref=e1449] [cursor=pointer]
+                - row "CHN128 Tiếng Trung Thương mại 3 Khoa Trung Quốc học Chưa có ĐC cơ bản Sửa Xóa" [ref=e1450]:
+                  - cell "CHN128" [ref=e1451]:
+                    - strong [ref=e1452]: CHN128
+                  - cell "Tiếng Trung Thương mại" [ref=e1453]
+                  - cell "3" [ref=e1454]
+                  - cell "Khoa Trung Quốc học" [ref=e1455]:
+                    - generic [ref=e1456]: Khoa Trung Quốc học
+                  - cell "Chưa có" [ref=e1457]:
+                    - generic [ref=e1458]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1459]:
+                    - button "ĐC cơ bản" [ref=e1460] [cursor=pointer]
+                    - button "Sửa" [ref=e1461] [cursor=pointer]
+                    - button "Xóa" [ref=e1462] [cursor=pointer]
+                - row "CHN134 Lý thuyết tiếng Trung Quốc 3 Khoa Trung Quốc học Chưa có ĐC cơ bản Sửa Xóa" [ref=e1463]:
+                  - cell "CHN134" [ref=e1464]:
+                    - strong [ref=e1465]: CHN134
+                  - cell "Lý thuyết tiếng Trung Quốc" [ref=e1466]
+                  - cell "3" [ref=e1467]
+                  - cell "Khoa Trung Quốc học" [ref=e1468]:
+                    - generic [ref=e1469]: Khoa Trung Quốc học
+                  - cell "Chưa có" [ref=e1470]:
+                    - generic [ref=e1471]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1472]:
+                    - button "ĐC cơ bản" [ref=e1473] [cursor=pointer]
+                    - button "Sửa" [ref=e1474] [cursor=pointer]
+                    - button "Xóa" [ref=e1475] [cursor=pointer]
+                - row "CHN135 Thư tín thương mại tiếng Trung 3 Khoa Trung Quốc học Chưa có ĐC cơ bản Sửa Xóa" [ref=e1476]:
+                  - cell "CHN135" [ref=e1477]:
+                    - strong [ref=e1478]: CHN135
+                  - cell "Thư tín thương mại tiếng Trung" [ref=e1479]
+                  - cell "3" [ref=e1480]
+                  - cell "Khoa Trung Quốc học" [ref=e1481]:
+                    - generic [ref=e1482]: Khoa Trung Quốc học
+                  - cell "Chưa có" [ref=e1483]:
+                    - generic [ref=e1484]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1485]:
+                    - button "ĐC cơ bản" [ref=e1486] [cursor=pointer]
+                    - button "Sửa" [ref=e1487] [cursor=pointer]
+                    - button "Xóa" [ref=e1488] [cursor=pointer]
+                - row "CHN137 Tiếng Trung hành chính – văn phòng 3 Khoa Trung Quốc học Chưa có ĐC cơ bản Sửa Xóa" [ref=e1489]:
+                  - cell "CHN137" [ref=e1490]:
+                    - strong [ref=e1491]: CHN137
+                  - cell "Tiếng Trung hành chính – văn phòng" [ref=e1492]
+                  - cell "3" [ref=e1493]
+                  - cell "Khoa Trung Quốc học" [ref=e1494]:
+                    - generic [ref=e1495]: Khoa Trung Quốc học
+                  - cell "Chưa có" [ref=e1496]:
+                    - generic [ref=e1497]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1498]:
+                    - button "ĐC cơ bản" [ref=e1499] [cursor=pointer]
+                    - button "Sửa" [ref=e1500] [cursor=pointer]
+                    - button "Xóa" [ref=e1501] [cursor=pointer]
+                - row "CHN139 Kỹ năng dịch nói tiếng Trung 3 Khoa Trung Quốc học Chưa có ĐC cơ bản Sửa Xóa" [ref=e1502]:
+                  - cell "CHN139" [ref=e1503]:
+                    - strong [ref=e1504]: CHN139
+                  - cell "Kỹ năng dịch nói tiếng Trung" [ref=e1505]
+                  - cell "3" [ref=e1506]
+                  - cell "Khoa Trung Quốc học" [ref=e1507]:
+                    - generic [ref=e1508]: Khoa Trung Quốc học
+                  - cell "Chưa có" [ref=e1509]:
+                    - generic [ref=e1510]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1511]:
+                    - button "ĐC cơ bản" [ref=e1512] [cursor=pointer]
+                    - button "Sửa" [ref=e1513] [cursor=pointer]
+                    - button "Xóa" [ref=e1514] [cursor=pointer]
+                - row "CHN144 Kỹ năng dịch viết tiếng Trung 3 Khoa Trung Quốc học Chưa có ĐC cơ bản Sửa Xóa" [ref=e1515]:
+                  - cell "CHN144" [ref=e1516]:
+                    - strong [ref=e1517]: CHN144
+                  - cell "Kỹ năng dịch viết tiếng Trung" [ref=e1518]
+                  - cell "3" [ref=e1519]
+                  - cell "Khoa Trung Quốc học" [ref=e1520]:
+                    - generic [ref=e1521]: Khoa Trung Quốc học
+                  - cell "Chưa có" [ref=e1522]:
+                    - generic [ref=e1523]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1524]:
+                    - button "ĐC cơ bản" [ref=e1525] [cursor=pointer]
+                    - button "Sửa" [ref=e1526] [cursor=pointer]
+                    - button "Xóa" [ref=e1527] [cursor=pointer]
+                - row "CHN4005 Khóa luận tốt nghiệp Ngôn ngữ Trung Quốc (*) 9 Khoa Trung Quốc học Chưa có ĐC cơ bản Sửa Xóa" [ref=e1528]:
+                  - cell "CHN4005" [ref=e1529]:
+                    - strong [ref=e1530]: CHN4005
+                  - cell "Khóa luận tốt nghiệp Ngôn ngữ Trung Quốc (*)" [ref=e1531]
+                  - cell "9" [ref=e1532]
+                  - cell "Khoa Trung Quốc học" [ref=e1533]:
+                    - generic [ref=e1534]: Khoa Trung Quốc học
+                  - cell "Chưa có" [ref=e1535]:
+                    - generic [ref=e1536]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1537]:
+                    - button "ĐC cơ bản" [ref=e1538] [cursor=pointer]
+                    - button "Sửa" [ref=e1539] [cursor=pointer]
+                    - button "Xóa" [ref=e1540] [cursor=pointer]
+                - row "CHN5002 Thực tế trải nghiệm văn hóa và ngôn ngữ Trung Quốc 3 Khoa Trung Quốc học Chưa có ĐC cơ bản Sửa Xóa" [ref=e1541]:
+                  - cell "CHN5002" [ref=e1542]:
+                    - strong [ref=e1543]: CHN5002
+                  - cell "Thực tế trải nghiệm văn hóa và ngôn ngữ Trung Quốc" [ref=e1544]
+                  - cell "3" [ref=e1545]
+                  - cell "Khoa Trung Quốc học" [ref=e1546]:
+                    - generic [ref=e1547]: Khoa Trung Quốc học
+                  - cell "Chưa có" [ref=e1548]:
+                    - generic [ref=e1549]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1550]:
+                    - button "ĐC cơ bản" [ref=e1551] [cursor=pointer]
+                    - button "Sửa" [ref=e1552] [cursor=pointer]
+                    - button "Xóa" [ref=e1553] [cursor=pointer]
+                - row "CHN546 Thực tập tốt nghiệp ngành Ngôn ngữ Trung Quốc (*) 3 Khoa Trung Quốc học Chưa có ĐC cơ bản Sửa Xóa" [ref=e1554]:
+                  - cell "CHN546" [ref=e1555]:
+                    - strong [ref=e1556]: CHN546
+                  - cell "Thực tập tốt nghiệp ngành Ngôn ngữ Trung Quốc (*)" [ref=e1557]
+                  - cell "3" [ref=e1558]
+                  - cell "Khoa Trung Quốc học" [ref=e1559]:
+                    - generic [ref=e1560]: Khoa Trung Quốc học
+                  - cell "Chưa có" [ref=e1561]:
+                    - generic [ref=e1562]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1563]:
+                    - button "ĐC cơ bản" [ref=e1564] [cursor=pointer]
+                    - button "Sửa" [ref=e1565] [cursor=pointer]
+                    - button "Xóa" [ref=e1566] [cursor=pointer]
+                - row "ENC120 Anh ngữ 1 3 Khoa Tiếng Anh Chưa có ĐC cơ bản Sửa Xóa" [ref=e1567]:
+                  - cell "ENC120" [ref=e1568]:
+                    - strong [ref=e1569]: ENC120
+                  - cell "Anh ngữ 1" [ref=e1570]
+                  - cell "3" [ref=e1571]
+                  - cell "Khoa Tiếng Anh" [ref=e1572]:
+                    - generic [ref=e1573]: Khoa Tiếng Anh
+                  - cell "Chưa có" [ref=e1574]:
+                    - generic [ref=e1575]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1576]:
+                    - button "ĐC cơ bản" [ref=e1577] [cursor=pointer]
+                    - button "Sửa" [ref=e1578] [cursor=pointer]
+                    - button "Xóa" [ref=e1579] [cursor=pointer]
+                - row "ENC121 Anh ngữ 2 3 Khoa Tiếng Anh Chưa có ĐC cơ bản Sửa Xóa" [ref=e1580]:
+                  - cell "ENC121" [ref=e1581]:
+                    - strong [ref=e1582]: ENC121
+                  - cell "Anh ngữ 2" [ref=e1583]
+                  - cell "3" [ref=e1584]
+                  - cell "Khoa Tiếng Anh" [ref=e1585]:
+                    - generic [ref=e1586]: Khoa Tiếng Anh
+                  - cell "Chưa có" [ref=e1587]:
+                    - generic [ref=e1588]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1589]:
+                    - button "ĐC cơ bản" [ref=e1590] [cursor=pointer]
+                    - button "Sửa" [ref=e1591] [cursor=pointer]
+                    - button "Xóa" [ref=e1592] [cursor=pointer]
+                - row "ENC122 Anh ngữ 3 3 Khoa Tiếng Anh Chưa có ĐC cơ bản Sửa Xóa" [ref=e1593]:
+                  - cell "ENC122" [ref=e1594]:
+                    - strong [ref=e1595]: ENC122
+                  - cell "Anh ngữ 3" [ref=e1596]
+                  - cell "3" [ref=e1597]
+                  - cell "Khoa Tiếng Anh" [ref=e1598]:
+                    - generic [ref=e1599]: Khoa Tiếng Anh
+                  - cell "Chưa có" [ref=e1600]:
+                    - generic [ref=e1601]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1602]:
+                    - button "ĐC cơ bản" [ref=e1603] [cursor=pointer]
+                    - button "Sửa" [ref=e1604] [cursor=pointer]
+                    - button "Xóa" [ref=e1605] [cursor=pointer]
+                - row "ENC123 Anh ngữ 4 3 Khoa Tiếng Anh Chưa có ĐC cơ bản Sửa Xóa" [ref=e1606]:
+                  - cell "ENC123" [ref=e1607]:
+                    - strong [ref=e1608]: ENC123
+                  - cell "Anh ngữ 4" [ref=e1609]
+                  - cell "3" [ref=e1610]
+                  - cell "Khoa Tiếng Anh" [ref=e1611]:
+                    - generic [ref=e1612]: Khoa Tiếng Anh
+                  - cell "Chưa có" [ref=e1613]:
+                    - generic [ref=e1614]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1615]:
+                    - button "ĐC cơ bản" [ref=e1616] [cursor=pointer]
+                    - button "Sửa" [ref=e1617] [cursor=pointer]
+                    - button "Xóa" [ref=e1618] [cursor=pointer]
+                - row "ENG183 Dẫn luận ngôn ngữ 3 Khoa Nhật Bản học Chưa có ĐC cơ bản Sửa Xóa" [ref=e1619]:
+                  - cell "ENG183" [ref=e1620]:
+                    - strong [ref=e1621]: ENG183
+                  - cell "Dẫn luận ngôn ngữ" [ref=e1622]
+                  - cell "3" [ref=e1623]
+                  - cell "Khoa Nhật Bản học" [ref=e1624]:
+                    - generic [ref=e1625]: Khoa Nhật Bản học
+                  - cell "Chưa có" [ref=e1626]:
+                    - generic [ref=e1627]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1628]:
+                    - button "ĐC cơ bản" [ref=e1629] [cursor=pointer]
+                    - button "Sửa" [ref=e1630] [cursor=pointer]
+                    - button "Xóa" [ref=e1631] [cursor=pointer]
+                - row "ENS192 Phát triển bền vững 3 Viện Khoa học ứng dụng Chưa có ĐC cơ bản Sửa Xóa" [ref=e1632]:
+                  - cell "ENS192" [ref=e1633]:
+                    - strong [ref=e1634]: ENS192
+                  - cell "Phát triển bền vững" [ref=e1635]
+                  - cell "3" [ref=e1636]
+                  - cell "Viện Khoa học ứng dụng" [ref=e1637]:
+                    - generic [ref=e1638]: Viện Khoa học ứng dụng
+                  - cell "Chưa có" [ref=e1639]:
+                    - generic [ref=e1640]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1641]:
+                    - button "ĐC cơ bản" [ref=e1642] [cursor=pointer]
+                    - button "Sửa" [ref=e1643] [cursor=pointer]
+                    - button "Xóa" [ref=e1644] [cursor=pointer]
+                - row "LAW158 Luật và Khởi nghiệp 3 Khoa Luật Chưa có ĐC cơ bản Sửa Xóa" [ref=e1645]:
+                  - cell "LAW158" [ref=e1646]:
+                    - strong [ref=e1647]: LAW158
+                  - cell "Luật và Khởi nghiệp" [ref=e1648]
+                  - cell "3" [ref=e1649]
+                  - cell "Khoa Luật" [ref=e1650]:
+                    - generic [ref=e1651]: Khoa Luật
+                  - cell "Chưa có" [ref=e1652]:
+                    - generic [ref=e1653]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1654]:
+                    - button "ĐC cơ bản" [ref=e1655] [cursor=pointer]
+                    - button "Sửa" [ref=e1656] [cursor=pointer]
+                    - button "Xóa" [ref=e1657] [cursor=pointer]
+                - row "MAN116 Quản trị học 3 Khoa QTKD Chưa có ĐC cơ bản Sửa Xóa" [ref=e1658]:
+                  - cell "MAN116" [ref=e1659]:
+                    - strong [ref=e1660]: MAN116
+                  - cell "Quản trị học" [ref=e1661]
+                  - cell "3" [ref=e1662]
+                  - cell "Khoa QTKD" [ref=e1663]:
+                    - generic [ref=e1664]: Khoa QTKD
+                  - cell "Chưa có" [ref=e1665]:
+                    - generic [ref=e1666]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1667]:
+                    - button "ĐC cơ bản" [ref=e1668] [cursor=pointer]
+                    - button "Sửa" [ref=e1669] [cursor=pointer]
+                    - button "Xóa" [ref=e1670] [cursor=pointer]
+                - row "NDF108 Quốc phòng, an ninh 1 0 TT Giáo dục CT-QP Chưa có ĐC cơ bản Sửa Xóa" [ref=e1671]:
+                  - cell "NDF108" [ref=e1672]:
+                    - strong [ref=e1673]: NDF108
+                  - cell "Quốc phòng, an ninh 1" [ref=e1674]
+                  - cell "0" [ref=e1675]
+                  - cell "TT Giáo dục CT-QP" [ref=e1676]:
+                    - generic [ref=e1677]: TT Giáo dục CT-QP
+                  - cell "Chưa có" [ref=e1678]:
+                    - generic [ref=e1679]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1680]:
+                    - button "ĐC cơ bản" [ref=e1681] [cursor=pointer]
+                    - button "Sửa" [ref=e1682] [cursor=pointer]
+                    - button "Xóa" [ref=e1683] [cursor=pointer]
+                - row "NDF109 Quốc phòng, an ninh 2 0 TT Giáo dục CT-QP Chưa có ĐC cơ bản Sửa Xóa" [ref=e1684]:
+                  - cell "NDF109" [ref=e1685]:
+                    - strong [ref=e1686]: NDF109
+                  - cell "Quốc phòng, an ninh 2" [ref=e1687]
+                  - cell "0" [ref=e1688]
+                  - cell "TT Giáo dục CT-QP" [ref=e1689]:
+                    - generic [ref=e1690]: TT Giáo dục CT-QP
+                  - cell "Chưa có" [ref=e1691]:
+                    - generic [ref=e1692]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1693]:
+                    - button "ĐC cơ bản" [ref=e1694] [cursor=pointer]
+                    - button "Sửa" [ref=e1695] [cursor=pointer]
+                    - button "Xóa" [ref=e1696] [cursor=pointer]
+                - row "NDF210 Quốc phòng, an ninh 3 0 TT Giáo dục CT-QP Chưa có ĐC cơ bản Sửa Xóa" [ref=e1697]:
+                  - cell "NDF210" [ref=e1698]:
+                    - strong [ref=e1699]: NDF210
+                  - cell "Quốc phòng, an ninh 3" [ref=e1700]
+                  - cell "0" [ref=e1701]
+                  - cell "TT Giáo dục CT-QP" [ref=e1702]:
+                    - generic [ref=e1703]: TT Giáo dục CT-QP
+                  - cell "Chưa có" [ref=e1704]:
+                    - generic [ref=e1705]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1706]:
+                    - button "ĐC cơ bản" [ref=e1707] [cursor=pointer]
+                    - button "Sửa" [ref=e1708] [cursor=pointer]
+                    - button "Xóa" [ref=e1709] [cursor=pointer]
+                - row "NDF211 Quốc phòng, an ninh 4 0 TT Giáo dục CT-QP Chưa có ĐC cơ bản Sửa Xóa" [ref=e1710]:
+                  - cell "NDF211" [ref=e1711]:
+                    - strong [ref=e1712]: NDF211
+                  - cell "Quốc phòng, an ninh 4" [ref=e1713]
+                  - cell "0" [ref=e1714]
+                  - cell "TT Giáo dục CT-QP" [ref=e1715]:
+                    - generic [ref=e1716]: TT Giáo dục CT-QP
+                  - cell "Chưa có" [ref=e1717]:
+                    - generic [ref=e1718]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1719]:
+                    - button "ĐC cơ bản" [ref=e1720] [cursor=pointer]
+                    - button "Sửa" [ref=e1721] [cursor=pointer]
+                    - button "Xóa" [ref=e1722] [cursor=pointer]
+                - row "PHT304 Bóng chuyền 1 2 TT Giáo dục Thể chất Chưa có ĐC cơ bản Sửa Xóa" [ref=e1723]:
+                  - cell "PHT304" [ref=e1724]:
+                    - strong [ref=e1725]: PHT304
+                  - cell "Bóng chuyền 1" [ref=e1726]
+                  - cell "2" [ref=e1727]
+                  - cell "TT Giáo dục Thể chất" [ref=e1728]:
+                    - generic [ref=e1729]: TT Giáo dục Thể chất
+                  - cell "Chưa có" [ref=e1730]:
+                    - generic [ref=e1731]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1732]:
+                    - button "ĐC cơ bản" [ref=e1733] [cursor=pointer]
+                    - button "Sửa" [ref=e1734] [cursor=pointer]
+                    - button "Xóa" [ref=e1735] [cursor=pointer]
+                - row "PHT305 Bóng chuyền 1 2 TT Giáo dục Thể chất Chưa có ĐC cơ bản Sửa Xóa" [ref=e1736]:
+                  - cell "PHT305" [ref=e1737]:
+                    - strong [ref=e1738]: PHT305
+                  - cell "Bóng chuyền 1" [ref=e1739]
+                  - cell "2" [ref=e1740]
+                  - cell "TT Giáo dục Thể chất" [ref=e1741]:
+                    - generic [ref=e1742]: TT Giáo dục Thể chất
+                  - cell "Chưa có" [ref=e1743]:
+                    - generic [ref=e1744]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1745]:
+                    - button "ĐC cơ bản" [ref=e1746] [cursor=pointer]
+                    - button "Sửa" [ref=e1747] [cursor=pointer]
+                    - button "Xóa" [ref=e1748] [cursor=pointer]
+                - row "PHT306 Bóng chuyền 1 1 TT Giáo dục Thể chất Chưa có ĐC cơ bản Sửa Xóa" [ref=e1749]:
+                  - cell "PHT306" [ref=e1750]:
+                    - strong [ref=e1751]: PHT306
+                  - cell "Bóng chuyền 1" [ref=e1752]
+                  - cell "1" [ref=e1753]
+                  - cell "TT Giáo dục Thể chất" [ref=e1754]:
+                    - generic [ref=e1755]: TT Giáo dục Thể chất
+                  - cell "Chưa có" [ref=e1756]:
+                    - generic [ref=e1757]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1758]:
+                    - button "ĐC cơ bản" [ref=e1759] [cursor=pointer]
+                    - button "Sửa" [ref=e1760] [cursor=pointer]
+                    - button "Xóa" [ref=e1761] [cursor=pointer]
+                - row "PHT307 Bóng rổ 1 2 TT Giáo dục Thể chất Chưa có ĐC cơ bản Sửa Xóa" [ref=e1762]:
+                  - cell "PHT307" [ref=e1763]:
+                    - strong [ref=e1764]: PHT307
+                  - cell "Bóng rổ 1" [ref=e1765]
+                  - cell "2" [ref=e1766]
+                  - cell "TT Giáo dục Thể chất" [ref=e1767]:
+                    - generic [ref=e1768]: TT Giáo dục Thể chất
+                  - cell "Chưa có" [ref=e1769]:
+                    - generic [ref=e1770]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1771]:
+                    - button "ĐC cơ bản" [ref=e1772] [cursor=pointer]
+                    - button "Sửa" [ref=e1773] [cursor=pointer]
+                    - button "Xóa" [ref=e1774] [cursor=pointer]
+                - row "PHT308 Bóng rổ 2 2 TT Giáo dục Thể chất Chưa có ĐC cơ bản Sửa Xóa" [ref=e1775]:
+                  - cell "PHT308" [ref=e1776]:
+                    - strong [ref=e1777]: PHT308
+                  - cell "Bóng rổ 2" [ref=e1778]
+                  - cell "2" [ref=e1779]
+                  - cell "TT Giáo dục Thể chất" [ref=e1780]:
+                    - generic [ref=e1781]: TT Giáo dục Thể chất
+                  - cell "Chưa có" [ref=e1782]:
+                    - generic [ref=e1783]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1784]:
+                    - button "ĐC cơ bản" [ref=e1785] [cursor=pointer]
+                    - button "Sửa" [ref=e1786] [cursor=pointer]
+                    - button "Xóa" [ref=e1787] [cursor=pointer]
+                - row "PHT309 Bóng rổ 3 1 TT Giáo dục Thể chất Chưa có ĐC cơ bản Sửa Xóa" [ref=e1788]:
+                  - cell "PHT309" [ref=e1789]:
+                    - strong [ref=e1790]: PHT309
+                  - cell "Bóng rổ 3" [ref=e1791]
+                  - cell "1" [ref=e1792]
+                  - cell "TT Giáo dục Thể chất" [ref=e1793]:
+                    - generic [ref=e1794]: TT Giáo dục Thể chất
+                  - cell "Chưa có" [ref=e1795]:
+                    - generic [ref=e1796]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1797]:
+                    - button "ĐC cơ bản" [ref=e1798] [cursor=pointer]
+                    - button "Sửa" [ref=e1799] [cursor=pointer]
+                    - button "Xóa" [ref=e1800] [cursor=pointer]
+                - row "PHT310 Thể hình - Thẩm mỹ 1 2 TT Giáo dục Thể chất Chưa có ĐC cơ bản Sửa Xóa" [ref=e1801]:
+                  - cell "PHT310" [ref=e1802]:
+                    - strong [ref=e1803]: PHT310
+                  - cell "Thể hình - Thẩm mỹ 1" [ref=e1804]
+                  - cell "2" [ref=e1805]
+                  - cell "TT Giáo dục Thể chất" [ref=e1806]:
+                    - generic [ref=e1807]: TT Giáo dục Thể chất
+                  - cell "Chưa có" [ref=e1808]:
+                    - generic [ref=e1809]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1810]:
+                    - button "ĐC cơ bản" [ref=e1811] [cursor=pointer]
+                    - button "Sửa" [ref=e1812] [cursor=pointer]
+                    - button "Xóa" [ref=e1813] [cursor=pointer]
+                - row "PHT311 Thể hình - Thẩm mỹ 2 2 TT Giáo dục Thể chất Chưa có ĐC cơ bản Sửa Xóa" [ref=e1814]:
+                  - cell "PHT311" [ref=e1815]:
+                    - strong [ref=e1816]: PHT311
+                  - cell "Thể hình - Thẩm mỹ 2" [ref=e1817]
+                  - cell "2" [ref=e1818]
+                  - cell "TT Giáo dục Thể chất" [ref=e1819]:
+                    - generic [ref=e1820]: TT Giáo dục Thể chất
+                  - cell "Chưa có" [ref=e1821]:
+                    - generic [ref=e1822]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1823]:
+                    - button "ĐC cơ bản" [ref=e1824] [cursor=pointer]
+                    - button "Sửa" [ref=e1825] [cursor=pointer]
+                    - button "Xóa" [ref=e1826] [cursor=pointer]
+                - row "PHT312 Thể hình - Thẩm mỹ 3 1 TT Giáo dục Thể chất Chưa có ĐC cơ bản Sửa Xóa" [ref=e1827]:
+                  - cell "PHT312" [ref=e1828]:
+                    - strong [ref=e1829]: PHT312
+                  - cell "Thể hình - Thẩm mỹ 3" [ref=e1830]
+                  - cell "1" [ref=e1831]
+                  - cell "TT Giáo dục Thể chất" [ref=e1832]:
+                    - generic [ref=e1833]: TT Giáo dục Thể chất
+                  - cell "Chưa có" [ref=e1834]:
+                    - generic [ref=e1835]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1836]:
+                    - button "ĐC cơ bản" [ref=e1837] [cursor=pointer]
+                    - button "Sửa" [ref=e1838] [cursor=pointer]
+                    - button "Xóa" [ref=e1839] [cursor=pointer]
+                - row "PHT313 Vovinam 1 2 TT Giáo dục Thể chất Chưa có ĐC cơ bản Sửa Xóa" [ref=e1840]:
+                  - cell "PHT313" [ref=e1841]:
+                    - strong [ref=e1842]: PHT313
+                  - cell "Vovinam 1" [ref=e1843]
+                  - cell "2" [ref=e1844]
+                  - cell "TT Giáo dục Thể chất" [ref=e1845]:
+                    - generic [ref=e1846]: TT Giáo dục Thể chất
+                  - cell "Chưa có" [ref=e1847]:
+                    - generic [ref=e1848]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1849]:
+                    - button "ĐC cơ bản" [ref=e1850] [cursor=pointer]
+                    - button "Sửa" [ref=e1851] [cursor=pointer]
+                    - button "Xóa" [ref=e1852] [cursor=pointer]
+                - row "PHT314 Vovinam 2 2 TT Giáo dục Thể chất Chưa có ĐC cơ bản Sửa Xóa" [ref=e1853]:
+                  - cell "PHT314" [ref=e1854]:
+                    - strong [ref=e1855]: PHT314
+                  - cell "Vovinam 2" [ref=e1856]
+                  - cell "2" [ref=e1857]
+                  - cell "TT Giáo dục Thể chất" [ref=e1858]:
+                    - generic [ref=e1859]: TT Giáo dục Thể chất
+                  - cell "Chưa có" [ref=e1860]:
+                    - generic [ref=e1861]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1862]:
+                    - button "ĐC cơ bản" [ref=e1863] [cursor=pointer]
+                    - button "Sửa" [ref=e1864] [cursor=pointer]
+                    - button "Xóa" [ref=e1865] [cursor=pointer]
+                - row "PHT315 Vovinam 3 1 TT Giáo dục Thể chất Chưa có ĐC cơ bản Sửa Xóa" [ref=e1866]:
+                  - cell "PHT315" [ref=e1867]:
+                    - strong [ref=e1868]: PHT315
+                  - cell "Vovinam 3" [ref=e1869]
+                  - cell "1" [ref=e1870]
+                  - cell "TT Giáo dục Thể chất" [ref=e1871]:
+                    - generic [ref=e1872]: TT Giáo dục Thể chất
+                  - cell "Chưa có" [ref=e1873]:
+                    - generic [ref=e1874]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1875]:
+                    - button "ĐC cơ bản" [ref=e1876] [cursor=pointer]
+                    - button "Sửa" [ref=e1877] [cursor=pointer]
+                    - button "Xóa" [ref=e1878] [cursor=pointer]
+                - row "PHT316 Bóng đá 1 2 TT Giáo dục Thể chất Chưa có ĐC cơ bản Sửa Xóa" [ref=e1879]:
+                  - cell "PHT316" [ref=e1880]:
+                    - strong [ref=e1881]: PHT316
+                  - cell "Bóng đá 1" [ref=e1882]
+                  - cell "2" [ref=e1883]
+                  - cell "TT Giáo dục Thể chất" [ref=e1884]:
+                    - generic [ref=e1885]: TT Giáo dục Thể chất
+                  - cell "Chưa có" [ref=e1886]:
+                    - generic [ref=e1887]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1888]:
+                    - button "ĐC cơ bản" [ref=e1889] [cursor=pointer]
+                    - button "Sửa" [ref=e1890] [cursor=pointer]
+                    - button "Xóa" [ref=e1891] [cursor=pointer]
+                - row "PHT317 Bóng đá 2 2 TT Giáo dục Thể chất Chưa có ĐC cơ bản Sửa Xóa" [ref=e1892]:
+                  - cell "PHT317" [ref=e1893]:
+                    - strong [ref=e1894]: PHT317
+                  - cell "Bóng đá 2" [ref=e1895]
+                  - cell "2" [ref=e1896]
+                  - cell "TT Giáo dục Thể chất" [ref=e1897]:
+                    - generic [ref=e1898]: TT Giáo dục Thể chất
+                  - cell "Chưa có" [ref=e1899]:
+                    - generic [ref=e1900]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1901]:
+                    - button "ĐC cơ bản" [ref=e1902] [cursor=pointer]
+                    - button "Sửa" [ref=e1903] [cursor=pointer]
+                    - button "Xóa" [ref=e1904] [cursor=pointer]
+                - row "PHT318 Bóng đá 3 1 TT Giáo dục Thể chất Chưa có ĐC cơ bản Sửa Xóa" [ref=e1905]:
+                  - cell "PHT318" [ref=e1906]:
+                    - strong [ref=e1907]: PHT318
+                  - cell "Bóng đá 3" [ref=e1908]
+                  - cell "1" [ref=e1909]
+                  - cell "TT Giáo dục Thể chất" [ref=e1910]:
+                    - generic [ref=e1911]: TT Giáo dục Thể chất
+                  - cell "Chưa có" [ref=e1912]:
+                    - generic [ref=e1913]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1914]:
+                    - button "ĐC cơ bản" [ref=e1915] [cursor=pointer]
+                    - button "Sửa" [ref=e1916] [cursor=pointer]
+                    - button "Xóa" [ref=e1917] [cursor=pointer]
+                - row "POS103 Tư tưởng Hồ Chí Minh 2 TT Giáo dục CT-QP Chưa có ĐC cơ bản Sửa Xóa" [ref=e1918]:
+                  - cell "POS103" [ref=e1919]:
+                    - strong [ref=e1920]: POS103
+                  - cell "Tư tưởng Hồ Chí Minh" [ref=e1921]
+                  - cell "2" [ref=e1922]
+                  - cell "TT Giáo dục CT-QP" [ref=e1923]:
+                    - generic [ref=e1924]: TT Giáo dục CT-QP
+                  - cell "Chưa có" [ref=e1925]:
+                    - generic [ref=e1926]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1927]:
+                    - button "ĐC cơ bản" [ref=e1928] [cursor=pointer]
+                    - button "Sửa" [ref=e1929] [cursor=pointer]
+                    - button "Xóa" [ref=e1930] [cursor=pointer]
+                - row "POS104 Triết học Mác - Lênin 3 TT Giáo dục CT-QP Chưa có ĐC cơ bản Sửa Xóa" [ref=e1931]:
+                  - cell "POS104" [ref=e1932]:
+                    - strong [ref=e1933]: POS104
+                  - cell "Triết học Mác - Lênin" [ref=e1934]
+                  - cell "3" [ref=e1935]
+                  - cell "TT Giáo dục CT-QP" [ref=e1936]:
+                    - generic [ref=e1937]: TT Giáo dục CT-QP
+                  - cell "Chưa có" [ref=e1938]:
+                    - generic [ref=e1939]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1940]:
+                    - button "ĐC cơ bản" [ref=e1941] [cursor=pointer]
+                    - button "Sửa" [ref=e1942] [cursor=pointer]
+                    - button "Xóa" [ref=e1943] [cursor=pointer]
+                - row "POS105 Kinh tế chính trị Mác - Lênin 2 TT Giáo dục CT-QP Chưa có ĐC cơ bản Sửa Xóa" [ref=e1944]:
+                  - cell "POS105" [ref=e1945]:
+                    - strong [ref=e1946]: POS105
+                  - cell "Kinh tế chính trị Mác - Lênin" [ref=e1947]
+                  - cell "2" [ref=e1948]
+                  - cell "TT Giáo dục CT-QP" [ref=e1949]:
+                    - generic [ref=e1950]: TT Giáo dục CT-QP
+                  - cell "Chưa có" [ref=e1951]:
+                    - generic [ref=e1952]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1953]:
+                    - button "ĐC cơ bản" [ref=e1954] [cursor=pointer]
+                    - button "Sửa" [ref=e1955] [cursor=pointer]
+                    - button "Xóa" [ref=e1956] [cursor=pointer]
+                - row "POS106 Chủ nghĩa xã hội khoa học 2 TT Giáo dục CT-QP Chưa có ĐC cơ bản Sửa Xóa" [ref=e1957]:
+                  - cell "POS106" [ref=e1958]:
+                    - strong [ref=e1959]: POS106
+                  - cell "Chủ nghĩa xã hội khoa học" [ref=e1960]
+                  - cell "2" [ref=e1961]
+                  - cell "TT Giáo dục CT-QP" [ref=e1962]:
+                    - generic [ref=e1963]: TT Giáo dục CT-QP
+                  - cell "Chưa có" [ref=e1964]:
+                    - generic [ref=e1965]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1966]:
+                    - button "ĐC cơ bản" [ref=e1967] [cursor=pointer]
+                    - button "Sửa" [ref=e1968] [cursor=pointer]
+                    - button "Xóa" [ref=e1969] [cursor=pointer]
+                - row "POS107 Lịch sử Đảng Cộng sản Việt Nam 2 TT Giáo dục CT-QP Chưa có ĐC cơ bản Sửa Xóa" [ref=e1970]:
+                  - cell "POS107" [ref=e1971]:
+                    - strong [ref=e1972]: POS107
+                  - cell "Lịch sử Đảng Cộng sản Việt Nam" [ref=e1973]
+                  - cell "2" [ref=e1974]
+                  - cell "TT Giáo dục CT-QP" [ref=e1975]:
+                    - generic [ref=e1976]: TT Giáo dục CT-QP
+                  - cell "Chưa có" [ref=e1977]:
+                    - generic [ref=e1978]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1979]:
+                    - button "ĐC cơ bản" [ref=e1980] [cursor=pointer]
+                    - button "Sửa" [ref=e1981] [cursor=pointer]
+                    - button "Xóa" [ref=e1982] [cursor=pointer]
+                - row "SKL115 Tư duy thiết kế dự án 3 Viện CNTT Việt-Nhật Chưa có ĐC cơ bản Sửa Xóa" [ref=e1983]:
+                  - cell "SKL115" [ref=e1984]:
+                    - strong [ref=e1985]: SKL115
+                  - cell "Tư duy thiết kế dự án" [ref=e1986]
+                  - cell "3" [ref=e1987]
+                  - cell "Viện CNTT Việt-Nhật" [ref=e1988]:
+                    - generic [ref=e1989]: Viện CNTT Việt-Nhật
+                  - cell "Chưa có" [ref=e1990]:
+                    - generic [ref=e1991]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e1992]:
+                    - button "ĐC cơ bản" [ref=e1993] [cursor=pointer]
+                    - button "Sửa" [ref=e1994] [cursor=pointer]
+                    - button "Xóa" [ref=e1995] [cursor=pointer]
+                - row "SLK122 Kỹ năng phát triển bản thân 3 TT Tin học-NN-KN Chưa có ĐC cơ bản Sửa Xóa" [ref=e1996]:
+                  - cell "SLK122" [ref=e1997]:
+                    - strong [ref=e1998]: SLK122
+                  - cell "Kỹ năng phát triển bản thân" [ref=e1999]
+                  - cell "3" [ref=e2000]
+                  - cell "TT Tin học-NN-KN" [ref=e2001]:
+                    - generic [ref=e2002]: TT Tin học-NN-KN
+                  - cell "Chưa có" [ref=e2003]:
+                    - generic [ref=e2004]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e2005]:
+                    - button "ĐC cơ bản" [ref=e2006] [cursor=pointer]
+                    - button "Sửa" [ref=e2007] [cursor=pointer]
+                    - button "Xóa" [ref=e2008] [cursor=pointer]
+                - row "SOS118 Văn hoá, xã hội Trung Quốc 3 Khoa Trung Quốc học Chưa có ĐC cơ bản Sửa Xóa" [ref=e2009]:
+                  - cell "SOS118" [ref=e2010]:
+                    - strong [ref=e2011]: SOS118
+                  - cell "Văn hoá, xã hội Trung Quốc" [ref=e2012]
+                  - cell "3" [ref=e2013]
+                  - cell "Khoa Trung Quốc học" [ref=e2014]:
+                    - generic [ref=e2015]: Khoa Trung Quốc học
+                  - cell "Chưa có" [ref=e2016]:
+                    - generic [ref=e2017]: Chưa có
+                  - cell "ĐC cơ bản Sửa Xóa" [ref=e2018]:
+                    - button "ĐC cơ bản" [ref=e2019] [cursor=pointer]
+                    - button "Sửa" [ref=e2020] [cursor=pointer]
+                    - button "Xóa" [ref=e2021] [cursor=pointer]
+        - generic:
+          - generic:
+            - generic:
+              - heading "Thêm học phần" [level=2]
+            - generic:
+              - generic:
+                - generic:
+                  - generic: Mã học phần *
+                  - 'textbox "VD: CHN107"'
+                - generic:
+                  - generic: Tên học phần *
+                  - 'textbox "VD: Tiếng Trung 1"'
+                - generic:
+                  - generic: Số tín chỉ
+                  - spinbutton: "3"
+                - generic:
+                  - generic:
+                    - generic: LT
+                    - textbox: "0"
+                  - generic:
+                    - generic: TH
+                    - textbox: "0"
+                  - generic:
+                    - generic: ĐA
+                    - textbox: "0"
+                  - generic:
+                    - generic: TT
+                    - textbox: "0"
+                - generic:
+                  - generic:
+                    - generic: Khoa/Viện
+                    - combobox
+                  - generic:
+                    - generic: Ngành
+                    - combobox:
+                      - option "— Toàn khoa —" [selected]
+                - generic:
+                  - generic: Mô tả
+                  - textbox "Mô tả tóm tắt HP (dưới 150 từ)"
+                - generic:
+                  - button "Hủy"
+                  - button "Thêm"
+    - generic:
+      - generic:
+        - generic:
+          - heading "Đổi mật khẩu" [level=2]
+        - generic:
+          - generic:
+            - generic: Mật khẩu hiện tại *
+            - textbox
+          - generic:
+            - generic: Mật khẩu mới *
+            - textbox
+          - generic:
+            - generic: Xác nhận mật khẩu mới *
+            - textbox
+          - generic:
+            - button "Hủy"
+            - button "Đổi mật khẩu"
+    - dialog "Thông báo" [ref=e43]:
+      - generic [ref=e44]:
+        - generic [ref=e45]:
+          - heading "Thông báo" [level=2] [ref=e46]
+          - paragraph [ref=e47]: Các việc cần bạn xử lý và kết quả phê duyệt.
+        - button "Đóng thông báo" [ref=e48] [cursor=pointer]: ×
+      - generic [ref=e49]:
+        - button "Tất cả" [ref=e50] [cursor=pointer]
+        - button "Chưa đọc" [ref=e51] [cursor=pointer]
+        - button "Cần xử lý" [ref=e52] [cursor=pointer]
+      - button "Đánh dấu tất cả đã đọc" [ref=e54] [cursor=pointer]
+  - generic:
+    - dialog "Thông báo":
+      - generic:
+        - generic: "?"
+        - generic:
+          - heading "Thông báo" [level=2]
+      - generic:
+        - generic:
+          - textbox
+        - generic:
+          - button "Hủy"
+          - button "Xác nhận"

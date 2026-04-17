@@ -1,0 +1,81 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]:
+          - generic [ref=e6]:
+            - generic [ref=e7]: 🎓
+            - heading "HUTECH Program" [level=1] [ref=e8]
+          - button "Thu gọn sidebar" [expanded] [ref=e9] [cursor=pointer]: «
+        - navigation [ref=e10]:
+          - generic "Tổng quan" [ref=e11] [cursor=pointer]:
+            - generic [ref=e12]: 📊
+            - generic [ref=e13]: Tổng quan
+          - generic "Thông báo" [ref=e14] [cursor=pointer]:
+            - generic [ref=e15]: 🔔
+            - generic [ref=e16]: Thông báo
+          - generic [ref=e17]: Đào tạo
+          - generic "Chương trình ĐT" [ref=e18] [cursor=pointer]:
+            - generic [ref=e19]: 📋
+            - generic [ref=e20]: Chương trình ĐT
+          - generic "Học phần" [ref=e21] [cursor=pointer]:
+            - generic [ref=e22]: 📚
+            - generic [ref=e23]: Học phần
+          - generic "Phê duyệt" [ref=e24] [cursor=pointer]:
+            - generic [ref=e25]: 📬
+            - generic [ref=e26]: Phê duyệt
+          - generic [ref=e27]: Cài đặt
+          - generic "Phân quyền" [ref=e28] [cursor=pointer]:
+            - generic [ref=e29]: ⚙️
+            - generic [ref=e30]: Phân quyền
+          - generic "Nhật ký" [ref=e31] [cursor=pointer]:
+            - generic [ref=e32]: 📜
+            - generic [ref=e33]: Nhật ký
+        - generic [ref=e34]:
+          - generic [ref=e35]:
+            - generic [ref=e36]: Quản trị viên
+            - generic [ref=e37]: Quản trị hệ thống
+          - generic [ref=e38]:
+            - button "Đổi MK" [ref=e39] [cursor=pointer]
+            - button "Đăng xuất" [ref=e40] [cursor=pointer]
+      - main [ref=e41]
+    - generic:
+      - generic:
+        - generic:
+          - heading "Đổi mật khẩu" [level=2]
+        - generic:
+          - generic:
+            - generic: Mật khẩu hiện tại *
+            - textbox
+          - generic:
+            - generic: Mật khẩu mới *
+            - textbox
+          - generic:
+            - generic: Xác nhận mật khẩu mới *
+            - textbox
+          - generic:
+            - button "Hủy"
+            - button "Đổi mật khẩu"
+    - dialog "Thông báo" [ref=e43]:
+      - generic [ref=e44]:
+        - generic [ref=e45]:
+          - heading "Thông báo" [level=2] [ref=e46]
+          - paragraph [ref=e47]: Các việc cần bạn xử lý và kết quả phê duyệt.
+        - button "Đóng thông báo" [ref=e48] [cursor=pointer]: ×
+      - generic [ref=e49]:
+        - button "Tất cả" [ref=e50] [cursor=pointer]
+        - button "Chưa đọc" [ref=e51] [cursor=pointer]
+        - button "Cần xử lý" [ref=e52] [cursor=pointer]
+      - button "Đánh dấu tất cả đã đọc" [ref=e54] [cursor=pointer]
+  - generic:
+    - dialog "Thông báo":
+      - generic:
+        - generic: "?"
+        - generic:
+          - heading "Thông báo" [level=2]
+      - generic:
+        - generic:
+          - textbox
+        - generic:
+          - button "Hủy"
+          - button "Xác nhận"
