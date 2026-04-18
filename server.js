@@ -11,6 +11,7 @@ const { parseWordFile } = require('./word-parser');
 const { exportVersionToDocx } = require('./word-exporter');
 const { parseSyllabusPdf } = require('./pdf-syllabus-parser');
 const { upgradeContent } = require('./server/render/content-upgrade');
+const { buildRenderModel } = require('./server/render/render-model');
 
 const app = express();
 const PORT = process.env.PORT || 3600;
@@ -1200,6 +1201,13 @@ app.post('/api/courses/:courseId/base-syllabus/validate', authMiddleware, requir
     }
 
     res.json({ ok: issues.length === 0, issues });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/courses/:courseId/base-syllabus/render-model', authMiddleware, requirePerm('courses.view'), async (req, res) => {
+  try {
+    const model = await buildRenderModel(pool, parseInt(req.params.courseId));
+    res.json(model);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
