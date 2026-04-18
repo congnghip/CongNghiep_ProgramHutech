@@ -12,6 +12,7 @@ const { exportVersionToDocx } = require('./word-exporter');
 const { parseSyllabusPdf } = require('./pdf-syllabus-parser');
 const { upgradeContent } = require('./server/render/content-upgrade');
 const { buildRenderModel } = require('./server/render/render-model');
+const { buildDocx } = require('./server/render/docx-builder');
 const ejs = require('ejs');
 const puppeteer = require('puppeteer');
 const fs = require('fs');
@@ -1243,6 +1244,17 @@ app.get('/api/courses/:courseId/base-syllabus/export.pdf', authMiddleware, requi
     if (browser) await browser.close().catch(() => {});
     res.status(500).json({ error: e.message });
   }
+});
+
+app.get('/api/courses/:courseId/base-syllabus/export.docx', authMiddleware, requirePerm('courses.view'), async (req, res) => {
+  try {
+    const model = await buildRenderModel(pool, parseInt(req.params.courseId));
+    const buf = await buildDocx(model);
+    const fname = `${(model.course.code || 'course').replace(/[/\\]/g, '-')}_de-cuong.docx`;
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+    res.setHeader('Content-Disposition', `attachment; filename="${fname}"`);
+    res.end(buf);
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // ===== Proposed Courses =====
