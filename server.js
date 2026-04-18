@@ -2552,6 +2552,51 @@ app.delete('/api/base-clos/:id', authMiddleware, requirePerm('courses.edit'), as
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
+// ============ BASE CLO MAPPINGS ============
+app.get('/api/base-clos/:id/mappings', authMiddleware, requirePerm('courses.view'), async (req, res) => {
+  try {
+    const plos = await pool.query(
+      'SELECT plo_id FROM base_clo_plo_map WHERE base_clo_id = $1', [req.params.id]
+    );
+    const pis = await pool.query(
+      'SELECT pi_id FROM base_clo_pi_map WHERE base_clo_id = $1', [req.params.id]
+    );
+    res.json({
+      plo_ids: plos.rows.map(r => r.plo_id),
+      pi_ids: pis.rows.map(r => r.pi_id),
+    });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/api/base-clos/:id/mappings', authMiddleware, requirePerm('courses.edit'), async (req, res) => {
+  const { plo_ids = [], pi_ids = [] } = req.body;
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('DELETE FROM base_clo_plo_map WHERE base_clo_id = $1', [req.params.id]);
+    await client.query('DELETE FROM base_clo_pi_map WHERE base_clo_id = $1', [req.params.id]);
+    for (const ploId of plo_ids) {
+      await client.query(
+        'INSERT INTO base_clo_plo_map (base_clo_id, plo_id) VALUES ($1,$2) ON CONFLICT DO NOTHING',
+        [req.params.id, ploId]
+      );
+    }
+    for (const piId of pi_ids) {
+      await client.query(
+        'INSERT INTO base_clo_pi_map (base_clo_id, pi_id) VALUES ($1,$2) ON CONFLICT DO NOTHING',
+        [req.params.id, piId]
+      );
+    }
+    await client.query('COMMIT');
+    res.json({ success: true, plo_ids, pi_ids });
+  } catch (e) {
+    await client.query('ROLLBACK');
+    res.status(400).json({ error: e.message });
+  } finally {
+    client.release();
+  }
+});
+
 // ============ CLOs per Syllabus ============
 app.get('/api/syllabi/:sId/clos', authMiddleware, requireViewVersion, async (req, res) => {
   try {
