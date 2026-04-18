@@ -93,27 +93,30 @@ window.BaseSyllabusEditorPage = {
 
       <!-- Add Outline Lesson Modal -->
       <div id="bs-outline-add-modal" class="modal-overlay">
-        <div class="modal" style="max-width:640px;">
+        <div class="modal" style="max-width:720px;">
           <div class="modal-header"><h2>Thêm bài học</h2></div>
           <div class="modal-body">
             <form id="bs-outline-add-form">
               <div class="input-group">
                 <label>Tên bài <span class="required-mark">*</span></label>
-                <input type="text" id="bs-outline-add-title" required placeholder="VD: Chương 1 — Giới thiệu">
+                <input type="text" id="bs-outline-add-title" required placeholder="VD: BÀI 1 — Giới thiệu">
               </div>
               <div style="display:flex;gap:12px;">
-                <div class="input-group" style="flex:1;">
-                  <label>Số tiết</label>
-                  <input type="number" id="bs-outline-add-hours" min="0" value="0">
-                </div>
+                <div class="input-group" style="flex:1;"><label>LT (tiết)</label><input type="number" id="bs-outline-add-lt" min="0" value="0"></div>
+                <div class="input-group" style="flex:1;"><label>TH (tiết)</label><input type="number" id="bs-outline-add-th" min="0" value="0"></div>
+                <div class="input-group" style="flex:1;"><label>Tự học (tiết)</label><input type="number" id="bs-outline-add-ss" min="0" value="0"></div>
               </div>
               <div class="input-group">
                 <label>Nội dung chi tiết (mỗi dòng = 1 mục)</label>
-                <textarea id="bs-outline-add-topics" rows="4"></textarea>
+                <textarea id="bs-outline-add-topics" rows="3"></textarea>
               </div>
               <div class="input-group">
                 <label>Phương pháp dạy học</label>
-                <textarea id="bs-outline-add-methods" rows="3"></textarea>
+                <textarea id="bs-outline-add-methods" rows="2"></textarea>
+              </div>
+              <div class="input-group">
+                <label>Nhiệm vụ tự học của SV (mỗi dòng = 1 nhiệm vụ)</label>
+                <textarea id="bs-outline-add-sstasks" rows="2"></textarea>
               </div>
               <div class="modal-error" id="bs-outline-add-error"></div>
               <div class="modal-footer">
@@ -442,42 +445,76 @@ window.BaseSyllabusEditorPage = {
   },
 
   // ============ TAB 2: Nội dung giảng dạy ============
-  renderOutlineTab(body, editable, c) {
+  async renderOutlineTab(body, editable, c) {
     const lessons = c.course_outline || [];
+    // Load CLO codes from current course for multi-select options
+    let cloCodes = [];
+    try {
+      const clos = await fetch(`/api/courses/${this.courseId}/base-syllabus/clos`).then(r => r.json());
+      cloCodes = clos.map(x => x.code).filter(Boolean);
+    } catch (_) {}
+    this._currentCloCodes = cloCodes;
+
+    const totals = lessons.reduce((acc, l) => ({
+      lt: acc.lt + (l.lt_hours || 0),
+      th: acc.th + (l.th_hours || 0),
+      ss: acc.ss + (l.self_study_hours || 0),
+    }), { lt: 0, th: 0, ss: 0 });
+
     body.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <h3 style="font-size:15px;font-weight:600;">Nội dung chi tiết học phần</h3>
-        <div style="display:flex;gap:8px;">
-          ${editable ? '<button class="btn btn-secondary btn-sm" onclick="window.BaseSyllabusEditorPage.openAddOutlineModal()">+ Thêm bài</button>' : ''}
-        </div>
+        <h3 style="font-size:15px;font-weight:600;">Nội dung chi tiết học phần (mục 13 + 16)</h3>
+        ${editable ? '<button class="btn btn-secondary btn-sm" onclick="window.BaseSyllabusEditorPage.openAddOutlineModal()">+ Thêm bài</button>' : ''}
       </div>
       <div id="bs-outline-container">
         ${lessons.length === 0 ? '<p style="color:var(--text-muted);font-size:13px;">Chưa có nội dung. Bấm "+ Thêm bài" để bắt đầu.</p>' :
-          lessons.map((l, i) => this._outlineRowHtml(l, i, editable)).join('')}
+          lessons.map((l, i) => this._outlineRowHtml(l, i, editable, cloCodes)).join('')}
       </div>
+      ${lessons.length ? `<div style="margin-top:12px;padding:12px;background:var(--bg-secondary);border-radius:var(--radius);font-size:13px;">
+        <strong>Tổng:</strong> LT ${totals.lt} tiết &nbsp;|&nbsp; TH ${totals.th} tiết &nbsp;|&nbsp; Tự học ${totals.ss} tiết
+      </div>` : ''}
     `;
   },
 
-  _outlineRowHtml(l, i, editable) {
+  _outlineRowHtml(l, i, editable, cloCodes) {
+    const esc = s => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     const dis = editable ? '' : 'disabled';
     const topicsStr = Array.isArray(l.topics) ? l.topics.join('\n') : '';
+    const tasksStr = Array.isArray(l.self_study_tasks) ? l.self_study_tasks.join('\n') : '';
+    const codes = Array.isArray(cloCodes) ? cloCodes : [];
+    const selected = Array.isArray(l.clo_codes) ? l.clo_codes : [];
     return `<div class="outline-row" data-idx="${i}" style="border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;margin-bottom:12px;background:var(--bg-secondary);">
       <div style="display:flex;gap:12px;align-items:center;margin-bottom:10px;">
         <strong style="color:var(--primary);white-space:nowrap;">Bài ${l.lesson || i + 1}</strong>
-        <input type="text" data-field="title" value="${(l.title || '').replace(/"/g, '&quot;')}" ${dis} placeholder="Tên bài" style="flex:1;${BS_INP}">
-        <div style="display:flex;align-items:center;gap:4px;"><label style="font-size:12px;white-space:nowrap;">Số tiết:</label><input type="number" data-field="hours" value="${l.hours || 0}" ${dis} min="0" style="width:60px;${BS_INP}text-align:center;"></div>
+        <input type="text" data-field="title" value="${esc(l.title)}" ${dis} placeholder="Tên bài" style="flex:1;${BS_INP}">
+        <div style="display:flex;align-items:center;gap:4px;"><label style="font-size:12px;">LT:</label><input type="number" data-field="lt_hours" value="${l.lt_hours || 0}" ${dis} min="0" style="width:56px;${BS_INP}text-align:center;"></div>
+        <div style="display:flex;align-items:center;gap:4px;"><label style="font-size:12px;">TH:</label><input type="number" data-field="th_hours" value="${l.th_hours || 0}" ${dis} min="0" style="width:56px;${BS_INP}text-align:center;"></div>
         ${editable ? `<button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="this.closest('.outline-row').remove()">✕</button>` : ''}
       </div>
-      <div style="display:flex;gap:12px;">
-        <div class="input-group" style="flex:1;margin:0;"><label style="font-size:12px;">Nội dung chi tiết (mỗi dòng = 1 mục)</label><textarea data-field="topics" ${dis} rows="3" style="${BS_INP}">${topicsStr}</textarea></div>
-        <div class="input-group" style="flex:1;margin:0;"><label style="font-size:12px;">Phương pháp dạy học</label><textarea data-field="teaching_methods" ${dis} rows="3" style="${BS_INP}">${l.teaching_methods || ''}</textarea></div>
+      <div style="display:flex;gap:12px;margin-bottom:10px;">
+        <div class="input-group" style="flex:1;margin:0;"><label style="font-size:12px;">Nội dung chi tiết (mỗi dòng = 1 mục)</label><textarea data-field="topics" ${dis} rows="3" style="${BS_INP}">${esc(topicsStr)}</textarea></div>
+        <div class="input-group" style="flex:1;margin:0;"><label style="font-size:12px;">Phương pháp dạy học</label><textarea data-field="teaching_methods" ${dis} rows="3" style="${BS_INP}">${esc(l.teaching_methods)}</textarea></div>
       </div>
+      <div class="input-group" style="margin-bottom:10px;"><label style="font-size:12px;">CLO đáp ứng</label>
+        <select data-field="clo_codes" multiple size="3" ${dis} style="${BS_INP}">
+          ${codes.map(c => `<option value="${esc(c)}" ${selected.includes(c) ? 'selected' : ''}>${esc(c)}</option>`).join('')}
+        </select>
+      </div>
+      <details style="margin-top:6px;">
+        <summary style="cursor:pointer;font-size:13px;font-weight:600;color:var(--primary);">▸ Hướng dẫn tự học (mục 16)</summary>
+        <div style="display:flex;gap:12px;margin-top:8px;">
+          <div class="input-group" style="width:150px;margin:0;"><label style="font-size:12px;">Số tiết tự học</label><input type="number" data-field="self_study_hours" value="${l.self_study_hours || 0}" ${dis} min="0" style="${BS_INP}text-align:center;"></div>
+          <div class="input-group" style="flex:1;margin:0;"><label style="font-size:12px;">Nhiệm vụ SV (mỗi dòng = 1)</label><textarea data-field="self_study_tasks" ${dis} rows="3" style="${BS_INP}">${esc(tasksStr)}</textarea></div>
+        </div>
+      </details>
     </div>`;
   },
 
   openAddOutlineModal() {
     document.getElementById('bs-outline-add-form').reset();
-    document.getElementById('bs-outline-add-hours').value = '0';
+    document.getElementById('bs-outline-add-lt').value = '0';
+    document.getElementById('bs-outline-add-th').value = '0';
+    document.getElementById('bs-outline-add-ss').value = '0';
     const errorEl = document.getElementById('bs-outline-add-error');
     errorEl.classList.remove('show');
     errorEl.textContent = '';
@@ -488,15 +525,13 @@ window.BaseSyllabusEditorPage = {
   submitAddOutline() {
     const title = document.getElementById('bs-outline-add-title').value.trim();
     const errorEl = document.getElementById('bs-outline-add-error');
-    if (!title) {
-      errorEl.textContent = 'Nhập tên bài';
-      errorEl.classList.add('show');
-      return;
-    }
-    const hours = parseFloat(document.getElementById('bs-outline-add-hours').value) || 0;
-    const topics = document.getElementById('bs-outline-add-topics').value
-      .split('\n').map(s => s.trim()).filter(Boolean);
+    if (!title) { errorEl.textContent = 'Nhập tên bài'; errorEl.classList.add('show'); return; }
+    const lt_hours = parseFloat(document.getElementById('bs-outline-add-lt').value) || 0;
+    const th_hours = parseFloat(document.getElementById('bs-outline-add-th').value) || 0;
+    const self_study_hours = parseFloat(document.getElementById('bs-outline-add-ss').value) || 0;
+    const topics = document.getElementById('bs-outline-add-topics').value.split('\n').map(s=>s.trim()).filter(Boolean);
     const teaching_methods = document.getElementById('bs-outline-add-methods').value;
+    const self_study_tasks = document.getElementById('bs-outline-add-sstasks').value.split('\n').map(s=>s.trim()).filter(Boolean);
 
     this._collectOutline();
 
@@ -505,7 +540,7 @@ window.BaseSyllabusEditorPage = {
       ...this.baseSyllabus.content,
       course_outline: [
         ...existing,
-        { lesson: existing.length + 1, title, hours, topics, teaching_methods, clos: [] },
+        { lesson: existing.length + 1, title, lt_hours, th_hours, topics, teaching_methods, clo_codes: [], self_study_hours, self_study_tasks },
       ],
     };
 
@@ -521,10 +556,13 @@ window.BaseSyllabusEditorPage = {
     const course_outline = Array.from(rows).map((r, i) => ({
       lesson: i + 1,
       title: r.querySelector('[data-field="title"]').value,
-      hours: parseFloat(r.querySelector('[data-field="hours"]').value) || 0,
+      lt_hours: parseFloat(r.querySelector('[data-field="lt_hours"]').value) || 0,
+      th_hours: parseFloat(r.querySelector('[data-field="th_hours"]').value) || 0,
       topics: r.querySelector('[data-field="topics"]').value.split('\n').map(s => s.trim()).filter(Boolean),
       teaching_methods: r.querySelector('[data-field="teaching_methods"]').value,
-      clos: [],
+      clo_codes: Array.from(r.querySelector('[data-field="clo_codes"]').selectedOptions).map(o => o.value),
+      self_study_hours: parseFloat(r.querySelector('[data-field="self_study_hours"]').value) || 0,
+      self_study_tasks: r.querySelector('[data-field="self_study_tasks"]').value.split('\n').map(s => s.trim()).filter(Boolean),
     }));
     this.baseSyllabus.content = { ...this.baseSyllabus.content, course_outline };
   },
