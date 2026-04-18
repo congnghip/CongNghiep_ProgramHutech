@@ -647,8 +647,9 @@ window.BaseSyllabusEditorPage = {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(this._pendingCourseUpdate),
         });
-        if (!r.ok) throw new Error((await r.json()).error || 'Lỗi lưu thông tin HP');
-        Object.assign(this.course, await r.json());
+        const courseResp = await r.json();
+        if (!r.ok) throw new Error(courseResp.error || 'Lỗi lưu thông tin HP');
+        Object.assign(this.course, courseResp);
         this._pendingCourseUpdate = null;
       }
 
@@ -658,8 +659,8 @@ window.BaseSyllabusEditorPage = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: this.baseSyllabus.content }),
       });
-      if (!res.ok) throw new Error((await res.json()).error || 'Lỗi lưu');
       const saved = await res.json();
+      if (!res.ok) throw new Error(saved.error || 'Lỗi lưu');
       this.baseSyllabus = { ...this.baseSyllabus, ...saved };
       this.baseSyllabus.content = typeof saved.content === 'string' ? JSON.parse(saved.content) : saved.content;
       this.isNew = false;
