@@ -242,6 +242,24 @@ async function initDB() {
         bloom_level INT DEFAULT 1
       );
 
+      -- Base CLO → PLO mapping (FK to version_plos của canonical version)
+      CREATE TABLE IF NOT EXISTS base_clo_plo_map (
+        id SERIAL PRIMARY KEY,
+        base_clo_id INT REFERENCES base_syllabus_clos(id) ON DELETE CASCADE,
+        plo_id INT REFERENCES version_plos(id) ON DELETE CASCADE,
+        UNIQUE(base_clo_id, plo_id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_bc_plo_clo ON base_clo_plo_map(base_clo_id);
+
+      -- Base CLO → PI mapping
+      CREATE TABLE IF NOT EXISTS base_clo_pi_map (
+        id SERIAL PRIMARY KEY,
+        base_clo_id INT REFERENCES base_syllabus_clos(id) ON DELETE CASCADE,
+        pi_id INT REFERENCES plo_pis(id) ON DELETE CASCADE,
+        UNIQUE(base_clo_id, pi_id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_bc_pi_clo ON base_clo_pi_map(base_clo_id);
+
       -- Syllabus Assignments (phân công GV soạn đề cương)
       CREATE TABLE IF NOT EXISTS syllabus_assignments (
         id SERIAL PRIMARY KEY,
@@ -334,6 +352,12 @@ async function initDB() {
 
       -- Remove NOT NULL from code for existing databases
       ALTER TABLE courses ALTER COLUMN code DROP NOT NULL;
+
+      ALTER TABLE courses ADD COLUMN IF NOT EXISTS name_en VARCHAR(300);
+      ALTER TABLE courses ADD COLUMN IF NOT EXISTS knowledge_area VARCHAR(20);
+      ALTER TABLE courses ADD COLUMN IF NOT EXISTS course_requirement VARCHAR(20);
+      ALTER TABLE courses ADD COLUMN IF NOT EXISTS training_level VARCHAR(30) DEFAULT 'Đại học';
+      ALTER TABLE courses ADD COLUMN IF NOT EXISTS canonical_version_id INT REFERENCES program_versions(id) ON DELETE SET NULL;
 
       -- Teaching plan (detailed per-semester schedule)
       CREATE TABLE IF NOT EXISTS teaching_plan (
