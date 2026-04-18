@@ -1191,20 +1191,10 @@ app.post('/api/courses/:courseId/base-syllabus/validate', authMiddleware, requir
       : {};
     const content = upgradeContent(raw);
 
-    const clos = (await pool.query('SELECT * FROM base_syllabus_clos WHERE course_id = $1 ORDER BY code', [courseId])).rows;
-
     const issues = [];
-    if (!course.canonical_version_id) issues.push({ code: 'NO_CANONICAL', message: 'Chưa chọn CTĐT chuẩn' });
     if (!course.name_en) issues.push({ code: 'NO_NAME_EN', message: 'Chưa nhập tên tiếng Anh' });
     if (!course.knowledge_area) issues.push({ code: 'NO_KNOWLEDGE_AREA', message: 'Chưa chọn khối kiến thức' });
     if (!course.course_requirement) issues.push({ code: 'NO_COURSE_REQUIREMENT', message: 'Chưa chọn bắt buộc/tự chọn' });
-
-    for (const clo of clos) {
-      const ploMap = await pool.query('SELECT 1 FROM base_clo_plo_map WHERE base_clo_id = $1 LIMIT 1', [clo.id]);
-      if (!ploMap.rows.length) issues.push({ code: 'CLO_NO_PLO', clo_code: clo.code, message: `${clo.code} chưa map PLO` });
-      const piMap = await pool.query('SELECT 1 FROM base_clo_pi_map WHERE base_clo_id = $1 LIMIT 1', [clo.id]);
-      if (!piMap.rows.length) issues.push({ code: 'CLO_NO_PI', clo_code: clo.code, message: `${clo.code} chưa map PI` });
-    }
 
     const outline = Array.isArray(content.course_outline) ? content.course_outline : [];
     outline.forEach(l => {

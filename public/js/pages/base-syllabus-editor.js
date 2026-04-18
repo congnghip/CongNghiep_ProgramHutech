@@ -21,30 +21,6 @@ window.BaseSyllabusEditorPage = {
       this.course = courseRes.find(c => c.id === parseInt(courseId));
       if (!this.course) throw new Error('Không tìm thấy học phần');
 
-      // Fetch versions của khoa (để chọn canonical_version_id)
-      try {
-        const vRes = await fetch('/api/versions').then(r => r.ok ? r.json() : []);
-        this.departmentVersions = (Array.isArray(vRes) ? vRes : [])
-          .filter(v => v.department_id === this.course.department_id);
-      } catch (_) { this.departmentVersions = []; }
-
-      // Fetch PLO/PI của canonical version (nếu có)
-      this.canonicalPlos = [];
-      this.canonicalPis = [];
-      if (this.course.canonical_version_id) {
-        try {
-          const plosWithPis = await fetch(`/api/versions/${this.course.canonical_version_id}/plos`).then(r => r.ok ? r.json() : []);
-          this.canonicalPlos = plosWithPis;
-          // Flatten nested pis: each PLO has `pis: [{id, pi_code, description, ...}]`
-          this.canonicalPis = plosWithPis.flatMap(plo => (plo.pis || []).map(pi => ({
-            id: pi.id,
-            code: pi.pi_code,
-            description: pi.description,
-            plo_id: pi.plo_id,
-          })));
-        } catch (_) {}
-      }
-
       // Fetch base syllabus
       const bsRes = await fetch(`/api/courses/${courseId}/base-syllabus`);
       if (bsRes.ok) {
@@ -177,7 +153,6 @@ window.BaseSyllabusEditorPage = {
     const esc = s => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     const dis = editable ? '' : 'disabled';
     const co = this.course;
-    const versions = this.departmentVersions || [];
     const creditsDisplay = `${co.credits || 0} (${co.credits_theory || 0}, ${co.credits_practice || 0})`;
     body.innerHTML = `
       <div style="max-width:820px;">
@@ -218,17 +193,6 @@ window.BaseSyllabusEditorPage = {
               <option value="Sau đại học" ${co.training_level==='Sau đại học'?'selected':''}>Sau đại học</option>
             </select>
           </div>
-        </div>
-
-        <div class="input-group">
-          <label>CTĐT chuẩn <span style="color:var(--text-muted);font-weight:normal;">(dùng để map CLO → PLO/PI)</span></label>
-          <select id="bs-canonical-version" ${dis}>
-            <option value="">-- Chưa chọn --</option>
-            ${versions.map(v => {
-              const label = esc(v.code || v.academic_year || ('Version #'+v.id));
-              return `<option value="${v.id}" ${co.canonical_version_id===v.id?'selected':''}>${label}</option>`;
-            }).join('')}
-          </select>
         </div>
 
         <div style="display:flex;gap:12px;">
@@ -291,7 +255,6 @@ window.BaseSyllabusEditorPage = {
       knowledge_area: document.getElementById('bs-knowledge-area').value || null,
       course_requirement: document.getElementById('bs-course-req').value || null,
       training_level: document.getElementById('bs-training-level').value,
-      canonical_version_id: parseInt(document.getElementById('bs-canonical-version').value) || null,
     };
   },
 
@@ -304,51 +267,33 @@ window.BaseSyllabusEditorPage = {
       clos = await fetch(`/api/courses/${this.courseId}/base-syllabus/clos`).then(r => r.json());
     } catch (e) { /* empty */ }
 
-    // Fetch mappings for each CLO
-    const mappings = {};
-    for (const c of clos) {
-      try {
-        mappings[c.id] = await fetch(`/api/base-clos/${c.id}/mappings`).then(r => r.json());
-      } catch (_) { mappings[c.id] = { plo_ids: [], pi_ids: [] }; }
-    }
-
-    const plos = this.canonicalPlos || [];
-    const pis = this.canonicalPis || [];
-    const noCanonical = !this.course.canonical_version_id;
-
     body.innerHTML = `
-      ${noCanonical ? '<div class="alert alert-warning" style="margin-bottom:12px;">⚠️ Chưa chọn CTĐT chuẩn ở tab Thông tin chung — chưa thể map PLO/PI.</div>' : ''}
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
         <h3 style="font-size:15px;font-weight:600;">Chuẩn đầu ra môn học (CLO) — Mục 10</h3>
         ${editable ? '<button class="btn btn-primary btn-sm" onclick="window.BaseSyllabusEditorPage.showBaseCLOForm()">+ Thêm CLO</button>' : ''}
       </div>
+      <p style="color:var(--text-muted);font-size:12px;margin-bottom:12px;">
+        Mapping CLO → PLO/PI sẽ được thực hiện ở đề cương cụ thể trong từng CTĐT.
+      </p>
       <table class="data-table">
         <thead><tr>
           <th style="width:80px;">Mã</th>
           <th>Mô tả</th>
-          <th style="width:110px;">Bloom</th>
-          <th style="width:180px;">PLO đáp ứng</th>
-          <th style="width:180px;">PI đáp ứng</th>
+          <th style="width:140px;">Bloom</th>
           ${editable ? '<th style="width:100px;"></th>' : ''}
         </tr></thead>
         <tbody>
-          ${clos.length === 0 ? `<tr><td colspan="${editable ? 6 : 5}" style="color:var(--text-muted);text-align:center;">Chưa có CLO</td></tr>` : clos.map(c => {
-            const m = mappings[c.id] || { plo_ids: [], pi_ids: [] };
-            const ploCodes = m.plo_ids.map(id => (plos.find(p => p.id === id) || {}).code).filter(Boolean).join(', ');
-            const piCodes = m.pi_ids.map(id => (pis.find(p => p.id === id) || {}).code).filter(Boolean).join(', ');
-            return `
+          ${clos.length === 0 ? `<tr><td colspan="${editable ? 4 : 3}" style="color:var(--text-muted);text-align:center;">Chưa có CLO</td></tr>` : clos.map(c => `
             <tr>
               <td><strong style="color:var(--primary);">${esc(c.code)}</strong></td>
               <td style="font-size:13px;">${esc(c.description)}</td>
               <td><span class="badge badge-info">${bloomLabels[c.bloom_level] || c.bloom_level}</span></td>
-              <td style="font-size:12px;">${esc(ploCodes) || '<span style="color:var(--text-muted);">—</span>'}</td>
-              <td style="font-size:12px;">${esc(piCodes) || '<span style="color:var(--text-muted);">—</span>'}</td>
               ${editable ? `<td style="white-space:nowrap;">
                 <button class="btn btn-secondary btn-sm" onclick="window.BaseSyllabusEditorPage.editBaseCLO(${c.id})">Sửa</button>
                 <button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="window.BaseSyllabusEditorPage.deleteBaseCLO(${c.id})">Xóa</button>
               </td>` : ''}
             </tr>
-          `; }).join('')}
+          `).join('')}
         </tbody>
       </table>
       <div id="bs-clo-form" style="display:none;margin-top:16px;padding:16px;background:var(--bg-secondary);border-radius:var(--radius-lg);">
@@ -368,20 +313,6 @@ window.BaseSyllabusEditorPage = {
             </select>
           </div>
         </div>
-        <div style="display:flex;gap:10px;margin-top:10px;">
-          <div class="input-group" style="flex:1;margin:0;">
-            <label>PLO đáp ứng</label>
-            <select id="bs-clo-plos" multiple size="4" ${noCanonical ? 'disabled' : ''}>
-              ${plos.map(p => `<option value="${p.id}">${esc(p.code)} — ${esc((p.description||'').substring(0,60))}</option>`).join('')}
-            </select>
-          </div>
-          <div class="input-group" style="flex:1;margin:0;">
-            <label>PI đáp ứng</label>
-            <select id="bs-clo-pis" multiple size="4" ${noCanonical ? 'disabled' : ''}>
-              ${pis.map(p => `<option value="${p.id}">${esc(p.code)} — ${esc((p.description||'').substring(0,60))}</option>`).join('')}
-            </select>
-          </div>
-        </div>
         <div style="margin-top:10px;display:flex;gap:6px;">
           <button class="btn btn-primary btn-sm" onclick="window.BaseSyllabusEditorPage.saveBaseCLO()">Lưu</button>
           <button class="btn btn-secondary btn-sm" onclick="document.getElementById('bs-clo-form').style.display='none'">Hủy</button>
@@ -390,25 +321,18 @@ window.BaseSyllabusEditorPage = {
     `;
   },
 
-  showBaseCLOForm(id, code, desc, bloom, ploIds, piIds) {
+  showBaseCLOForm(id, code, desc, bloom) {
     document.getElementById('bs-clo-edit-id').value = id || '';
     document.getElementById('bs-clo-code').value = code || '';
     document.getElementById('bs-clo-desc').value = desc || '';
     document.getElementById('bs-clo-bloom').value = bloom || 1;
-    const ploSel = document.getElementById('bs-clo-plos');
-    const piSel = document.getElementById('bs-clo-pis');
-    Array.from(ploSel.options).forEach(o => o.selected = (ploIds || []).includes(parseInt(o.value)));
-    Array.from(piSel.options).forEach(o => o.selected = (piIds || []).includes(parseInt(o.value)));
     document.getElementById('bs-clo-form').style.display = 'block';
   },
 
   async editBaseCLO(id) {
-    const [clos, mappings] = await Promise.all([
-      fetch(`/api/courses/${this.courseId}/base-syllabus/clos`).then(r => r.json()),
-      fetch(`/api/base-clos/${id}/mappings`).then(r => r.json()),
-    ]);
+    const clos = await fetch(`/api/courses/${this.courseId}/base-syllabus/clos`).then(r => r.json());
     const c = clos.find(x => x.id === id);
-    if (c) this.showBaseCLOForm(c.id, c.code, c.description, c.bloom_level, mappings.plo_ids, mappings.pi_ids);
+    if (c) this.showBaseCLOForm(c.id, c.code, c.description, c.bloom_level);
   },
 
   async saveBaseCLO() {
@@ -416,8 +340,6 @@ window.BaseSyllabusEditorPage = {
     const code = document.getElementById('bs-clo-code').value.trim();
     const description = document.getElementById('bs-clo-desc').value.trim();
     const bloom_level = parseInt(document.getElementById('bs-clo-bloom').value) || 1;
-    const plo_ids = Array.from(document.getElementById('bs-clo-plos').selectedOptions).map(o => parseInt(o.value));
-    const pi_ids = Array.from(document.getElementById('bs-clo-pis').selectedOptions).map(o => parseInt(o.value));
     if (!code) { window.toast.warning('Nhập mã CLO'); return; }
     try {
       const url = id ? `/api/base-clos/${id}` : `/api/courses/${this.courseId}/base-syllabus/clos`;
@@ -428,12 +350,6 @@ window.BaseSyllabusEditorPage = {
       });
       const saved = await res.json();
       if (!res.ok) throw new Error(saved.error);
-      // Save mappings
-      await fetch(`/api/base-clos/${saved.id}/mappings`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plo_ids, pi_ids }),
-      });
       window.toast.success(id ? 'Đã cập nhật CLO' : 'Đã thêm CLO');
       document.getElementById('bs-clo-form').style.display = 'none';
       this.renderTab();
