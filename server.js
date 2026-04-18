@@ -12,6 +12,10 @@ const { exportVersionToDocx } = require('./word-exporter');
 const { parseSyllabusPdf } = require('./pdf-syllabus-parser');
 const { upgradeContent } = require('./server/render/content-upgrade');
 const { buildRenderModel } = require('./server/render/render-model');
+const ejs = require('ejs');
+const puppeteer = require('puppeteer');
+const fs = require('fs');
+const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3600;
@@ -1209,6 +1213,36 @@ app.get('/api/courses/:courseId/base-syllabus/render-model', authMiddleware, req
     const model = await buildRenderModel(pool, parseInt(req.params.courseId));
     res.json(model);
   } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/courses/:courseId/base-syllabus/export.pdf', authMiddleware, requirePerm('courses.view'), async (req, res) => {
+  let browser;
+  try {
+    const model = await buildRenderModel(pool, parseInt(req.params.courseId));
+    const tpl = fs.readFileSync(path.join(__dirname, 'server', 'render', 'pdf-template.ejs'), 'utf8');
+    const html = ejs.render(tpl, model);
+
+    browser = await puppeteer.launch({
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
+    });
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+    const pdf = await page.pdf({
+      format: 'A4',
+      margin: { top: '20mm', bottom: '20mm', left: '20mm', right: '15mm' },
+      printBackground: true,
+    });
+    await browser.close();
+
+    const fname = `${model.course.code || 'course'}_de-cuong.pdf`;
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${fname}"`);
+    res.end(pdf);
+  } catch (e) {
+    if (browser) await browser.close().catch(() => {});
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ===== Proposed Courses =====

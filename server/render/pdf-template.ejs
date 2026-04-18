@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title><%= course.code %> — Đề cương chi tiết</title>
+  <style>
+    @page { size: A4; margin: 20mm 15mm 20mm 20mm; }
+    body { font-family: 'Times New Roman', serif; font-size: 12pt; color: #000; }
+    .form-code { text-align: right; font-style: italic; }
+    .title { text-align: center; font-size: 16pt; font-weight: bold; margin: 16px 0; }
+    .school { text-align: center; font-weight: bold; }
+    .faculty { text-align: center; font-weight: bold; text-decoration: underline; }
+    table { border-collapse: collapse; width: 100%; margin-top: 6px; }
+    td, th { border: 1px solid #000; padding: 4px 6px; vertical-align: top; }
+    .no-border td { border: none; }
+    .signatures { margin-top: 40px; display: flex; justify-content: space-between; text-align: center; font-weight: bold; }
+    .right-italic { text-align: right; font-style: italic; margin-top: 20px; }
+    .section-num { font-weight: bold; }
+    ul { margin: 0; padding-left: 20px; }
+  </style>
+</head>
+<body>
+  <div class="form-code"><%= form_code %></div>
+  <div class="school">TRƯỜNG ĐẠI HỌC CÔNG NGHỆ TP. HCM</div>
+  <div class="faculty"><%= (faculty || '').toUpperCase() %></div>
+  <div class="title">ĐỀ CƯƠNG CHI TIẾT HỌC PHẦN</div>
+
+  <table>
+    <tr><td style="width:160px;"><span class="section-num">1.</span> Tên học phần</td>
+      <td>
+        Tên tiếng Việt: <strong><%= (course.name_vi || '').toUpperCase() %></strong><br>
+        Tên tiếng Anh: <strong><%= course.name_en || '' %></strong>
+      </td></tr>
+    <tr><td><span class="section-num">2.</span> Mã học phần</td><td><%= course.code || '' %></td></tr>
+    <tr><td><span class="section-num">3.</span> Thuộc khối kiến thức</td>
+      <td>
+        <% const isGeneral = course.knowledge_area === 'general'; const isProf = course.knowledge_area === 'professional'; const isReq = course.course_requirement === 'required'; const isElec = course.course_requirement === 'elective'; %>
+        <table style="margin:0;">
+          <tr>
+            <th colspan="2">Kiến thức GD đại cương</th><th colspan="2">Kiến thức GD chuyên nghiệp</th>
+          </tr>
+          <tr>
+            <td><%= isGeneral && isReq ? '☑' : '☐' %> Bắt buộc</td>
+            <td><%= isGeneral && isElec ? '☑' : '☐' %> Tự chọn</td>
+            <td><%= isProf && isReq ? '☑' : '☐' %> Bắt buộc</td>
+            <td><%= isProf && isElec ? '☑' : '☐' %> Tự chọn</td>
+          </tr>
+        </table>
+      </td></tr>
+    <tr><td><span class="section-num">4.</span> Trình độ đào tạo</td><td><%= course.training_level || '' %></td></tr>
+    <tr><td><span class="section-num">5.</span> Số tín chỉ</td><td><%= course.credits_display %></td></tr>
+    <tr><td><span class="section-num">6.</span> Học phần học trước</td><td><%= course.prerequisites || '' %></td></tr>
+    <tr><td><span class="section-num">7.</span> Mục tiêu của học phần</td><td><%- (course.objectives || '').replace(/\n/g, '<br>') %></td></tr>
+    <tr><td><span class="section-num">8.</span> Đơn vị quản lý học phần</td><td><%= course.managing_unit || '' %></td></tr>
+  </table>
+
+  <p><span class="section-num">9.</span> Bảng trích ngang ma trận sự đóng góp của mỗi học phần cho CĐR của CTĐT</p>
+  <% if (plo_matrix.pi_codes.length) { %>
+  <table>
+    <tr><th rowspan="2">Mã HP</th><th rowspan="2">Học phần</th><th colspan="<%= plo_matrix.pi_codes.length %>">Chuẩn đầu ra CTĐT (PLO / PI)</th></tr>
+    <tr><% plo_matrix.pi_codes.forEach(function(pi){ %><th style="font-size:10pt;"><%= pi %></th><% }) %></tr>
+    <tr>
+      <td><%= course.code %></td><td><%= course.name_vi %></td>
+      <% plo_matrix.pi_codes.forEach(function(pi){ %><td style="text-align:center;"><%= plo_matrix.cell_values[pi] %></td><% }) %>
+    </tr>
+  </table>
+  <% } else { %><p><em>(Chưa có CTĐT chuẩn để trích ma trận)</em></p><% } %>
+
+  <p><span class="section-num">10.</span> Chuẩn đầu ra của học phần (CLO)</p>
+  <table>
+    <tr><th>Chuẩn đầu ra học phần (Course Learning Outcome)</th><th>Chỉ số đo lường (PI)</th><th>Tương ứng CĐR CTĐT</th></tr>
+    <% clos.forEach(function(c){ %>
+    <tr>
+      <td>- <strong><%= c.code %>:</strong> <%= c.description %></td>
+      <td style="text-align:center;"><%= c.pi_codes.join(', ') %></td>
+      <td style="text-align:center;"><%= c.plo_codes.join(', ') %></td>
+    </tr>
+    <% }) %>
+  </table>
+
+  <p><span class="section-num">11.</span> Mô tả tóm tắt nội dung học phần</p>
+  <p><%- (course.description || '').replace(/\n/g, '<br>') %></p>
+
+  <p><span class="section-num">12.</span> Phương pháp, hình thức tổ chức dạy học của học phần</p>
+  <table>
+    <tr><th style="width:35%;">Phương pháp</th><th>Mục tiêu</th></tr>
+    <% teaching_methods.forEach(function(t){ %><tr><td><%= t.method %></td><td><%= t.objective %></td></tr><% }) %>
+  </table>
+
+  <p><span class="section-num">13.</span> Nội dung chi tiết học phần</p>
+  <table>
+    <tr><th>BÀI SỐ</th><th>TÊN BÀI</th><th style="width:60px;">LT</th><th style="width:60px;">TH</th><th>Phương pháp, hình thức tổ chức dạy học</th><th style="width:80px;">Đáp ứng CĐR của HP</th></tr>
+    <% outline.forEach(function(l){ %>
+    <tr>
+      <td style="text-align:center;"><strong>BÀI <%= l.lesson %></strong></td>
+      <td><strong><%= l.title %></strong><% if (l.topics.length){ %><ul><% l.topics.forEach(function(t){ %><li><%= t %></li><% }) %></ul><% } %></td>
+      <td style="text-align:center;"><%= l.lt_hours %></td>
+      <td style="text-align:center;"><%= l.th_hours %></td>
+      <td><%- (l.teaching_methods || '').replace(/\n/g,'<br>') %></td>
+      <td style="text-align:center;"><%= l.clo_codes.join('<br>') %></td>
+    </tr>
+    <% }) %>
+    <tr><td colspan="2" style="text-align:right;"><strong>TỔNG CỘNG:</strong></td><td style="text-align:center;"><strong><%= outline_totals.lt %></strong></td><td style="text-align:center;"><strong><%= outline_totals.th %></strong></td><td colspan="2"></td></tr>
+  </table>
+
+  <p><span class="section-num">14.</span> Phương pháp kiểm tra/đánh giá của học phần</p>
+  <table>
+    <tr><th>Điểm thành phần</th><th>Quy định</th><th>Bài đánh giá</th><th>Trọng số</th><th>Đáp ứng CĐR của HP</th></tr>
+    <% assessment_groups.forEach(function(g){ g.items.forEach(function(it, idx){ %>
+    <tr>
+      <% if (idx === 0){ %><td rowspan="<%= g.items.length %>"><%= g.component %></td><% } %>
+      <td><%= it.description %></td>
+      <td><%= it.task_ref %></td>
+      <td style="text-align:center;"><%= it.weight %>%</td>
+      <td style="text-align:center;"><%= (it.clo_codes || []).join('<br>') %></td>
+    </tr>
+    <% }) }) %>
+  </table>
+
+  <p><span class="section-num">15.</span> Tài liệu phục vụ học phần</p>
+  <table>
+    <tr><td style="width:200px;">Tài liệu/giáo trình chính</td>
+      <td><% resources.textbooks.forEach(function(t, i){ %><%= (i+1) %>. <%= t %><br><% }) %></td></tr>
+    <tr><td>Tài liệu tham khảo/bổ sung</td>
+      <td><% resources.references.forEach(function(t, i){ %><%= (i+1) %>. <%= t %><br><% }) %></td></tr>
+    <tr><td>Các công cụ</td>
+      <td><% resources.tools.forEach(function(g){ %>- <strong><%= g.category %>:</strong> <%= g.items.join(', ') %><br><% }) %></td></tr>
+  </table>
+
+  <p><span class="section-num">16.</span> Hướng dẫn sinh viên tự học</p>
+  <table>
+    <tr><th>Nội dung</th><th style="width:80px;">Số tiết</th><th>Nhiệm vụ của sinh viên</th></tr>
+    <% self_study.forEach(function(s){ %>
+    <tr>
+      <td><strong>BÀI <%= s.lesson %>: <%= s.title %></strong></td>
+      <td style="text-align:center;"><%= s.hours %></td>
+      <td><% s.tasks.forEach(function(t){ %><%= t %><br><% }) %></td>
+    </tr>
+    <% }) %>
+  </table>
+
+  <p><span class="section-num">17.</span> Các yêu cầu của HP</p>
+  <p><%- (other_requirements || '').replace(/\n/g,'<br>') %></p>
+
+  <div class="right-italic">TP. Hồ Chí Minh, ngày… tháng… năm <%= new Date().getFullYear() %></div>
+  <div class="signatures">
+    <div style="flex:1;">Trưởng khoa/viện</div>
+    <div style="flex:1;">Trưởng ngành/bộ môn</div>
+    <div style="flex:1;">Người biên soạn</div>
+  </div>
+</body>
+</html>
