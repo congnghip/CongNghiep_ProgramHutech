@@ -1158,6 +1158,51 @@ app.delete('/api/courses/:courseId/base-syllabus', authMiddleware, requirePerm('
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
+app.post('/api/courses/:courseId/base-syllabus/validate', authMiddleware, requirePerm('courses.view'), async (req, res) => {
+  try {
+    const courseId = parseInt(req.params.courseId);
+    const courseRes = await pool.query('SELECT * FROM courses WHERE id = $1', [courseId]);
+    if (!courseRes.rows.length) return res.status(404).json({ error: 'Course not found' });
+    const course = courseRes.rows[0];
+
+    const bsRes = await pool.query('SELECT content FROM course_base_syllabi WHERE course_id = $1', [courseId]);
+    const raw = bsRes.rows.length
+      ? (typeof bsRes.rows[0].content === 'string' ? JSON.parse(bsRes.rows[0].content) : bsRes.rows[0].content)
+      : {};
+    const content = upgradeContent(raw);
+
+    const clos = (await pool.query('SELECT * FROM base_syllabus_clos WHERE course_id = $1 ORDER BY code', [courseId])).rows;
+
+    const issues = [];
+    if (!course.canonical_version_id) issues.push({ code: 'NO_CANONICAL', message: 'Chưa chọn CTĐT chuẩn' });
+    if (!course.name_en) issues.push({ code: 'NO_NAME_EN', message: 'Chưa nhập tên tiếng Anh' });
+    if (!course.knowledge_area) issues.push({ code: 'NO_KNOWLEDGE_AREA', message: 'Chưa chọn khối kiến thức' });
+    if (!course.course_requirement) issues.push({ code: 'NO_COURSE_REQUIREMENT', message: 'Chưa chọn bắt buộc/tự chọn' });
+
+    for (const clo of clos) {
+      const ploMap = await pool.query('SELECT 1 FROM base_clo_plo_map WHERE base_clo_id = $1 LIMIT 1', [clo.id]);
+      if (!ploMap.rows.length) issues.push({ code: 'CLO_NO_PLO', clo_code: clo.code, message: `${clo.code} chưa map PLO` });
+      const piMap = await pool.query('SELECT 1 FROM base_clo_pi_map WHERE base_clo_id = $1 LIMIT 1', [clo.id]);
+      if (!piMap.rows.length) issues.push({ code: 'CLO_NO_PI', clo_code: clo.code, message: `${clo.code} chưa map PI` });
+    }
+
+    const outline = Array.isArray(content.course_outline) ? content.course_outline : [];
+    outline.forEach(l => {
+      if (!Array.isArray(l.clo_codes) || !l.clo_codes.length) {
+        issues.push({ code: 'LESSON_NO_CLO', lesson: l.lesson, message: `Bài ${l.lesson} chưa chọn CLO đáp ứng` });
+      }
+    });
+
+    const assessments = Array.isArray(content.assessment_methods) ? content.assessment_methods : [];
+    const totalWeight = assessments.reduce((s, a) => s + (parseInt(a.weight) || 0), 0);
+    if (assessments.length && totalWeight !== 100) {
+      issues.push({ code: 'WEIGHT_SUM', actual: totalWeight, message: `Tổng trọng số đánh giá = ${totalWeight}% (cần 100%)` });
+    }
+
+    res.json({ ok: issues.length === 0, issues });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ===== Proposed Courses =====
 app.post('/api/versions/:vId/proposed-courses', authMiddleware, requireDraft(), requirePerm('courses.propose'), async (req, res) => {
   const { name, credits, credits_theory, credits_practice, credits_project, credits_internship, department_id, description, semester, course_type } = req.body;
