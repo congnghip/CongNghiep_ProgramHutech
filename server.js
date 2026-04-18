@@ -10,6 +10,7 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 
 const { parseWordFile } = require('./word-parser');
 const { exportVersionToDocx } = require('./word-exporter');
 const { parseSyllabusPdf } = require('./pdf-syllabus-parser');
+const { upgradeContent } = require('./server/render/content-upgrade');
 
 const app = express();
 const PORT = process.env.PORT || 3600;
@@ -1128,7 +1129,10 @@ app.get('/api/courses/:courseId/base-syllabus', authMiddleware, requirePerm('cou
       [req.params.courseId]
     );
     if (!result.rows.length) return res.status(404).json({ error: 'Chưa có đề cương cơ bản' });
-    res.json(result.rows[0]);
+    const row = result.rows[0];
+    const parsed = typeof row.content === 'string' ? JSON.parse(row.content) : (row.content || {});
+    row.content = upgradeContent(parsed);
+    res.json(row);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
