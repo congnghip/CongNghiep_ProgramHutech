@@ -23,8 +23,8 @@ async function buildRenderModel(pool, courseId) {
        JOIN version_plos vp ON vp.id = m.plo_id WHERE m.base_clo_id = $1 ORDER BY vp.code`, [clo.id]
     );
     const pis = await pool.query(
-      `SELECT pp.code, pp.description FROM base_clo_pi_map m
-       JOIN plo_pis pp ON pp.id = m.pi_id WHERE m.base_clo_id = $1 ORDER BY pp.code`, [clo.id]
+      `SELECT pp.pi_code AS code, pp.description FROM base_clo_pi_map m
+       JOIN plo_pis pp ON pp.id = m.pi_id WHERE m.base_clo_id = $1 ORDER BY pp.pi_code`, [clo.id]
     );
     clos.push({
       code: clo.code,
@@ -40,9 +40,9 @@ async function buildRenderModel(pool, courseId) {
   if (co.canonical_version_id) {
     const plos = await pool.query('SELECT code FROM version_plos WHERE version_id = $1 ORDER BY code', [co.canonical_version_id]);
     const pis = await pool.query(
-      `SELECT pp.code, pp.plo_id FROM plo_pis pp
+      `SELECT pp.pi_code AS code, pp.plo_id FROM plo_pis pp
        JOIN version_plos vp ON vp.id = pp.plo_id
-       WHERE vp.version_id = $1 ORDER BY pp.code`, [co.canonical_version_id]
+       WHERE vp.version_id = $1 ORDER BY pp.pi_code`, [co.canonical_version_id]
     );
     plo_matrix.plo_codes = plos.rows.map(r => r.code);
     plo_matrix.pi_codes = pis.rows.map(r => r.code);

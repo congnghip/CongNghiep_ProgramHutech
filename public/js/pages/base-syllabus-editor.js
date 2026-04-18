@@ -33,8 +33,15 @@ window.BaseSyllabusEditorPage = {
       this.canonicalPis = [];
       if (this.course.canonical_version_id) {
         try {
-          this.canonicalPlos = await fetch(`/api/versions/${this.course.canonical_version_id}/plos`).then(r => r.ok ? r.json() : []);
-          this.canonicalPis = await fetch(`/api/versions/${this.course.canonical_version_id}/pis`).then(r => r.ok ? r.json() : []);
+          const plosWithPis = await fetch(`/api/versions/${this.course.canonical_version_id}/plos`).then(r => r.ok ? r.json() : []);
+          this.canonicalPlos = plosWithPis;
+          // Flatten nested pis: each PLO has `pis: [{id, pi_code, description, ...}]`
+          this.canonicalPis = plosWithPis.flatMap(plo => (plo.pis || []).map(pi => ({
+            id: pi.id,
+            code: pi.pi_code,
+            description: pi.description,
+            plo_id: pi.plo_id,
+          })));
         } catch (_) {}
       }
 
