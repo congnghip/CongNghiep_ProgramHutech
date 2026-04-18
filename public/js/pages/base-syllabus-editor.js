@@ -152,6 +152,7 @@ window.BaseSyllabusEditorPage = {
 
   // ============ TAB 0: Thông tin chung ============
   renderGeneralTab(body, editable, c) {
+    const esc = s => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     const dis = editable ? '' : 'disabled';
     const co = this.course;
     const versions = this.departmentVersions || [];
@@ -161,14 +162,14 @@ window.BaseSyllabusEditorPage = {
         <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;">Thông tin chung</h3>
 
         <div style="display:flex;gap:12px;">
-          <div class="input-group" style="flex:1;"><label>Tên tiếng Việt</label><input type="text" id="bs-name-vi" ${dis} value="${(co.name || '').replace(/"/g,'&quot;')}"></div>
-          <div class="input-group" style="flex:1;"><label>Tên tiếng Anh</label><input type="text" id="bs-name-en" ${dis} value="${(co.name_en || '').replace(/"/g,'&quot;')}"></div>
+          <div class="input-group" style="flex:1;"><label>Tên tiếng Việt</label><input type="text" id="bs-name-vi" ${dis} value="${esc(co.name)}"></div>
+          <div class="input-group" style="flex:1;"><label>Tên tiếng Anh</label><input type="text" id="bs-name-en" ${dis} value="${esc(co.name_en)}"></div>
         </div>
 
         <div style="display:flex;gap:12px;">
-          <div class="input-group" style="width:160px;"><label>Mã HP</label><input type="text" disabled value="${co.code || ''}"></div>
-          <div class="input-group" style="flex:1;"><label>Số tín chỉ (TC, LT, TH)</label><input type="text" disabled value="${creditsDisplay} TC"></div>
-          <div class="input-group" style="flex:1;"><label>Khoa quản lý</label><input type="text" disabled value="${co.dept_name || ''}"></div>
+          <div class="input-group" style="width:160px;"><label>Mã HP</label><input type="text" disabled value="${esc(co.code)}"></div>
+          <div class="input-group" style="flex:1;"><label>Số tín chỉ (TC, LT, TH)</label><input type="text" disabled value="${esc(creditsDisplay)} TC"></div>
+          <div class="input-group" style="flex:1;"><label>Khoa quản lý</label><input type="text" disabled value="${esc(co.dept_name)}"></div>
         </div>
 
         <div style="display:flex;gap:12px;">
@@ -201,25 +202,28 @@ window.BaseSyllabusEditorPage = {
           <label>CTĐT chuẩn <span style="color:var(--text-muted);font-weight:normal;">(dùng để map CLO → PLO/PI)</span></label>
           <select id="bs-canonical-version" ${dis}>
             <option value="">-- Chưa chọn --</option>
-            ${versions.map(v => `<option value="${v.id}" ${co.canonical_version_id===v.id?'selected':''}>${v.code || v.academic_year || ('Version #'+v.id)}</option>`).join('')}
+            ${versions.map(v => {
+              const label = esc(v.code || v.academic_year || ('Version #'+v.id));
+              return `<option value="${v.id}" ${co.canonical_version_id===v.id?'selected':''}>${label}</option>`;
+            }).join('')}
           </select>
         </div>
 
         <div style="display:flex;gap:12px;">
-          <div class="input-group" style="flex:1;"><label>Học phần tiên quyết (mục 6)</label><input type="text" id="bs-prereq" ${dis} value="${c.prerequisites || ''}"></div>
-          <div class="input-group" style="flex:1;"><label>Ngôn ngữ giảng dạy</label><input type="text" id="bs-lang-inst" ${dis} value="${c.language_instruction || ''}"></div>
+          <div class="input-group" style="flex:1;"><label>Học phần tiên quyết (mục 6)</label><input type="text" id="bs-prereq" ${dis} value="${esc(c.prerequisites)}"></div>
+          <div class="input-group" style="flex:1;"><label>Ngôn ngữ giảng dạy</label><input type="text" id="bs-lang-inst" ${dis} value="${esc(c.language_instruction)}"></div>
         </div>
 
-        <div class="input-group"><label>Mục tiêu học phần (mục 7)</label><textarea id="bs-course-obj" ${dis} rows="3">${c.course_objectives || ''}</textarea></div>
-        <div class="input-group"><label>Mô tả tóm tắt nội dung HP (mục 11)</label><textarea id="bs-course-desc" ${dis} rows="3">${c.course_description || ''}</textarea></div>
+        <div class="input-group"><label>Mục tiêu học phần (mục 7)</label><textarea id="bs-course-obj" ${dis} rows="3">${esc(c.course_objectives)}</textarea></div>
+        <div class="input-group"><label>Mô tả tóm tắt nội dung HP (mục 11)</label><textarea id="bs-course-desc" ${dis} rows="3">${esc(c.course_description)}</textarea></div>
 
         <h4 style="font-size:14px;font-weight:600;margin:20px 0 8px;">Phương pháp, hình thức tổ chức dạy học (mục 12)</h4>
         <table class="data-table" id="bs-teaching-methods-table">
           <thead><tr><th style="width:35%;">Phương pháp</th><th>Mục tiêu</th>${editable?'<th style="width:50px;"></th>':''}</tr></thead>
           <tbody>
             ${(Array.isArray(c.teaching_methods)?c.teaching_methods:[]).map((t,i)=>`<tr>
-              <td><input type="text" data-field="method" value="${(t.method||'').replace(/"/g,'&quot;')}" ${dis} style="${BS_INP}"></td>
-              <td><input type="text" data-field="objective" value="${(t.objective||'').replace(/"/g,'&quot;')}" ${dis} style="${BS_INP}"></td>
+              <td><input type="text" data-field="method" value="${esc(t.method)}" ${dis} style="${BS_INP}"></td>
+              <td><input type="text" data-field="objective" value="${esc(t.objective)}" ${dis} style="${BS_INP}"></td>
               ${editable?`<td><button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="this.closest('tr').remove()">✕</button></td>`:''}
             </tr>`).join('')}
           </tbody>
@@ -231,6 +235,7 @@ window.BaseSyllabusEditorPage = {
 
   addTeachingMethodRow() {
     const tbody = document.querySelector('#bs-teaching-methods-table tbody');
+    if (!tbody) return;
     tbody.insertAdjacentHTML('beforeend', `<tr>
       <td><input type="text" data-field="method" style="${BS_INP}"></td>
       <td><input type="text" data-field="objective" style="${BS_INP}"></td>
