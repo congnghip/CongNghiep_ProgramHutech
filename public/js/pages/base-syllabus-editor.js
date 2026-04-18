@@ -77,8 +77,10 @@ window.BaseSyllabusEditorPage = {
               ${updatedInfo ? `<span class="text-muted-sm">${updatedInfo}</span>` : ''}
             </div>
           </div>
-          <div class="page-header-actions">
+          <div class="page-header-actions" style="display:flex;gap:8px;">
             ${editable ? '<button class="btn btn-primary btn-sm" onclick="window.BaseSyllabusEditorPage.saveAll()">Lưu tất cả</button>' : ''}
+            <button class="btn btn-secondary btn-sm" onclick="window.BaseSyllabusEditorPage.validateAndExport('pdf')">Xuất PDF</button>
+            <button class="btn btn-secondary btn-sm" onclick="window.BaseSyllabusEditorPage.validateAndExport('docx')">Xuất DOCX</button>
           </div>
         </div>
       </div>
@@ -756,6 +758,24 @@ window.BaseSyllabusEditorPage = {
     } catch (e) {
       window.toast.error(e.message);
     }
+  },
+
+  async validateAndExport(format) {
+    try {
+      const v = await fetch(`/api/courses/${this.courseId}/base-syllabus/validate`, { method: 'POST' }).then(r => r.json());
+      if (!v.ok) {
+        const esc = s => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        const list = v.issues.map(i => `• ${esc(i.message)}`).join('<br>');
+        const proceed = await window.ui.confirm({
+          title: 'Đề cương chưa đầy đủ',
+          message: `Còn các vấn đề sau:<br>${list}<br><br>Bạn vẫn muốn xuất?`,
+          confirmText: 'Xuất dù vậy', cancelText: 'Hủy', tone: 'warning',
+        });
+        if (!proceed) return;
+      }
+      const url = `/api/courses/${this.courseId}/base-syllabus/export.${format}`;
+      window.open(url, '_blank');
+    } catch (e) { window.toast.error(e.message); }
   },
 
   destroy() {}
