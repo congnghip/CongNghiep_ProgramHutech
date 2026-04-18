@@ -1,3 +1,5 @@
+<% const he = s => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); %>
+<% const nl2br = s => he(s).replace(/\n/g, '<br>'); %>
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -50,7 +52,7 @@
     <tr><td><span class="section-num">4.</span> Trình độ đào tạo</td><td><%= course.training_level || '' %></td></tr>
     <tr><td><span class="section-num">5.</span> Số tín chỉ</td><td><%= course.credits_display %></td></tr>
     <tr><td><span class="section-num">6.</span> Học phần học trước</td><td><%= course.prerequisites || '' %></td></tr>
-    <tr><td><span class="section-num">7.</span> Mục tiêu của học phần</td><td><%- (course.objectives || '').replace(/\n/g, '<br>') %></td></tr>
+    <tr><td><span class="section-num">7.</span> Mục tiêu của học phần</td><td><%- nl2br(course.objectives) %></td></tr>
     <tr><td><span class="section-num">8.</span> Đơn vị quản lý học phần</td><td><%= course.managing_unit || '' %></td></tr>
   </table>
 
@@ -79,7 +81,7 @@
   </table>
 
   <p><span class="section-num">11.</span> Mô tả tóm tắt nội dung học phần</p>
-  <p><%- (course.description || '').replace(/\n/g, '<br>') %></p>
+  <p><%- nl2br(course.description) %></p>
 
   <p><span class="section-num">12.</span> Phương pháp, hình thức tổ chức dạy học của học phần</p>
   <table>
@@ -96,8 +98,8 @@
       <td><strong><%= l.title %></strong><% if (l.topics.length){ %><ul><% l.topics.forEach(function(t){ %><li><%= t %></li><% }) %></ul><% } %></td>
       <td style="text-align:center;"><%= l.lt_hours %></td>
       <td style="text-align:center;"><%= l.th_hours %></td>
-      <td><%- (l.teaching_methods || '').replace(/\n/g,'<br>') %></td>
-      <td style="text-align:center;"><%= l.clo_codes.join('<br>') %></td>
+      <td><%- nl2br(l.teaching_methods) %></td>
+      <td style="text-align:center;"><%- l.clo_codes.join('<br>') %></td>
     </tr>
     <% }) %>
     <tr><td colspan="2" style="text-align:right;"><strong>TỔNG CỘNG:</strong></td><td style="text-align:center;"><strong><%= outline_totals.lt %></strong></td><td style="text-align:center;"><strong><%= outline_totals.th %></strong></td><td colspan="2"></td></tr>
@@ -112,7 +114,7 @@
       <td><%= it.description %></td>
       <td><%= it.task_ref %></td>
       <td style="text-align:center;"><%= it.weight %>%</td>
-      <td style="text-align:center;"><%= (it.clo_codes || []).join('<br>') %></td>
+      <td style="text-align:center;"><%- (it.clo_codes || []).join('<br>') %></td>
     </tr>
     <% }) }) %>
   </table>
@@ -140,7 +142,7 @@
   </table>
 
   <p><span class="section-num">17.</span> Các yêu cầu của HP</p>
-  <p><%- (other_requirements || '').replace(/\n/g,'<br>') %></p>
+  <p><%- nl2br(other_requirements) %></p>
 
   <div class="right-italic">TP. Hồ Chí Minh, ngày… tháng… năm <%= new Date().getFullYear() %></div>
   <div class="signatures">
