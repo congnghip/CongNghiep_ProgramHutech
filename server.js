@@ -1076,14 +1076,28 @@ app.post('/api/courses', authMiddleware, requirePerm('courses.create'), async (r
 });
 
 app.put('/api/courses/:id', authMiddleware, requirePerm('courses.edit'), async (req, res) => {
-  const { code, name, credits, credits_theory, credits_practice, credits_project, credits_internship, department_id, description } = req.body;
+  const {
+    code, name, name_en, credits,
+    credits_theory, credits_practice, credits_project, credits_internship,
+    department_id, description,
+    knowledge_area, course_requirement, training_level, canonical_version_id,
+  } = req.body;
   try {
     const result = await pool.query(
-      `UPDATE courses SET code=COALESCE($1,code), name=COALESCE($2,name), credits=COALESCE($3,credits),
-        credits_theory=COALESCE($4,credits_theory), credits_practice=COALESCE($5,credits_practice),
-        credits_project=COALESCE($6,credits_project), credits_internship=COALESCE($7,credits_internship),
-        department_id=COALESCE($8,department_id), description=COALESCE($9,description) WHERE id=$10 RETURNING *`,
-      [code, name, credits, credits_theory, credits_practice, credits_project, credits_internship, department_id, description, req.params.id]
+      `UPDATE courses SET
+        code=COALESCE($1,code), name=COALESCE($2,name), name_en=COALESCE($3,name_en),
+        credits=COALESCE($4,credits),
+        credits_theory=COALESCE($5,credits_theory), credits_practice=COALESCE($6,credits_practice),
+        credits_project=COALESCE($7,credits_project), credits_internship=COALESCE($8,credits_internship),
+        department_id=COALESCE($9,department_id), description=COALESCE($10,description),
+        knowledge_area=COALESCE($11,knowledge_area), course_requirement=COALESCE($12,course_requirement),
+        training_level=COALESCE($13,training_level), canonical_version_id=COALESCE($14,canonical_version_id)
+        WHERE id=$15 RETURNING *`,
+      [code, name, name_en, credits,
+        credits_theory, credits_practice, credits_project, credits_internship,
+        department_id, description,
+        knowledge_area, course_requirement, training_level, canonical_version_id,
+        req.params.id]
     );
     res.json(result.rows[0]);
   } catch (e) { res.status(400).json({ error: e.message }); }
