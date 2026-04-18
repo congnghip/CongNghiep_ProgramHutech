@@ -21,6 +21,13 @@ window.BaseSyllabusEditorPage = {
       this.course = courseRes.find(c => c.id === parseInt(courseId));
       if (!this.course) throw new Error('Không tìm thấy học phần');
 
+      // Fetch versions của khoa (để chọn canonical_version_id)
+      try {
+        const vRes = await fetch('/api/versions').then(r => r.ok ? r.json() : []);
+        this.departmentVersions = (Array.isArray(vRes) ? vRes : [])
+          .filter(v => v.department_id === this.course.department_id);
+      } catch (_) { this.departmentVersions = []; }
+
       // Fetch base syllabus
       const bsRes = await fetch(`/api/courses/${courseId}/base-syllabus`);
       if (bsRes.ok) {
@@ -146,28 +153,118 @@ window.BaseSyllabusEditorPage = {
   // ============ TAB 0: Thông tin chung ============
   renderGeneralTab(body, editable, c) {
     const dis = editable ? '' : 'disabled';
+    const co = this.course;
+    const versions = this.departmentVersions || [];
+    const creditsDisplay = `${co.credits || 0} (${co.credits_theory || 0}, ${co.credits_practice || 0})`;
     body.innerHTML = `
-      <div style="max-width:600px;">
+      <div style="max-width:820px;">
         <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;">Thông tin chung</h3>
-        <div class="input-group"><label>Mô tả tóm tắt nội dung học phần</label><textarea id="bs-course-desc" ${dis} rows="3" placeholder="Mô tả tóm tắt HP (mục 11)">${c.course_description || ''}</textarea></div>
-        <div class="input-group"><label>Mục tiêu học phần</label><textarea id="bs-course-obj" ${dis} rows="3" placeholder="Mục tiêu khi hoàn thành HP (mục 7)">${c.course_objectives || ''}</textarea></div>
-        <div class="input-group"><label>Yêu cầu tiên quyết</label><input type="text" id="bs-prereq" ${dis} value="${c.prerequisites || ''}" placeholder="HP tiên quyết"></div>
-        <div class="input-group"><label>Ngôn ngữ giảng dạy</label><input type="text" id="bs-lang-inst" ${dis} value="${c.language_instruction || ''}" placeholder="Tiếng Việt"></div>
-        <div class="input-group"><label>Phương pháp giảng dạy</label><textarea id="bs-learning-methods" ${dis} rows="3" placeholder="Phương pháp, hình thức tổ chức dạy học (mục 12)">${Array.isArray(c.learning_methods) ? c.learning_methods.map(m => typeof m === 'string' ? m : (m.method || m.name || m.title || JSON.stringify(m))).join('\n') : (c.learning_methods || '')}</textarea></div>
+
+        <div style="display:flex;gap:12px;">
+          <div class="input-group" style="flex:1;"><label>Tên tiếng Việt</label><input type="text" id="bs-name-vi" ${dis} value="${(co.name || '').replace(/"/g,'&quot;')}"></div>
+          <div class="input-group" style="flex:1;"><label>Tên tiếng Anh</label><input type="text" id="bs-name-en" ${dis} value="${(co.name_en || '').replace(/"/g,'&quot;')}"></div>
+        </div>
+
+        <div style="display:flex;gap:12px;">
+          <div class="input-group" style="width:160px;"><label>Mã HP</label><input type="text" disabled value="${co.code || ''}"></div>
+          <div class="input-group" style="flex:1;"><label>Số tín chỉ (TC, LT, TH)</label><input type="text" disabled value="${creditsDisplay} TC"></div>
+          <div class="input-group" style="flex:1;"><label>Khoa quản lý</label><input type="text" disabled value="${co.dept_name || ''}"></div>
+        </div>
+
+        <div style="display:flex;gap:12px;">
+          <div class="input-group" style="flex:1;">
+            <label>Khối kiến thức</label>
+            <select id="bs-knowledge-area" ${dis}>
+              <option value="">-- Chọn --</option>
+              <option value="general" ${co.knowledge_area==='general'?'selected':''}>GD đại cương</option>
+              <option value="professional" ${co.knowledge_area==='professional'?'selected':''}>GD chuyên nghiệp</option>
+            </select>
+          </div>
+          <div class="input-group" style="flex:1;">
+            <label>Yêu cầu</label>
+            <select id="bs-course-req" ${dis}>
+              <option value="">-- Chọn --</option>
+              <option value="required" ${co.course_requirement==='required'?'selected':''}>Bắt buộc</option>
+              <option value="elective" ${co.course_requirement==='elective'?'selected':''}>Tự chọn</option>
+            </select>
+          </div>
+          <div class="input-group" style="flex:1;">
+            <label>Trình độ đào tạo</label>
+            <select id="bs-training-level" ${dis}>
+              <option value="Đại học" ${(co.training_level||'Đại học')==='Đại học'?'selected':''}>Đại học</option>
+              <option value="Sau đại học" ${co.training_level==='Sau đại học'?'selected':''}>Sau đại học</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="input-group">
+          <label>CTĐT chuẩn <span style="color:var(--text-muted);font-weight:normal;">(dùng để map CLO → PLO/PI)</span></label>
+          <select id="bs-canonical-version" ${dis}>
+            <option value="">-- Chưa chọn --</option>
+            ${versions.map(v => `<option value="${v.id}" ${co.canonical_version_id===v.id?'selected':''}>${v.code || v.academic_year || ('Version #'+v.id)}</option>`).join('')}
+          </select>
+        </div>
+
+        <div style="display:flex;gap:12px;">
+          <div class="input-group" style="flex:1;"><label>Học phần tiên quyết (mục 6)</label><input type="text" id="bs-prereq" ${dis} value="${c.prerequisites || ''}"></div>
+          <div class="input-group" style="flex:1;"><label>Ngôn ngữ giảng dạy</label><input type="text" id="bs-lang-inst" ${dis} value="${c.language_instruction || ''}"></div>
+        </div>
+
+        <div class="input-group"><label>Mục tiêu học phần (mục 7)</label><textarea id="bs-course-obj" ${dis} rows="3">${c.course_objectives || ''}</textarea></div>
+        <div class="input-group"><label>Mô tả tóm tắt nội dung HP (mục 11)</label><textarea id="bs-course-desc" ${dis} rows="3">${c.course_description || ''}</textarea></div>
+
+        <h4 style="font-size:14px;font-weight:600;margin:20px 0 8px;">Phương pháp, hình thức tổ chức dạy học (mục 12)</h4>
+        <table class="data-table" id="bs-teaching-methods-table">
+          <thead><tr><th style="width:35%;">Phương pháp</th><th>Mục tiêu</th>${editable?'<th style="width:50px;"></th>':''}</tr></thead>
+          <tbody>
+            ${(Array.isArray(c.teaching_methods)?c.teaching_methods:[]).map((t,i)=>`<tr>
+              <td><input type="text" data-field="method" value="${(t.method||'').replace(/"/g,'&quot;')}" ${dis} style="${BS_INP}"></td>
+              <td><input type="text" data-field="objective" value="${(t.objective||'').replace(/"/g,'&quot;')}" ${dis} style="${BS_INP}"></td>
+              ${editable?`<td><button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="this.closest('tr').remove()">✕</button></td>`:''}
+            </tr>`).join('')}
+          </tbody>
+        </table>
+        ${editable?'<button class="btn btn-secondary btn-sm" style="margin-top:8px;" onclick="window.BaseSyllabusEditorPage.addTeachingMethodRow()">+ Thêm dòng</button>':''}
       </div>
     `;
+  },
+
+  addTeachingMethodRow() {
+    const tbody = document.querySelector('#bs-teaching-methods-table tbody');
+    tbody.insertAdjacentHTML('beforeend', `<tr>
+      <td><input type="text" data-field="method" style="${BS_INP}"></td>
+      <td><input type="text" data-field="objective" style="${BS_INP}"></td>
+      <td><button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="this.closest('tr').remove()">✕</button></td>
+    </tr>`);
   },
 
   _collectGeneral() {
     const desc = document.getElementById('bs-course-desc');
     if (!desc) return;
+    // Content fields (JSONB)
+    const tmTable = document.getElementById('bs-teaching-methods-table');
+    const teaching_methods = tmTable
+      ? Array.from(tmTable.querySelectorAll('tbody tr')).map(r => ({
+          method: r.querySelector('[data-field="method"]').value,
+          objective: r.querySelector('[data-field="objective"]').value,
+        })).filter(t => t.method || t.objective)
+      : [];
     this.baseSyllabus.content = {
       ...this.baseSyllabus.content,
       course_description: desc.value,
       course_objectives: document.getElementById('bs-course-obj').value,
       prerequisites: document.getElementById('bs-prereq').value,
       language_instruction: document.getElementById('bs-lang-inst').value,
-      learning_methods: document.getElementById('bs-learning-methods').value,
+      teaching_methods,
+    };
+    // Master fields (stored separately, saved via PUT /api/courses/:id)
+    this._pendingCourseUpdate = {
+      name: document.getElementById('bs-name-vi').value,
+      name_en: document.getElementById('bs-name-en').value,
+      knowledge_area: document.getElementById('bs-knowledge-area').value || null,
+      course_requirement: document.getElementById('bs-course-req').value || null,
+      training_level: document.getElementById('bs-training-level').value,
+      canonical_version_id: parseInt(document.getElementById('bs-canonical-version').value) || null,
     };
   },
 
@@ -469,6 +566,20 @@ window.BaseSyllabusEditorPage = {
   async saveAll() {
     try {
       this._collectCurrentTabIntoState();
+
+      // 1. Save master fields (if any)
+      if (this._pendingCourseUpdate) {
+        const r = await fetch(`/api/courses/${this.course.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(this._pendingCourseUpdate),
+        });
+        if (!r.ok) throw new Error((await r.json()).error || 'Lỗi lưu thông tin HP');
+        Object.assign(this.course, await r.json());
+        this._pendingCourseUpdate = null;
+      }
+
+      // 2. Save content
       const res = await fetch(`/api/courses/${this.courseId}/base-syllabus`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
