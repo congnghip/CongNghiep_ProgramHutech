@@ -28,6 +28,16 @@ window.BaseSyllabusEditorPage = {
           .filter(v => v.department_id === this.course.department_id);
       } catch (_) { this.departmentVersions = []; }
 
+      // Fetch PLO/PI của canonical version (nếu có)
+      this.canonicalPlos = [];
+      this.canonicalPis = [];
+      if (this.course.canonical_version_id) {
+        try {
+          this.canonicalPlos = await fetch(`/api/versions/${this.course.canonical_version_id}/plos`).then(r => r.ok ? r.json() : []);
+          this.canonicalPis = await fetch(`/api/versions/${this.course.canonical_version_id}/pis`).then(r => r.ok ? r.json() : []);
+        } catch (_) {}
+      }
+
       // Fetch base syllabus
       const bsRes = await fetch(`/api/courses/${courseId}/base-syllabus`);
       if (bsRes.ok) {
@@ -275,39 +285,66 @@ window.BaseSyllabusEditorPage = {
 
   // ============ TAB 1: CLOs ============
   async renderCLOTab(body, editable) {
+    const esc = s => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     const bloomLabels = ['', '1 — Nhớ', '2 — Hiểu', '3 — Áp dụng', '4 — Phân tích', '5 — Đánh giá', '6 — Sáng tạo'];
     let clos = [];
     try {
       clos = await fetch(`/api/courses/${this.courseId}/base-syllabus/clos`).then(r => r.json());
     } catch (e) { /* empty */ }
 
+    // Fetch mappings for each CLO
+    const mappings = {};
+    for (const c of clos) {
+      try {
+        mappings[c.id] = await fetch(`/api/base-clos/${c.id}/mappings`).then(r => r.json());
+      } catch (_) { mappings[c.id] = { plo_ids: [], pi_ids: [] }; }
+    }
+
+    const plos = this.canonicalPlos || [];
+    const pis = this.canonicalPis || [];
+    const noCanonical = !this.course.canonical_version_id;
+
     body.innerHTML = `
+      ${noCanonical ? '<div class="alert alert-warning" style="margin-bottom:12px;">⚠️ Chưa chọn CTĐT chuẩn ở tab Thông tin chung — chưa thể map PLO/PI.</div>' : ''}
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-        <h3 style="font-size:15px;font-weight:600;">Chuẩn đầu ra môn học (CLO)</h3>
+        <h3 style="font-size:15px;font-weight:600;">Chuẩn đầu ra môn học (CLO) — Mục 10</h3>
         ${editable ? '<button class="btn btn-primary btn-sm" onclick="window.BaseSyllabusEditorPage.showBaseCLOForm()">+ Thêm CLO</button>' : ''}
       </div>
       <table class="data-table">
-        <thead><tr><th>Mã</th><th>Mô tả</th><th style="width:140px;">Bloom Level</th>${editable ? '<th style="width:100px;"></th>' : ''}</tr></thead>
+        <thead><tr>
+          <th style="width:80px;">Mã</th>
+          <th>Mô tả</th>
+          <th style="width:110px;">Bloom</th>
+          <th style="width:180px;">PLO đáp ứng</th>
+          <th style="width:180px;">PI đáp ứng</th>
+          ${editable ? '<th style="width:100px;"></th>' : ''}
+        </tr></thead>
         <tbody>
-          ${clos.length === 0 ? `<tr><td colspan="${editable ? 4 : 3}" style="color:var(--text-muted);text-align:center;">Chưa có CLO</td></tr>` : clos.map(c => `
+          ${clos.length === 0 ? `<tr><td colspan="${editable ? 6 : 5}" style="color:var(--text-muted);text-align:center;">Chưa có CLO</td></tr>` : clos.map(c => {
+            const m = mappings[c.id] || { plo_ids: [], pi_ids: [] };
+            const ploCodes = m.plo_ids.map(id => (plos.find(p => p.id === id) || {}).code).filter(Boolean).join(', ');
+            const piCodes = m.pi_ids.map(id => (pis.find(p => p.id === id) || {}).code).filter(Boolean).join(', ');
+            return `
             <tr>
-              <td><strong style="color:var(--primary);">${c.code || ''}</strong></td>
-              <td style="font-size:13px;">${c.description || ''}</td>
+              <td><strong style="color:var(--primary);">${esc(c.code)}</strong></td>
+              <td style="font-size:13px;">${esc(c.description)}</td>
               <td><span class="badge badge-info">${bloomLabels[c.bloom_level] || c.bloom_level}</span></td>
+              <td style="font-size:12px;">${esc(ploCodes) || '<span style="color:var(--text-muted);">—</span>'}</td>
+              <td style="font-size:12px;">${esc(piCodes) || '<span style="color:var(--text-muted);">—</span>'}</td>
               ${editable ? `<td style="white-space:nowrap;">
                 <button class="btn btn-secondary btn-sm" onclick="window.BaseSyllabusEditorPage.editBaseCLO(${c.id})">Sửa</button>
                 <button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="window.BaseSyllabusEditorPage.deleteBaseCLO(${c.id})">Xóa</button>
               </td>` : ''}
             </tr>
-          `).join('')}
+          `; }).join('')}
         </tbody>
       </table>
       <div id="bs-clo-form" style="display:none;margin-top:16px;padding:16px;background:var(--bg-secondary);border-radius:var(--radius-lg);">
         <input type="hidden" id="bs-clo-edit-id">
         <div style="display:flex;gap:10px;align-items:end;flex-wrap:wrap;">
           <div class="input-group" style="width:100px;margin:0;"><label>Mã</label><input type="text" id="bs-clo-code" placeholder="CLO1"></div>
-          <div class="input-group" style="flex:1;margin:0;"><label>Mô tả</label><input type="text" id="bs-clo-desc" placeholder="Trình bày được..."></div>
-          <div class="input-group" style="width:160px;margin:0;">
+          <div class="input-group" style="flex:1;min-width:200px;margin:0;"><label>Mô tả</label><input type="text" id="bs-clo-desc"></div>
+          <div class="input-group" style="width:140px;margin:0;">
             <label>Bloom Level</label>
             <select id="bs-clo-bloom">
               <option value="1">1 — Nhớ</option>
@@ -318,6 +355,22 @@ window.BaseSyllabusEditorPage = {
               <option value="6">6 — Sáng tạo</option>
             </select>
           </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:10px;">
+          <div class="input-group" style="flex:1;margin:0;">
+            <label>PLO đáp ứng</label>
+            <select id="bs-clo-plos" multiple size="4" ${noCanonical ? 'disabled' : ''}>
+              ${plos.map(p => `<option value="${p.id}">${esc(p.code)} — ${esc((p.description||'').substring(0,60))}</option>`).join('')}
+            </select>
+          </div>
+          <div class="input-group" style="flex:1;margin:0;">
+            <label>PI đáp ứng</label>
+            <select id="bs-clo-pis" multiple size="4" ${noCanonical ? 'disabled' : ''}>
+              ${pis.map(p => `<option value="${p.id}">${esc(p.code)} — ${esc((p.description||'').substring(0,60))}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div style="margin-top:10px;display:flex;gap:6px;">
           <button class="btn btn-primary btn-sm" onclick="window.BaseSyllabusEditorPage.saveBaseCLO()">Lưu</button>
           <button class="btn btn-secondary btn-sm" onclick="document.getElementById('bs-clo-form').style.display='none'">Hủy</button>
         </div>
@@ -325,19 +378,25 @@ window.BaseSyllabusEditorPage = {
     `;
   },
 
-  showBaseCLOForm(id, code, desc, bloom) {
+  showBaseCLOForm(id, code, desc, bloom, ploIds, piIds) {
     document.getElementById('bs-clo-edit-id').value = id || '';
     document.getElementById('bs-clo-code').value = code || '';
     document.getElementById('bs-clo-desc').value = desc || '';
     document.getElementById('bs-clo-bloom').value = bloom || 1;
+    const ploSel = document.getElementById('bs-clo-plos');
+    const piSel = document.getElementById('bs-clo-pis');
+    Array.from(ploSel.options).forEach(o => o.selected = (ploIds || []).includes(parseInt(o.value)));
+    Array.from(piSel.options).forEach(o => o.selected = (piIds || []).includes(parseInt(o.value)));
     document.getElementById('bs-clo-form').style.display = 'block';
   },
 
-  editBaseCLO(id) {
-    fetch(`/api/courses/${this.courseId}/base-syllabus/clos`).then(r => r.json()).then(clos => {
-      const c = clos.find(x => x.id === id);
-      if (c) this.showBaseCLOForm(c.id, c.code, c.description, c.bloom_level);
-    });
+  async editBaseCLO(id) {
+    const [clos, mappings] = await Promise.all([
+      fetch(`/api/courses/${this.courseId}/base-syllabus/clos`).then(r => r.json()),
+      fetch(`/api/base-clos/${id}/mappings`).then(r => r.json()),
+    ]);
+    const c = clos.find(x => x.id === id);
+    if (c) this.showBaseCLOForm(c.id, c.code, c.description, c.bloom_level, mappings.plo_ids, mappings.pi_ids);
   },
 
   async saveBaseCLO() {
@@ -345,6 +404,8 @@ window.BaseSyllabusEditorPage = {
     const code = document.getElementById('bs-clo-code').value.trim();
     const description = document.getElementById('bs-clo-desc').value.trim();
     const bloom_level = parseInt(document.getElementById('bs-clo-bloom').value) || 1;
+    const plo_ids = Array.from(document.getElementById('bs-clo-plos').selectedOptions).map(o => parseInt(o.value));
+    const pi_ids = Array.from(document.getElementById('bs-clo-pis').selectedOptions).map(o => parseInt(o.value));
     if (!code) { window.toast.warning('Nhập mã CLO'); return; }
     try {
       const url = id ? `/api/base-clos/${id}` : `/api/courses/${this.courseId}/base-syllabus/clos`;
@@ -354,6 +415,13 @@ window.BaseSyllabusEditorPage = {
         body: JSON.stringify({ code, description, bloom_level })
       });
       if (!res.ok) throw new Error((await res.json()).error);
+      const saved = await res.json();
+      // Save mappings
+      await fetch(`/api/base-clos/${saved.id}/mappings`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plo_ids, pi_ids }),
+      });
       window.toast.success(id ? 'Đã cập nhật CLO' : 'Đã thêm CLO');
       document.getElementById('bs-clo-form').style.display = 'none';
       this.renderTab();
