@@ -414,8 +414,8 @@ window.BaseSyllabusEditorPage = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code, description, bloom_level })
       });
-      if (!res.ok) throw new Error((await res.json()).error);
       const saved = await res.json();
+      if (!res.ok) throw new Error(saved.error);
       // Save mappings
       await fetch(`/api/base-clos/${saved.id}/mappings`, {
         method: 'PUT',
