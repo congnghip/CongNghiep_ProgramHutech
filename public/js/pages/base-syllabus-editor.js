@@ -644,52 +644,73 @@ window.BaseSyllabusEditorPage = {
 
   // ============ TAB 3: Tài liệu ============
   renderResourcesTab(body, editable, c) {
+    const esc = s => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     const textbooks = Array.isArray(c.textbooks) ? c.textbooks : [];
     const references = Array.isArray(c.references) ? c.references : [];
-    const req = c.course_requirements || { software: [], hardware: [], lab_equipment: [], classroom_setup: '' };
+    const tools = Array.isArray(c.tools) ? c.tools : [];
     const dis = editable ? '' : 'disabled';
 
     body.innerHTML = `
-      <div style="max-width:600px;">
-        <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;">Tài liệu & Yêu cầu</h3>
-        <div class="input-group"><label>Giáo trình chính (mỗi dòng = 1 tài liệu)</label>
-          <textarea id="bs-textbooks" ${dis} rows="3" placeholder="Tên sách, Tác giả, NXB">${textbooks.join('\n')}</textarea>
+      <div style="max-width:820px;">
+        <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;">Tài liệu phục vụ học phần (mục 15)</h3>
+        <div class="input-group"><label>Tài liệu/giáo trình chính (mỗi dòng = 1 tài liệu)</label>
+          <textarea id="bs-textbooks" ${dis} rows="3" placeholder="Tên sách, Tác giả, NXB">${esc(textbooks.join('\n'))}</textarea>
         </div>
-        <div class="input-group"><label>Tài liệu tham khảo (mỗi dòng = 1 tài liệu)</label>
-          <textarea id="bs-references" ${dis} rows="3" placeholder="Bài báo, website...">${references.join('\n')}</textarea>
+        <div class="input-group"><label>Tài liệu tham khảo/bổ sung (mỗi dòng = 1 tài liệu)</label>
+          <textarea id="bs-references" ${dis} rows="3">${esc(references.join('\n'))}</textarea>
         </div>
-        <h4 style="font-size:14px;font-weight:600;margin:20px 0 12px;">Yêu cầu học phần</h4>
-        <div class="input-group"><label>Phần mềm / Công cụ (mỗi dòng = 1 item)</label>
-          <textarea id="bs-software" ${dis} rows="3">${(req.software || []).join('\n')}</textarea>
+
+        <h4 style="font-size:14px;font-weight:600;margin:20px 0 8px;">Các công cụ theo lĩnh vực</h4>
+        <div id="bs-tools-container">
+          ${tools.map((t, i) => this._toolCategoryHtml(t, i, editable, dis)).join('')}
         </div>
-        <div class="input-group"><label>Phần cứng (mỗi dòng = 1 item)</label>
-          <textarea id="bs-hardware" ${dis} rows="2">${(req.hardware || []).join('\n')}</textarea>
-        </div>
-        <div class="input-group"><label>Thiết bị phòng thí nghiệm (mỗi dòng = 1 item)</label>
-          <textarea id="bs-lab" ${dis} rows="2">${(req.lab_equipment || []).join('\n')}</textarea>
-        </div>
-        <div class="input-group"><label>Yêu cầu phòng học</label>
-          <input type="text" id="bs-classroom" ${dis} value="${req.classroom_setup || ''}" placeholder="VD: Phòng máy tính">
+        ${editable ? '<button class="btn btn-secondary btn-sm" style="margin-top:8px;" onclick="window.BaseSyllabusEditorPage.addToolCategory()">+ Thêm lĩnh vực</button>' : ''}
+
+        <h4 style="font-size:14px;font-weight:600;margin:24px 0 8px;">Các yêu cầu của HP (mục 17)</h4>
+        <div class="input-group">
+          <textarea id="bs-other-req" ${dis} rows="3" placeholder="Yêu cầu khác (nếu có)">${esc(c.other_requirements)}</textarea>
         </div>
       </div>
     `;
   },
 
+  _toolCategoryHtml(t, i, editable, dis) {
+    const esc = s => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    const items = Array.isArray(t.items) ? t.items.join('\n') : '';
+    return `<div class="tool-category" data-idx="${i}" style="border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:8px;background:var(--bg-secondary);">
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:8px;">
+        <label style="font-size:12px;white-space:nowrap;">Lĩnh vực:</label>
+        <input type="text" data-field="category" value="${esc(t.category)}" ${dis} placeholder="VD: Kỹ thuật - Công nghệ" style="flex:1;${BS_INP}">
+        ${editable ? `<button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="this.closest('.tool-category').remove()">✕</button>` : ''}
+      </div>
+      <textarea data-field="items" ${dis} rows="3" placeholder="Mỗi dòng = 1 công cụ" style="${BS_INP}">${esc(items)}</textarea>
+    </div>`;
+  },
+
+  addToolCategory() {
+    const container = document.getElementById('bs-tools-container');
+    if (!container) return;
+    container.insertAdjacentHTML('beforeend', this._toolCategoryHtml({ category: '', items: [] }, container.children.length, true, ''));
+  },
+
   _collectResources() {
-    const textbooks = document.getElementById('bs-textbooks');
-    if (!textbooks) return;
-    const toArr = id => document.getElementById(id).value.split('\n').map(s => s.trim()).filter(Boolean);
+    const textbooksEl = document.getElementById('bs-textbooks');
+    if (!textbooksEl) return;
+    const toArr = id => (document.getElementById(id)?.value || '').split('\n').map(s => s.trim()).filter(Boolean);
+    const toolsContainer = document.getElementById('bs-tools-container');
+    const tools = toolsContainer ? Array.from(toolsContainer.querySelectorAll('.tool-category')).map(div => ({
+      category: div.querySelector('[data-field="category"]').value,
+      items: div.querySelector('[data-field="items"]').value.split('\n').map(s => s.trim()).filter(Boolean),
+    })).filter(t => t.category || t.items.length) : [];
     this.baseSyllabus.content = {
       ...this.baseSyllabus.content,
       textbooks: toArr('bs-textbooks'),
       references: toArr('bs-references'),
-      course_requirements: {
-        software: toArr('bs-software'),
-        hardware: toArr('bs-hardware'),
-        lab_equipment: toArr('bs-lab'),
-        classroom_setup: document.getElementById('bs-classroom').value,
-      },
+      tools,
+      other_requirements: document.getElementById('bs-other-req')?.value || '',
     };
+    // Drop legacy v2 course_requirements if still present
+    delete this.baseSyllabus.content.course_requirements;
   },
 
   // ============ COLLECT + SAVE ============
