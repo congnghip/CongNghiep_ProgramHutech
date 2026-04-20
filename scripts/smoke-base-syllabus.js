@@ -87,7 +87,6 @@ async function expect(label, promise, check) {
   await expect('GET export.docx', req('GET', `/api/courses/${COURSE_ID}/base-syllabus/export.docx`),
     r => r.status === 200 && r.body.slice(0, 2).toString('hex') === '504b');  // ZIP magic (DOCX is ZIP)
 
-  // Cleanup
   await req('DELETE', `/api/base-clos/${cloId}`);
   console.log('\nSmoke test complete.');
 })();

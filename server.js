@@ -762,20 +762,6 @@ app.put('/api/programs/:id', authMiddleware, requirePerm('programs.edit'), async
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
-// ============ VERSION LIST ============
-app.get('/api/versions', authMiddleware, requirePerm('courses.view'), async (req, res) => {
-  try {
-    const result = await pool.query(`
-      SELECT pv.id, pv.academic_year, pv.version_name, pv.status,
-             pv.program_id, p.department_id, p.name as program_name, p.code as program_code
-      FROM program_versions pv
-      JOIN programs p ON p.id = pv.program_id
-      ORDER BY p.department_id, p.code, pv.academic_year DESC
-    `);
-    res.json(result.rows);
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
 // ============ VERSION DETAIL + UPDATE ============
 app.get('/api/versions/:id', authMiddleware, requireViewVersion, async (req, res) => {
   try {

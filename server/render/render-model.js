@@ -16,24 +16,37 @@ async function buildRenderModel(pool, courseId) {
   const content = upgradeContent(rawContent);
 
   const closRes = await pool.query('SELECT * FROM base_syllabus_clos WHERE course_id = $1 ORDER BY code', [courseId]);
-  const clos = [];
-  for (const clo of closRes.rows) {
-    const plos = await pool.query(
-      `SELECT vp.code, vp.description FROM base_clo_plo_map m
-       JOIN version_plos vp ON vp.id = m.plo_id WHERE m.base_clo_id = $1 ORDER BY vp.code`, [clo.id]
-    );
-    const pis = await pool.query(
-      `SELECT pp.pi_code AS code, pp.description FROM base_clo_pi_map m
-       JOIN plo_pis pp ON pp.id = m.pi_id WHERE m.base_clo_id = $1 ORDER BY pp.pi_code`, [clo.id]
-    );
-    clos.push({
-      code: clo.code,
-      description: clo.description,
-      bloom_level: clo.bloom_level,
-      plo_codes: plos.rows.map(r => r.code),
-      pi_codes: pis.rows.map(r => r.code),
-    });
+  const [ploMapRes, piMapRes] = await Promise.all([
+    pool.query(
+      `SELECT m.base_clo_id, vp.code FROM base_clo_plo_map m
+       JOIN version_plos vp ON vp.id = m.plo_id
+       JOIN base_syllabus_clos c ON c.id = m.base_clo_id
+       WHERE c.course_id = $1 ORDER BY vp.code`, [courseId]
+    ),
+    pool.query(
+      `SELECT m.base_clo_id, pp.pi_code AS code FROM base_clo_pi_map m
+       JOIN plo_pis pp ON pp.id = m.pi_id
+       JOIN base_syllabus_clos c ON c.id = m.base_clo_id
+       WHERE c.course_id = $1 ORDER BY pp.pi_code`, [courseId]
+    ),
+  ]);
+  const ploByClo = new Map();
+  for (const r of ploMapRes.rows) {
+    if (!ploByClo.has(r.base_clo_id)) ploByClo.set(r.base_clo_id, []);
+    ploByClo.get(r.base_clo_id).push(r.code);
   }
+  const piByClo = new Map();
+  for (const r of piMapRes.rows) {
+    if (!piByClo.has(r.base_clo_id)) piByClo.set(r.base_clo_id, []);
+    piByClo.get(r.base_clo_id).push(r.code);
+  }
+  const clos = closRes.rows.map(clo => ({
+    code: clo.code,
+    description: clo.description,
+    bloom_level: clo.bloom_level,
+    plo_codes: ploByClo.get(clo.id) || [],
+    pi_codes: piByClo.get(clo.id) || [],
+  }));
 
   // PLO matrix row for mục 9 (trích ngang từ canonical version)
   let plo_matrix = { plo_codes: [], pi_codes: [], cell_values: {} };
