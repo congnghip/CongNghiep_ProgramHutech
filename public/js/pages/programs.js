@@ -233,7 +233,7 @@ window.ProgramsPage = {
         const pId = this.routeParams.programId;
         const pName = this.routeParams.programName || '';
         this.routeParams.programId = null; // Clear so back button works correctly
-        this.viewVersions(pId, pName);
+        this.viewCohorts(pId, pName);
       }
     } catch (e) {
       document.getElementById('programs-content').innerHTML = `<p style="color:var(--danger);">Lỗi: ${e.message}</p>`;
@@ -266,7 +266,7 @@ window.ProgramsPage = {
 
     const renderProg = (p) => `
       <div class="tree-node flex-between" style="cursor:pointer;"
-           onclick="window.ProgramsPage.viewVersions(${p.id},'${p.name.replace(/'/g,"\\'")}')">
+           onclick="window.ProgramsPage.viewCohorts(${p.id},'${p.name.replace(/'/g,"\\'")}')">
         <div style="flex:1;min-width:0;">
           <div style="font-weight:600;font-size:14px;">${p.name}</div>
           <div style="font-size:11px;color:var(--text-muted);">
@@ -464,52 +464,76 @@ window.ProgramsPage = {
     App.modalGuard('ver-edit-modal', () => ProgramsPage.saveVersionEdit());
   },
 
-  // View versions
-  async viewVersions(programId, programName) {
+  async viewCohorts(programId, programName) {
+    this._currentProgramId = programId;
+    this._currentProgramName = programName;
+
     const content = document.getElementById('programs-content');
     content.innerHTML = '<div class="spinner"></div>';
 
-    // Change header button from "Tạo CTĐT" to "Tạo khóa"
     const cardHeader = content.closest('.card').querySelector('.card-header');
     this._originalHeaderHTML = cardHeader.innerHTML;
     cardHeader.innerHTML = `
-      <div class="card-title">Khóa - ${programName}</div>
-      ${window.App.hasPerm('programs.create_version') ? `<button class="btn btn-primary" onclick="window.ProgramsPage.openVersionModal(${programId})">+ Tạo khóa</button>` : ''}
+      <div class="card-title">Khóa — ${programName}</div>
+      ${window.App.hasPerm('programs.create_version') ? `<button class="btn btn-primary" onclick="window.ProgramsPage.openCohortModal(${programId})">+ Tạo khóa</button>` : ''}
     `;
 
     try {
-      const versions = await fetch(`/api/programs/${programId}/versions`).then(r => r.json()).then(d => Array.isArray(d) ? d : []);
+      const cohorts = await fetch(`/api/programs/${programId}/cohorts`).then(r => r.json()).then(d => Array.isArray(d) ? d : []);
       const statusColors = { draft: 'badge-warning', submitted: 'badge-info', approved_khoa: 'badge-info', approved_pdt: 'badge-info', published: 'badge-success' };
-      const statusLabels = { draft: 'Bản nháp', submitted: 'Đã nộp', approved_khoa: 'Duyệt Khoa ✓', approved_pdt: 'Duyệt PĐT ✓', published: 'Đã công bố' };
+      const statusLabels = { draft: 'Nháp', submitted: 'Đã nộp', approved_khoa: 'Duyệt Khoa ✓', approved_pdt: 'Duyệt PĐT ✓', published: 'Đã công bố' };
+      const variantLabels = { DHCQ: 'Đại học Chính quy', QUOC_TE: 'Quốc Tế', VIET_HAN: 'Việt - Hàn', VIET_NHAT: 'Việt - Nhật' };
+      const ALL_VARIANTS = ['DHCQ', 'QUOC_TE', 'VIET_HAN', 'VIET_NHAT'];
+
+      const renderVariantSlots = (cohort) => ALL_VARIANTS.map(vt => {
+        const v = (cohort.variants || []).find(x => x.variant_type === vt);
+        if (!v) {
+          return window.App.hasPerm('programs.create_version') ? `
+            <div class="tree-node" style="opacity:0.5;display:flex;align-items:center;justify-content:space-between;">
+              <span style="font-size:13px;color:var(--text-muted);">${variantLabels[vt]}</span>
+              <button class="btn btn-sm btn-outline-primary" onclick="window.ProgramsPage.openVariantModal(${cohort.id},'${vt}','${programName.replace(/'/g,"\\'")}')">+ Tạo</button>
+            </div>` : `<div class="tree-node" style="opacity:0.3;font-size:13px;color:var(--text-muted);">${variantLabels[vt]} — Chưa có</div>`;
+        }
+        return `
+          <div class="tree-node flex-between" style="cursor:pointer;"
+               onclick="window.App.navigate('version-editor',{versionId:${v.id}})">
+            <div style="flex:1;min-width:0;">
+              <div style="font-weight:600;font-size:13px;">${variantLabels[vt]}
+                ${v.is_locked ? '<span class="badge badge-danger" style="margin-left:4px;">🔒</span>' : ''}
+              </div>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">
+                <span class="badge ${statusColors[v.status] || 'badge-neutral'}">${statusLabels[v.status] || v.status}</span>
+                ${v.is_rejected ? '<span class="badge badge-danger">Từ chối</span>' : ''}
+                · ${v.completion_pct || 0}%
+              </div>
+            </div>
+            <div class="flex-row" style="flex-shrink:0;" onclick="event.stopPropagation()">
+              ${window.App.hasPerm('programs.delete_draft') && v.status === 'draft' ? `<button class="btn btn-sm btn-ghost" style="color:var(--danger);" onclick="window.ProgramsPage.deleteVariant(${v.id},'${variantLabels[vt]}',${cohort.id},${programId},'${programName.replace(/'/g,"\\'")}')">Xóa</button>` : ''}
+            </div>
+          </div>`;
+      }).join('');
 
       content.innerHTML = `
         <div class="flex-row mb-4" style="gap:10px;">
           <button class="btn btn-secondary btn-sm" onclick="window.ProgramsPage.backToList()">← Quay lại</button>
           <h3 class="section-title">Khóa: ${programName}</h3>
         </div>
-        ${versions.length === 0
+        ${cohorts.length === 0
           ? '<div class="empty-state"><div class="icon">📭</div><p>Chưa có khóa nào</p></div>'
-          : `<div style="display:grid;gap:10px;">
-            ${versions.map(v => `
-              <div class="tree-node flex-between" style="cursor:pointer;"
-                   onclick="window.App.navigate('version-editor',{versionId:${v.id}})">
-                <div style="flex:1;min-width:0;">
-                  <div style="font-weight:600;font-size:15px;">
-                    ${v.academic_year}
-                    ${v.is_locked ? '<span class="badge badge-danger" style="margin-left:6px;">🔒 Khóa</span>' : ''}
+          : `<div style="display:grid;gap:12px;">
+            ${cohorts.map(c => `
+              <div style="border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;">
+                <div class="flex-between" style="padding:12px 16px;background:var(--bg-secondary);cursor:pointer;"
+                     onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'':'none'">
+                  <div style="font-weight:700;font-size:15px;">Khóa ${c.academic_year}
+                    <span class="badge badge-neutral" style="margin-left:8px;">${(c.variants||[]).length} variant</span>
                   </div>
-                  <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">
-                    <span class="badge ${statusColors[v.status] || 'badge-neutral'}">${statusLabels[v.status] || v.status}</span>
-                    ${v.is_rejected ? '<span class="badge badge-danger">Bị từ chối</span>' : ''}
-                    · Hoàn thành: ${v.completion_pct || 0}%
-                    · Tạo: ${new Date(v.created_at).toLocaleDateString('vi-VN')}
-                    ${v.copied_from_id ? ' · Copy từ khóa trước' : ''}
+                  <div class="flex-row" onclick="event.stopPropagation()">
+                    ${window.App.hasPerm('programs.delete_draft') ? `<button class="btn btn-sm btn-ghost" style="color:var(--danger);" onclick="window.ProgramsPage.deleteCohort(${c.id},'${c.academic_year}',${programId},'${programName.replace(/'/g,"\\'")}')">Xóa khóa</button>` : ''}
                   </div>
                 </div>
-                <div class="flex-row" style="flex-shrink:0;" onclick="event.stopPropagation()">
-                  ${window.App.hasPerm('programs.create_version') && v.status === 'published' ? `<button class="btn btn-secondary btn-sm" title="Nhân bản khóa này" onclick="window.ProgramsPage.cloneVersion(${programId}, ${v.id}, '${v.academic_year}')">📋 Nhân bản</button>` : ''}
-                  ${window.App.hasPerm('programs.edit') && v.status === 'draft' ? `<button class="btn btn-sm btn-outline-secondary" onclick="window.ProgramsPage.openVersionEditModal(${v.id}, ${programId}, '${programName.replace(/'/g, "\\'")}')">Chỉnh sửa</button>` : ''}
-                  ${window.App.hasPerm('programs.delete_draft') && v.status === 'draft' ? `<button class="btn btn-sm btn-ghost" style="color:var(--danger);" onclick="window.ProgramsPage.deleteVersion(${v.id}, '${v.academic_year}', ${programId}, '${programName.replace(/'/g, "\\'")}')">Xóa</button>` : ''}
+                <div style="padding:12px 16px;display:grid;gap:8px;">
+                  ${renderVariantSlots(c)}
                 </div>
               </div>
             `).join('')}
@@ -573,6 +597,44 @@ window.ProgramsPage = {
     } catch (e) {
       window.toast.error(e.message);
     }
+  },
+
+  async deleteVariant(versionId, variantLabel, cohortId, programId, programName) {
+    const confirmed = await window.ui.confirm({
+      title: 'Xóa CTDT Variant',
+      eyebrow: 'Xác nhận thao tác',
+      message: `Xóa variant "${variantLabel}"? Thao tác này sẽ xóa toàn bộ nội dung (PLO, học phần, đề cương...).`,
+      confirmText: 'Xóa',
+      cancelText: 'Hủy',
+      tone: 'danger',
+      confirmVariant: 'danger'
+    });
+    if (!confirmed) return;
+    try {
+      const res = await fetch(`/api/versions/${versionId}`, { method: 'DELETE' });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      window.toast.success(`Đã xóa variant ${variantLabel}`);
+      await this.viewCohorts(programId, programName);
+    } catch (e) { window.toast.error(e.message); }
+  },
+
+  async deleteCohort(cohortId, year, programId, programName) {
+    const confirmed = await window.ui.confirm({
+      title: 'Xóa khóa',
+      eyebrow: 'Xác nhận thao tác',
+      message: `Xóa khóa "${year}" và tất cả các variant bên trong?`,
+      confirmText: 'Xóa khóa',
+      cancelText: 'Hủy',
+      tone: 'danger',
+      confirmVariant: 'danger'
+    });
+    if (!confirmed) return;
+    try {
+      const res = await fetch(`/api/cohorts/${cohortId}`, { method: 'DELETE' });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      window.toast.success(`Đã xóa khóa ${year}`);
+      await this.viewCohorts(programId, programName);
+    } catch (e) { window.toast.error(e.message); }
   },
 
   // Version Edit Modal
