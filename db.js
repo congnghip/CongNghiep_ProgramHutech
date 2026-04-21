@@ -403,8 +403,7 @@ async function initDB() {
         ADD COLUMN IF NOT EXISTS cohort_id INT REFERENCES program_cohorts(id) ON DELETE CASCADE;
 
       ALTER TABLE program_versions
-        ADD COLUMN IF NOT EXISTS variant_type VARCHAR(20)
-          CHECK (variant_type IN ('DHCQ','QUOC_TE','VIET_HAN','VIET_NHAT'));
+        ADD COLUMN IF NOT EXISTS variant_type VARCHAR(20);
     `);
 
     // Migration: add CHECK constraint on variant_type idempotently (for existing DBs)
