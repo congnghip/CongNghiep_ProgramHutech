@@ -204,7 +204,7 @@ window.ProgramsPage = {
     });
     document.getElementById('ver-edit-form').addEventListener('submit', async (e) => {
       e.preventDefault();
-      await this.saveVersionEdit();
+      await this.saveCohortOrVersion();
     });
     document.getElementById('prog-notes').addEventListener('input', () => this.updateNotesCount());
 
@@ -423,16 +423,15 @@ window.ProgramsPage = {
     if (counter) counter.textContent = `Tối đa 1000 ký tự — ${val.length}/1000`;
   },
 
-  // Version Modal — reuse ver-edit-modal for creating
-  async openVersionModal(programId) {
+  // Cohort Modal — create a new cohort (academic year only)
+  openCohortModal(programId) {
     document.getElementById('ver-edit-modal-title').textContent = 'Tạo khóa mới';
     document.getElementById('ver-edit-id').value = '';
     document.getElementById('ver-edit-program-id').value = programId;
-    document.getElementById('ver-edit-program-name').value = '';
-    const now = new Date();
-    const year = now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1;
-    document.getElementById('ver-edit-year').value = `${year}-${year + 1}`;
+    document.getElementById('ver-edit-program-name').value = '__cohort_mode__';
+    document.getElementById('ver-edit-year').value = `${new Date().getFullYear()}`;
     document.getElementById('ver-edit-name').value = '';
+    document.getElementById('ver-edit-copy-group').style.display = 'none';
     document.getElementById('ver-edit-credits').value = '';
     document.getElementById('ver-edit-duration').value = '';
     document.getElementById('ver-edit-change-type').value = '';
@@ -448,20 +447,53 @@ window.ProgramsPage = {
     document.getElementById('ver-edit-admission-targets').value = '';
     document.getElementById('ver-edit-admission-criteria').value = '';
     document.getElementById('ver-edit-save-btn').textContent = 'Tạo khóa';
+    document.getElementById('ver-edit-modal').classList.add('active');
+    App.modalGuard('ver-edit-modal', () => ProgramsPage.saveCohortOrVersion());
+  },
 
-    // Show copy dropdown
+  // Variant Modal — create a new variant inside a cohort
+  async openVariantModal(cohortId, variantType, programName) {
+    const variantLabels = { DHCQ: 'Đại học Chính quy', QUOC_TE: 'Quốc Tế', VIET_HAN: 'Việt - Hàn', VIET_NHAT: 'Việt - Nhật' };
+    document.getElementById('ver-edit-modal-title').textContent = `Tạo variant: ${variantLabels[variantType]}`;
+    document.getElementById('ver-edit-id').value = '';
+    document.getElementById('ver-edit-program-id').value = cohortId;
+    document.getElementById('ver-edit-program-name').value = `__variant_mode__:${variantType}`;
+    document.getElementById('ver-edit-year').value = '';
+    document.getElementById('ver-edit-name').value = '';
+    document.getElementById('ver-edit-credits').value = '';
+    document.getElementById('ver-edit-duration').value = '';
+    document.getElementById('ver-edit-change-type').value = '';
+    document.getElementById('ver-edit-status').value = 'draft';
+    document.getElementById('ver-edit-effective-date').value = '';
+    document.getElementById('ver-edit-change-summary').value = '';
+    document.getElementById('ver-edit-grading').value = '';
+    document.getElementById('ver-edit-graduation').value = '';
+    document.getElementById('ver-edit-jobs').value = '';
+    document.getElementById('ver-edit-further-edu').value = '';
+    document.getElementById('ver-edit-reference').value = '';
+    document.getElementById('ver-edit-training-process').value = '';
+    document.getElementById('ver-edit-admission-targets').value = '';
+    document.getElementById('ver-edit-admission-criteria').value = '';
+    document.getElementById('ver-edit-save-btn').textContent = 'Tạo variant';
+
+    // Show copy dropdown with matching published variants from other cohorts
     document.getElementById('ver-edit-copy-group').style.display = '';
+    const sel = document.getElementById('ver-copy-from');
+    sel.innerHTML = '<option value="">— Tạo mới trắng —</option>';
     try {
-      const versions = await fetch(`/api/programs/${programId}/versions`).then(r => r.json()).then(d => Array.isArray(d) ? d : []);
-      const sel = document.getElementById('ver-copy-from');
-      sel.innerHTML = '<option value="">— Tạo mới trắng —</option>';
-      versions.forEach(v => {
-        sel.innerHTML += `<option value="${v.id}">${v.academic_year} (${v.status}${v.is_locked ? ' 🔒' : ''})</option>`;
+      const cohortRes = await fetch(`/api/cohorts/${cohortId}`).then(r => r.json());
+      const allVersions = await fetch(`/api/programs/${cohortRes.program_id}/versions`).then(r => r.json()).then(d => Array.isArray(d) ? d : []);
+      const matching = allVersions
+        .filter(v => v.variant_type === variantType && v.status === 'published' && v.cohort_id !== parseInt(cohortId))
+        .sort((a, b) => b.academic_year.localeCompare(a.academic_year));
+      matching.forEach(v => {
+        sel.innerHTML += `<option value="${v.id}">Khóa ${v.academic_year} (published)</option>`;
       });
+      if (matching.length > 0) sel.value = matching[0].id;
     } catch (e) {}
 
     document.getElementById('ver-edit-modal').classList.add('active');
-    App.modalGuard('ver-edit-modal', () => ProgramsPage.saveVersionEdit());
+    App.modalGuard('ver-edit-modal', () => ProgramsPage.saveCohortOrVersion());
   },
 
   async viewCohorts(programId, programName) {
@@ -556,48 +588,6 @@ window.ProgramsPage = {
     this.loadData();
   },
 
-  // Clone version — reuse ver-edit-modal in create mode, pre-select source
-  async cloneVersion(programId, sourceVersionId, sourceYear) {
-    await this.openVersionModal(programId);
-    document.getElementById('ver-edit-modal-title').textContent = `Nhân bản từ ${sourceYear}`;
-    // Auto-generate next academic year
-    const match = sourceYear.match(/^(\d{4})-(\d{4})$/);
-    if (match) {
-      const nextStart = parseInt(match[2]);
-      document.getElementById('ver-edit-year').value = `${nextStart}-${nextStart + 1}`;
-    }
-    // Pre-select source version in copy dropdown
-    const sel = document.getElementById('ver-copy-from');
-    sel.innerHTML = '<option value="">— Tạo mới trắng —</option>';
-    try {
-      const versions = await fetch(`/api/programs/${programId}/versions`).then(r => r.json()).then(d => Array.isArray(d) ? d : []);
-      versions.filter(v => v.status === 'published').forEach(v => {
-        sel.innerHTML += `<option value="${v.id}" ${v.id === sourceVersionId ? 'selected' : ''}>${v.academic_year} (${v.status}${v.is_locked ? ' 🔒' : ''})</option>`;
-      });
-    } catch (e) {}
-    App.modalGuard('ver-edit-modal', () => ProgramsPage.saveVersionEdit());
-  },
-
-  async deleteVersion(id, year, programId, programName) {
-    const confirmed = await window.ui.confirm({
-      title: 'Xóa khóa CTĐT',
-      eyebrow: 'Xác nhận thao tác',
-      message: `Bạn có chắc muốn xóa khóa "${year}" của CTĐT "${programName}"?`,
-      confirmText: 'Xóa khóa',
-      cancelText: 'Hủy',
-      tone: 'danger',
-      confirmVariant: 'danger'
-    });
-    if (!confirmed) return;
-    try {
-      const res = await fetch(`/api/versions/${id}`, { method: 'DELETE' });
-      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
-      window.toast.success(`Đã xóa khóa ${year}`);
-      await this.viewVersions(programId, programName);
-    } catch (e) {
-      window.toast.error(e.message);
-    }
-  },
 
   async deleteVariant(versionId, variantLabel, cohortId, programId, programName) {
     const confirmed = await window.ui.confirm({
@@ -664,23 +654,81 @@ window.ProgramsPage = {
       document.getElementById('ver-edit-admission-targets').value = v.admission_targets || '';
       document.getElementById('ver-edit-admission-criteria').value = v.admission_criteria || '';
         document.getElementById('ver-edit-modal').classList.add('active');
-        App.modalGuard('ver-edit-modal', () => ProgramsPage.saveVersionEdit());
+        App.modalGuard('ver-edit-modal', () => ProgramsPage.saveCohortOrVersion());
     } catch (e) {
       window.toast.error('Không thể tải dữ liệu khóa: ' + e.message);
     }
   },
 
-  async saveVersionEdit() {
+  async saveCohortOrVersion() {
     const id = document.getElementById('ver-edit-id').value;
-    const programId = document.getElementById('ver-edit-program-id').value;
-    const programName = document.getElementById('ver-edit-program-name').value;
-    const academic_year = document.getElementById('ver-edit-year').value.trim();
+    const programOrCohortId = document.getElementById('ver-edit-program-id').value;
+    const modeFlag = document.getElementById('ver-edit-program-name').value;
 
-    if (!academic_year) { window.toast.error('Vui lòng nhập số khóa'); return; }
-    if (!/^\d{4}$/.test(academic_year)) { window.toast.error('Số khóa phải có định dạng 4 chữ số (VD: 2026)'); return; }
+    if (id) {
+      // Edit existing version
+      const academic_year = document.getElementById('ver-edit-year').value.trim();
+      if (!academic_year || !/^\d{4}$/.test(academic_year)) {
+        window.toast.error('Số khóa phải có định dạng 4 chữ số (VD: 2026)'); return;
+      }
+      try {
+        const res = await fetch(`/api/versions/${id}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(this._buildVersionBody())
+        });
+        if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+        document.getElementById('ver-edit-modal').classList.remove('active');
+        window.toast.success('Đã cập nhật khóa');
+        if (this._currentProgramId) await this.viewCohorts(this._currentProgramId, this._currentProgramName || '');
+      } catch (e) { window.toast.error(e.message); }
+      return;
+    }
 
-    const body = {
-      academic_year,
+    if (modeFlag === '__cohort_mode__') {
+      // Create cohort (academic_year only)
+      const academic_year = document.getElementById('ver-edit-year').value.trim();
+      if (!academic_year || !/^\d{4}$/.test(academic_year)) {
+        window.toast.error('Số khóa phải có định dạng 4 chữ số (VD: 2026)'); return;
+      }
+      try {
+        const res = await fetch(`/api/programs/${programOrCohortId}/cohorts`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ academic_year })
+        });
+        if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+        document.getElementById('ver-edit-modal').classList.remove('active');
+        window.toast.success(`Đã tạo khóa ${academic_year}`);
+        await this.viewCohorts(parseInt(programOrCohortId), this._currentProgramName || '');
+      } catch (e) { window.toast.error(e.message); }
+      return;
+    }
+
+    if (modeFlag && modeFlag.startsWith('__variant_mode__:')) {
+      // Create variant inside cohort
+      const variantType = modeFlag.split(':')[1];
+      const copy_from_version_id = document.getElementById('ver-copy-from').value || null;
+      const body = {
+        variant_type: variantType,
+        copy_from_version_id: copy_from_version_id ? parseInt(copy_from_version_id) : null,
+        ...this._buildVersionBody()
+      };
+      try {
+        const res = await fetch(`/api/cohorts/${programOrCohortId}/variants`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+        document.getElementById('ver-edit-modal').classList.remove('active');
+        window.toast.success(`Đã tạo variant${copy_from_version_id ? ' (đã copy dữ liệu)' : ''}`);
+        await this.viewCohorts(this._currentProgramId, this._currentProgramName || '');
+      } catch (e) { window.toast.error(e.message); }
+      return;
+    }
+  },
+
+  _buildVersionBody() {
+    return {
+      academic_year: document.getElementById('ver-edit-year').value.trim() || null,
       version_name: document.getElementById('ver-edit-name').value.trim() || null,
       total_credits: parseInt(document.getElementById('ver-edit-credits').value) || null,
       training_duration: document.getElementById('ver-edit-duration').value.trim() || null,
@@ -696,33 +744,6 @@ window.ProgramsPage = {
       admission_targets: document.getElementById('ver-edit-admission-targets').value.trim() || null,
       admission_criteria: document.getElementById('ver-edit-admission-criteria').value.trim() || null,
     };
-
-    try {
-      if (id) {
-        // Edit existing version
-        const res = await fetch(`/api/versions/${id}`, {
-          method: 'PUT', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body)
-        });
-        if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
-        document.getElementById('ver-edit-modal').classList.remove('active');
-        window.toast.success('Đã cập nhật khóa');
-        await this.viewVersions(parseInt(programId), programName);
-      } else {
-        // Create new version
-        const copy_from_version_id = document.getElementById('ver-copy-from').value || null;
-        const res = await fetch(`/api/programs/${programId}/versions`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ...body, copy_from_version_id: copy_from_version_id ? parseInt(copy_from_version_id) : null })
-        });
-        if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
-        document.getElementById('ver-edit-modal').classList.remove('active');
-        window.toast.success(`Đã tạo khóa ${academic_year}` + (copy_from_version_id ? ' (đã copy dữ liệu)' : ''));
-        await this.loadData();
-      }
-    } catch (e) {
-      window.toast.error(e.message);
-    }
   },
 
   // Format academic year input: chỉ chấp nhận tối đa 4 chữ số (YYYY).
