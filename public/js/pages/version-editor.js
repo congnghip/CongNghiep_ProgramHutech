@@ -73,6 +73,9 @@ window.VersionEditorPage = {
     // Filter visible tabs: must have both version-status-view-perm AND the tab's specific viewPerm (if any)
     this.visibleTabs = this.tabs.filter(t => window.App.hasPerm(statusPerm));
 
+    const variantLabels = { DHCQ: 'Đại học Chính quy', QUOC_TE: 'Quốc Tế', VIET_HAN: 'Việt - Hàn', VIET_NHAT: 'Việt - Nhật' };
+    const variantLabel = this.version.variant_type ? (variantLabels[this.version.variant_type] || this.version.variant_type) : '';
+    const cohortYear = this.version.cohort_academic_year || this.version.academic_year;
     container.innerHTML = `
       <div class="page-header">
         <nav class="breadcrumb-nav mb-3">
@@ -80,11 +83,12 @@ window.VersionEditorPage = {
           <span class="breadcrumb-sep">›</span>
           <a href="#" onclick="event.preventDefault();window.App.navigate('programs',{programId:${this.version.program_id},programName:'${(this.version.program_name || '').replace(/'/g, "\\'")}'})  " class="breadcrumb-link">${this.version.program_name}</a>
           <span class="breadcrumb-sep">›</span>
-          <span class="breadcrumb-current">${this.version.academic_year}</span>
+          <span class="breadcrumb-link" style="cursor:default;">Khóa ${cohortYear}</span>
+          ${variantLabel ? `<span class="breadcrumb-sep">›</span><span class="breadcrumb-current">${variantLabel}</span>` : `<span class="breadcrumb-sep">›</span><span class="breadcrumb-current">${cohortYear}</span>`}
         </nav>
         <div class="flex-between">
           <div>
-            <h1 class="page-title">${this.version.academic_year}</h1>
+            <h1 class="page-title">Khóa ${cohortYear}${variantLabel ? ` — ${variantLabel}` : ''}</h1>
             <div class="page-header-meta">
               ${locked ? '<span class="badge badge-danger">Đã khóa</span>' : `<span class="badge badge-warning">${this.version.status}</span>`}
               ${isRejected ? '<span class="badge badge-danger">Bị từ chối</span>' : ''}
