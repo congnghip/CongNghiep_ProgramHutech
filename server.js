@@ -3910,6 +3910,7 @@ app.post('/api/import/save', authMiddleware, requirePerm('programs.import_word')
     courseDescriptions,
     department_id,
     existing_program_id,
+    variant_type,
   } = req.body;
 
   if (!program || !program.code) return res.status(400).json({ success: false, error: 'Missing program.code' });
@@ -3960,24 +3961,36 @@ app.post('/api/import/save', authMiddleware, requirePerm('programs.import_word')
     }
 
     const duplicateVersion = await client.query(
-      'SELECT id FROM program_versions WHERE program_id = $1 AND academic_year = $2',
-      [program_id, academicYear]
+      'SELECT id FROM program_versions WHERE program_id = $1 AND academic_year = $2 AND variant_type = $3',
+      [program_id, academicYear, variant_type || 'DHCQ']
     );
     if (duplicateVersion.rows.length > 0) {
       await client.query('ROLLBACK');
-      return res.status(409).json({ success: false, error: `Phiên bản CTĐT năm "${academicYear}" đã tồn tại.` });
+      return res.status(409).json({ success: false, error: `Phiên bản CTĐT năm "${academicYear}" (${variant_type || 'DHCQ'}) đã tồn tại.` });
     }
+
+    // ── Step 2b: Create or find cohort ───────────────────────────────────
+    const cohortInsert = await client.query(
+      `INSERT INTO program_cohorts (program_id, academic_year)
+       VALUES ($1, $2)
+       ON CONFLICT (program_id, academic_year) DO UPDATE SET academic_year=EXCLUDED.academic_year
+       RETURNING id`,
+      [program_id, academicYear]
+    );
+    const cohort_id = cohortInsert.rows[0].id;
 
     // ── Step 3: INSERT program_versions ──────────────────────────────────
     const verRes = await client.query(
       `INSERT INTO program_versions
-         (program_id, academic_year, version_name, status, total_credits, training_duration,
+         (program_id, cohort_id, academic_year, variant_type, version_name, status, total_credits, training_duration,
           grading_scale, graduation_requirements, job_positions, further_education,
           reference_programs, training_process, admission_targets, admission_criteria, general_objective)
-       VALUES ($1,$2,$3,'draft',$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) RETURNING id`,
+       VALUES ($1,$2,$3,$4,$5,'draft',$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING id`,
       [
         program_id,
+        cohort_id,
         academicYear,
+        variant_type || 'DHCQ',
         (version && version.version_name) ? version.version_name : null,
         program.total_credits || null,
         (version && version.training_duration) ? version.training_duration : (program.duration || null),

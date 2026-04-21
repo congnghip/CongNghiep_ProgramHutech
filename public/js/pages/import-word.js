@@ -225,6 +225,15 @@ window.ImportWordPage = {
             <label>Năm học <span style="color:var(--danger);">*</span></label>
             <input type="text" id="iw-year-input" placeholder="2024-2025" value="${this._escAttr(ver.academic_year || d.academic_year || '')}">
           </div>
+          <div class="input-group">
+            <label>Loại hình đào tạo (Variant) <span style="color:var(--danger);">*</span></label>
+            <select id="iw-variant-type">
+              <option value="DHCQ">Đại học Chính quy</option>
+              <option value="QUOC_TE">Quốc Tế</option>
+              <option value="VIET_HAN">Việt - Hàn</option>
+              <option value="VIET_NHAT">Việt - Nhật</option>
+            </select>
+          </div>
         </div>
         <div class="flex-row mt-4" style="justify-content:flex-end;">
           <button class="btn btn-secondary btn-sm" onclick="window.ImportWordPage._backToUpload()">← Chọn lại file</button>
@@ -303,6 +312,7 @@ window.ImportWordPage = {
         ...data,
         department_id: this.existingProgram ? this.existingProgram.department_id : parseInt(nganhSelect.value || deptSelect.value, 10),
         existing_program_id: this.existingProgram ? this.existingProgram.id : null,
+        variant_type: document.getElementById('iw-variant-type')?.value || 'DHCQ',
       };
       const res = await fetch('/api/import/save', {
         method: 'POST',
