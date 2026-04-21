@@ -386,6 +386,24 @@ async function initDB() {
         ip VARCHAR(50),
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
+
+      -- Program Cohorts (Khóa — groups a program + academic year)
+      CREATE TABLE IF NOT EXISTS program_cohorts (
+        id            SERIAL PRIMARY KEY,
+        program_id    INT NOT NULL REFERENCES programs(id) ON DELETE CASCADE,
+        academic_year VARCHAR(4) NOT NULL,
+        notes         TEXT,
+        created_at    TIMESTAMPTZ DEFAULT NOW(),
+        UNIQUE(program_id, academic_year)
+      );
+
+      -- Add cohort_id and variant_type to program_versions
+      ALTER TABLE program_versions
+        ADD COLUMN IF NOT EXISTS cohort_id INT REFERENCES program_cohorts(id) ON DELETE CASCADE;
+
+      ALTER TABLE program_versions
+        ADD COLUMN IF NOT EXISTS variant_type VARCHAR(20)
+          CHECK (variant_type IN ('DHCQ','QUOC_TE','VIET_HAN','VIET_NHAT'));
     `);
 
     // Migration: chuẩn hoá academic_year từ "YYYY-YYYY" sang "YYYY" (lấy 4 chữ số đầu).
@@ -394,6 +412,39 @@ async function initDB() {
       UPDATE program_versions
          SET academic_year = SUBSTRING(academic_year FROM 1 FOR 4)
        WHERE academic_year ~ '^\\d{4}-\\d{4}$'
+    `);
+
+    // Migration: backfill program_cohorts from existing (program_id, academic_year) pairs
+    await client.query(`
+      INSERT INTO program_cohorts (program_id, academic_year)
+      SELECT DISTINCT program_id, academic_year
+      FROM program_versions
+      WHERE cohort_id IS NULL
+      ON CONFLICT (program_id, academic_year) DO NOTHING
+    `);
+
+    // Migration: backfill cohort_id on program_versions
+    await client.query(`
+      UPDATE program_versions pv
+      SET cohort_id = pc.id
+      FROM program_cohorts pc
+      WHERE pc.program_id = pv.program_id
+        AND pc.academic_year = pv.academic_year
+        AND pv.cohort_id IS NULL
+    `);
+
+    // Migration: backfill variant_type — all existing rows become DHCQ
+    await client.query(`
+      UPDATE program_versions
+      SET variant_type = 'DHCQ'
+      WHERE variant_type IS NULL
+    `);
+
+    // Migration: create unique index (cohort_id, variant_type) — idempotent
+    await client.query(`
+      CREATE UNIQUE INDEX IF NOT EXISTS uq_cohort_variant
+      ON program_versions(cohort_id, variant_type)
+      WHERE cohort_id IS NOT NULL AND variant_type IS NOT NULL
     `);
 
     // Migration: syllabi đã qua bước duyệt cũ → approved (không phải published).
