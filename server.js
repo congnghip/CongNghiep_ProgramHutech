@@ -768,10 +768,12 @@ app.get('/api/versions/:id', authMiddleware, requireViewVersion, async (req, res
     const v = await pool.query(`
       SELECT pv.*, p.name as program_name, p.code as program_code, p.degree, p.total_credits,
              p.degree_name, p.training_mode, p.institution,
-             p.department_id, d.name as dept_name
+             p.department_id, d.name as dept_name,
+             pc.academic_year as cohort_academic_year
       FROM program_versions pv
       JOIN programs p ON pv.program_id = p.id
       JOIN departments d ON p.department_id = d.id
+      LEFT JOIN program_cohorts pc ON pv.cohort_id = pc.id
       WHERE pv.id = $1
     `, [req.params.id]);
     if (!v.rows.length) return res.status(404).json({ error: 'Không tìm thấy' });
@@ -915,6 +917,214 @@ app.get('/api/cohorts/:cId/variants', authMiddleware, async (req, res) => {
     );
     res.json(result.rows);
   } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/programs/:pId/cohorts — create a new cohort
+app.post('/api/programs/:pId/cohorts', authMiddleware, requirePerm('programs.create_version'), async (req, res) => {
+  const { academic_year, notes } = req.body;
+  if (!academic_year || !/^\d{4}$/.test(academic_year)) {
+    return res.status(400).json({ error: 'academic_year phải là 4 chữ số (VD: 2026)' });
+  }
+  try {
+    const result = await pool.query(
+      `INSERT INTO program_cohorts (program_id, academic_year, notes)
+       VALUES ($1, $2, $3) RETURNING *`,
+      [req.params.pId, academic_year, notes || null]
+    );
+    res.json(result.rows[0]);
+  } catch (e) {
+    if (e.code === '23505') {
+      return res.status(409).json({ error: `Khóa "${academic_year}" đã tồn tại cho CTĐT này` });
+    }
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// DELETE /api/cohorts/:cId — delete cohort (only if all variants are draft or cohort is empty)
+app.delete('/api/cohorts/:cId', authMiddleware, requirePerm('programs.delete_draft'), async (req, res) => {
+  try {
+    const cohort = await pool.query('SELECT * FROM program_cohorts WHERE id=$1', [req.params.cId]);
+    if (!cohort.rows.length) return res.status(404).json({ error: 'Khóa không tồn tại' });
+
+    const nonDraft = await pool.query(
+      `SELECT id FROM program_versions WHERE cohort_id=$1 AND status != 'draft'`,
+      [req.params.cId]
+    );
+    if (nonDraft.rows.length > 0) {
+      return res.status(400).json({ error: 'Không thể xóa khóa khi có variant không phải bản nháp' });
+    }
+
+    // CASCADE deletes all draft variants (via ON DELETE CASCADE on program_versions.cohort_id)
+    await pool.query('DELETE FROM program_cohorts WHERE id=$1', [req.params.cId]);
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// POST /api/cohorts/:cId/variants — create a variant inside a cohort
+app.post('/api/cohorts/:cId/variants', authMiddleware, requirePerm('programs.create_version'), async (req, res) => {
+  const { variant_type, copy_from_version_id, version_name, total_credits, training_duration,
+    change_type, effective_date, change_summary, grading_scale, graduation_requirements,
+    job_positions, further_education, reference_programs, training_process,
+    admission_targets, admission_criteria } = req.body;
+
+  const VALID_VARIANTS = ['DHCQ', 'QUOC_TE', 'VIET_HAN', 'VIET_NHAT'];
+  if (!variant_type || !VALID_VARIANTS.includes(variant_type)) {
+    return res.status(400).json({ error: `variant_type phải là một trong: ${VALID_VARIANTS.join(', ')}` });
+  }
+
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const cohortRes = await client.query('SELECT * FROM program_cohorts WHERE id=$1', [req.params.cId]);
+    if (!cohortRes.rows.length) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Khóa không tồn tại' });
+    }
+    const cohort = cohortRes.rows[0];
+
+    // Check duplicate variant in this cohort
+    const dup = await client.query(
+      'SELECT id FROM program_versions WHERE cohort_id=$1 AND variant_type=$2',
+      [req.params.cId, variant_type]
+    );
+    if (dup.rows.length > 0) {
+      await client.query('ROLLBACK');
+      return res.status(409).json({ error: `Variant "${variant_type}" đã tồn tại trong khóa này` });
+    }
+
+    // Validate copy source: must exist, be published, and have same variant_type
+    if (copy_from_version_id) {
+      const srcVer = await client.query(
+        'SELECT status, variant_type FROM program_versions WHERE id=$1',
+        [copy_from_version_id]
+      );
+      if (!srcVer.rows.length) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: 'Phiên bản nguồn không tồn tại' });
+      }
+      if (srcVer.rows[0].status !== 'published') {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: 'Chỉ có thể nhân bản từ phiên bản đã công bố' });
+      }
+      if (srcVer.rows[0].variant_type !== variant_type) {
+        await client.query('ROLLBACK');
+        return res.status(400).json({ error: `Phiên bản nguồn phải cùng variant_type (${variant_type})` });
+      }
+    }
+
+    // Insert new version
+    const ver = await client.query(
+      `INSERT INTO program_versions
+         (program_id, cohort_id, academic_year, variant_type, copied_from_id, version_name,
+          total_credits, training_duration, change_type, effective_date, change_summary,
+          grading_scale, graduation_requirements, job_positions, further_education,
+          reference_programs, training_process, admission_targets, admission_criteria)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19) RETURNING *`,
+      [cohort.program_id, req.params.cId, cohort.academic_year, variant_type,
+       copy_from_version_id || null, version_name || null, total_credits || null,
+       training_duration || null, change_type || null, effective_date || null,
+       change_summary || null, grading_scale || null, graduation_requirements || null,
+       job_positions || null, further_education || null, reference_programs || null,
+       training_process || null, admission_targets || null, admission_criteria || null]
+    );
+    const newVersionId = ver.rows[0].id;
+
+    if (copy_from_version_id) {
+      // Lock source
+      await client.query('UPDATE program_versions SET is_locked=true WHERE id=$1', [copy_from_version_id]);
+
+      // Copy POs
+      await client.query(`
+        INSERT INTO version_objectives (version_id, code, description)
+        SELECT $1, code, description FROM version_objectives WHERE version_id=$2
+      `, [newVersionId, copy_from_version_id]);
+
+      // Copy PLOs + PIs
+      const oldPlos = await client.query('SELECT * FROM version_plos WHERE version_id=$1', [copy_from_version_id]);
+      const ploMap = {};
+      for (const oldPlo of oldPlos.rows) {
+        const newPlo = await client.query(
+          'INSERT INTO version_plos (version_id, code, bloom_level, description) VALUES ($1,$2,$3,$4) RETURNING id',
+          [newVersionId, oldPlo.code, oldPlo.bloom_level, oldPlo.description]
+        );
+        ploMap[oldPlo.id] = newPlo.rows[0].id;
+        await client.query(`
+          INSERT INTO plo_pis (plo_id, pi_code, description)
+          SELECT $1, pi_code, description FROM plo_pis WHERE plo_id=$2
+        `, [newPlo.rows[0].id, oldPlo.id]);
+      }
+
+      // Copy version_courses
+      const oldCourses = await client.query('SELECT * FROM version_courses WHERE version_id=$1', [copy_from_version_id]);
+      for (const oc of oldCourses.rows) {
+        await client.query(
+          'INSERT INTO version_courses (version_id, course_id, semester, course_type) VALUES ($1,$2,$3,$4)',
+          [newVersionId, oc.course_id, oc.semester, oc.course_type]
+        );
+      }
+
+      // Copy syllabi
+      await client.query(`
+        INSERT INTO version_syllabi (version_id, course_id, author_id, status, content)
+        SELECT $1, course_id, NULL, 'draft', content FROM version_syllabi WHERE version_id=$2
+      `, [newVersionId, copy_from_version_id]);
+
+      // Copy knowledge blocks (preserving hierarchy)
+      const oldBlocks = await client.query(
+        'SELECT * FROM knowledge_blocks WHERE version_id=$1 ORDER BY sort_order, id',
+        [copy_from_version_id]
+      );
+      const blockMap = {};
+      for (const ob of oldBlocks.rows) {
+        const newParentId = ob.parent_id ? (blockMap[ob.parent_id] || null) : null;
+        const nb = await client.query(
+          `INSERT INTO knowledge_blocks (version_id, name, parent_id, level, total_credits, required_credits, elective_credits, sort_order)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`,
+          [newVersionId, ob.name, newParentId, ob.level || 1, ob.total_credits, ob.required_credits, ob.elective_credits, ob.sort_order]
+        );
+        blockMap[ob.id] = nb.rows[0].id;
+      }
+
+      // Update knowledge_block_id for copied version_courses
+      const newVCs = await client.query('SELECT id, course_id FROM version_courses WHERE version_id=$1', [newVersionId]);
+      for (const nvc of newVCs.rows) {
+        const oldVC = oldCourses.rows.find(oc => oc.course_id === nvc.course_id);
+        if (oldVC && oldVC.knowledge_block_id && blockMap[oldVC.knowledge_block_id]) {
+          await client.query('UPDATE version_courses SET knowledge_block_id=$1 WHERE id=$2',
+            [blockMap[oldVC.knowledge_block_id], nvc.id]);
+        }
+      }
+    } else {
+      // Seed default knowledge blocks for blank variant
+      const gddc = await client.query(
+        `INSERT INTO knowledge_blocks (version_id, name, parent_id, level, sort_order) VALUES ($1, 'Kiến thức giáo dục đại cương', NULL, 1, 1) RETURNING id`,
+        [newVersionId]
+      );
+      const gdcn = await client.query(
+        `INSERT INTO knowledge_blocks (version_id, name, parent_id, level, sort_order) VALUES ($1, 'Kiến thức giáo dục chuyên nghiệp', NULL, 1, 2) RETURNING id`,
+        [newVersionId]
+      );
+      await client.query(
+        `INSERT INTO knowledge_blocks (version_id, name, parent_id, level, sort_order) VALUES ($1, 'Kiến thức bắt buộc', $2, 2, 3)`,
+        [newVersionId, gdcn.rows[0].id]
+      );
+      await client.query(
+        `INSERT INTO knowledge_blocks (version_id, name, parent_id, level, sort_order) VALUES ($1, 'Kiến thức tự chọn', $2, 2, 4)`,
+        [newVersionId, gdcn.rows[0].id]
+      );
+      await client.query(
+        `INSERT INTO knowledge_blocks (version_id, name, parent_id, level, sort_order) VALUES ($1, 'Kiến thức không tích lũy', NULL, 1, 5) RETURNING id`,
+        [newVersionId]
+      );
+    }
+
+    await client.query('COMMIT');
+    res.json(ver.rows[0]);
+  } catch (e) {
+    await client.query('ROLLBACK');
+    res.status(400).json({ error: e.message });
+  } finally { client.release(); }
 });
 
 // ============ OBJECTIVES (PO) API ============
