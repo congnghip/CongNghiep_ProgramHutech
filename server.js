@@ -833,6 +833,90 @@ app.delete('/api/versions/:id', authMiddleware, requirePerm('programs.delete_dra
   }
 });
 
+// ============ COHORT ROUTES ============
+
+// GET /api/programs/:pId/cohorts — list cohorts for a program
+app.get('/api/programs/:pId/cohorts', authMiddleware, async (req, res) => {
+  try {
+    const admin = await isAdmin(req.user.id);
+    const progRes = await pool.query('SELECT department_id FROM programs WHERE id=$1', [req.params.pId]);
+    if (!progRes.rows.length) return res.status(404).json({ error: 'CTĐT không tồn tại' });
+    const deptId = progRes.rows[0].department_id;
+
+    if (!admin) {
+      const canView = await hasPermission(req.user.id, 'programs.view_published', deptId) ||
+                      await hasPermission(req.user.id, 'programs.view_draft', deptId);
+      if (!canView) return res.status(403).json({ error: 'Không có quyền xem' });
+    }
+
+    const result = await pool.query(`
+      SELECT pc.*,
+             json_agg(
+               json_build_object(
+                 'id', pv.id,
+                 'variant_type', pv.variant_type,
+                 'variant_label', CASE pv.variant_type
+                   WHEN 'DHCQ' THEN 'Đại học Chính quy'
+                   WHEN 'QUOC_TE' THEN 'Quốc Tế'
+                   WHEN 'VIET_HAN' THEN 'Việt - Hàn'
+                   WHEN 'VIET_NHAT' THEN 'Việt - Nhật'
+                   ELSE pv.variant_type
+                 END,
+                 'status', pv.status,
+                 'is_locked', pv.is_locked,
+                 'is_rejected', pv.is_rejected,
+                 'completion_pct', pv.completion_pct
+               ) ORDER BY pv.variant_type
+             ) FILTER (WHERE pv.id IS NOT NULL) as variants
+      FROM program_cohorts pc
+      LEFT JOIN program_versions pv ON pv.cohort_id = pc.id
+      WHERE pc.program_id = $1
+      GROUP BY pc.id
+      ORDER BY pc.academic_year DESC
+    `, [req.params.pId]);
+
+    res.json(result.rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// GET /api/cohorts/:cId — cohort detail + variants
+app.get('/api/cohorts/:cId', authMiddleware, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT pc.*,
+             json_agg(
+               json_build_object(
+                 'id', pv.id,
+                 'variant_type', pv.variant_type,
+                 'status', pv.status,
+                 'is_locked', pv.is_locked,
+                 'is_rejected', pv.is_rejected,
+                 'completion_pct', pv.completion_pct,
+                 'copied_from_id', pv.copied_from_id
+               ) ORDER BY pv.variant_type
+             ) FILTER (WHERE pv.id IS NOT NULL) as variants
+      FROM program_cohorts pc
+      LEFT JOIN program_versions pv ON pv.cohort_id = pc.id
+      WHERE pc.id = $1
+      GROUP BY pc.id
+    `, [req.params.cId]);
+
+    if (!result.rows.length) return res.status(404).json({ error: 'Khóa không tồn tại' });
+    res.json(result.rows[0]);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// GET /api/cohorts/:cId/variants — flat list of variants in a cohort
+app.get('/api/cohorts/:cId/variants', authMiddleware, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT pv.* FROM program_versions pv WHERE pv.cohort_id = $1 ORDER BY pv.variant_type`,
+      [req.params.cId]
+    );
+    res.json(result.rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // ============ OBJECTIVES (PO) API ============
 app.get('/api/versions/:vId/objectives', authMiddleware, requireViewVersion, async (req, res) => {
   try {
