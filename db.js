@@ -398,12 +398,22 @@ async function initDB() {
       );
 
       -- Add cohort_id and variant_type to program_versions
+      -- CASCADE: deleting a cohort also deletes its variants (guarded by DELETE /api/cohorts/:cId which checks for non-draft variants first)
       ALTER TABLE program_versions
         ADD COLUMN IF NOT EXISTS cohort_id INT REFERENCES program_cohorts(id) ON DELETE CASCADE;
 
       ALTER TABLE program_versions
         ADD COLUMN IF NOT EXISTS variant_type VARCHAR(20)
           CHECK (variant_type IN ('DHCQ','QUOC_TE','VIET_HAN','VIET_NHAT'));
+    `);
+
+    // Migration: add CHECK constraint on variant_type idempotently (for existing DBs)
+    await client.query(`
+      DO $$ BEGIN
+        ALTER TABLE program_versions ADD CONSTRAINT chk_variant_type
+          CHECK (variant_type IN ('DHCQ','QUOC_TE','VIET_HAN','VIET_NHAT'));
+      EXCEPTION WHEN duplicate_object THEN NULL;
+      END $$
     `);
 
     // Migration: chuẩn hoá academic_year từ "YYYY-YYYY" sang "YYYY" (lấy 4 chữ số đầu).
@@ -414,7 +424,9 @@ async function initDB() {
        WHERE academic_year ~ '^\\d{4}-\\d{4}$'
     `);
 
-    // Migration: backfill program_cohorts from existing (program_id, academic_year) pairs
+    // Migration: backfill program_cohorts from existing (program_id, academic_year) pairs.
+    // NOTE: runs after the academic_year normalisation migration above, which ensures
+    // all academic_year values are 4-char "YYYY" format before this INSERT.
     await client.query(`
       INSERT INTO program_cohorts (program_id, academic_year)
       SELECT DISTINCT program_id, academic_year
