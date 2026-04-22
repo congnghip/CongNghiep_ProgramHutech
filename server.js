@@ -2271,8 +2271,9 @@ app.get('/api/syllabi/:id', authMiddleware, requireViewVersion, async (req, res)
     const rawContent = row.content && typeof row.content === 'object' ? row.content : {};
     row.content = ensureCtdtOverrides(normalizeStoredSyllabusContent(row.content));
     if (rawContent.ctdt_overrides && typeof rawContent.ctdt_overrides.section3 === 'object') {
-      row.knowledge_area = row.content.ctdt_overrides.section3.knowledge_area;
-      row.course_requirement = row.content.ctdt_overrides.section3.course_requirement;
+      const section3 = row.content.ctdt_overrides.section3;
+      row.knowledge_area = section3.knowledge_area ?? row.knowledge_area;
+      row.course_requirement = section3.course_requirement ?? row.course_requirement;
     }
     res.json(row);
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -2400,6 +2401,9 @@ app.put('/api/syllabi/:id/ctdt-section9', authMiddleware, async (req, res) => {
     if (new Set(ploIds).size !== ploIds.length) {
       return res.status(400).json({ error: 'plo_mappings không được chứa PLO trùng lặp' });
     }
+    if (plo_mappings.some(m => !Number.isInteger(m.contribution_level) || m.contribution_level < 0 || m.contribution_level > 3)) {
+      return res.status(400).json({ error: 'plo_mappings.contribution_level phải là số nguyên từ 0 đến 3' });
+    }
 
     const piIds = pi_mappings.map(m => Number(m.pi_id));
     if (piIds.some(id => !Number.isInteger(id) || id <= 0)) {
@@ -2407,6 +2411,9 @@ app.put('/api/syllabi/:id/ctdt-section9', authMiddleware, async (req, res) => {
     }
     if (new Set(piIds).size !== piIds.length) {
       return res.status(400).json({ error: 'pi_mappings không được chứa PI trùng lặp' });
+    }
+    if (pi_mappings.some(m => !Number.isInteger(m.contribution_level) || m.contribution_level < 0 || m.contribution_level > 3)) {
+      return res.status(400).json({ error: 'pi_mappings.contribution_level phải là số nguyên từ 0 đến 3' });
     }
 
     const plosCheck = ploIds.length
