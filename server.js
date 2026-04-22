@@ -139,6 +139,11 @@ async function checkVersionEditAccess(userId, vId, requiredPerm = 'programs.edit
   return context;
 }
 
+function normalizeStoredSyllabusContent(raw) {
+  const parsed = typeof raw === 'string' ? JSON.parse(raw) : (raw || {});
+  return upgradeContent(parsed);
+}
+
 // Middleware to ensure a version is in draft status before editing
 function requireDraft(vIdParam = 'vId', requiredPerm = 'programs.edit') {
   return async (req, res, next) => {
@@ -2189,10 +2194,7 @@ app.post('/api/versions/:vId/syllabi', authMiddleware, async (req, res) => {
         [course_id]
       );
       if (baseRes.rows.length) {
-        const rawBase = typeof baseRes.rows[0].content === 'string'
-          ? JSON.parse(baseRes.rows[0].content)
-          : (baseRes.rows[0].content || {});
-        initialContent = upgradeContent(rawBase);
+        initialContent = normalizeStoredSyllabusContent(baseRes.rows[0].content);
       } else {
         noBaseSyllabus = true;
       }
@@ -2239,7 +2241,9 @@ app.get('/api/syllabi/:id', authMiddleware, requireViewVersion, async (req, res)
       WHERE vs.id = $1
     `, [req.params.id]);
     if (!result.rows.length) return res.status(404).json({ error: 'Không tìm thấy' });
-    res.json(result.rows[0]);
+    const row = result.rows[0];
+    row.content = normalizeStoredSyllabusContent(row.content);
+    res.json(row);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -2293,15 +2297,10 @@ app.post('/api/syllabi/:sId/load-from-base', authMiddleware, async (req, res) =>
     const baseRes = await pool.query('SELECT content FROM course_base_syllabi WHERE course_id = $1', [course_id]);
     if (!baseRes.rows.length) return res.status(400).json({ error: 'Học phần này chưa có đề cương cơ bản' });
 
-    const rawBase = typeof baseRes.rows[0].content === 'string'
-      ? JSON.parse(baseRes.rows[0].content)
-      : (baseRes.rows[0].content || {});
-    const normalizedBase = upgradeContent(rawBase);
-
     // Overwrite content
     await pool.query(
       'UPDATE version_syllabi SET content=$1, updated_at=NOW() WHERE id=$2',
-      [JSON.stringify(normalizedBase), req.params.sId]
+      [JSON.stringify(normalizeStoredSyllabusContent(baseRes.rows[0].content)), req.params.sId]
     );
 
     // Replace CLOs: delete old, copy from base
@@ -2882,10 +2881,7 @@ app.post('/api/my-assignments/:assignmentId/create-syllabus', authMiddleware, as
       [assignment.course_id]
     );
     if (baseRes.rows.length) {
-      const rawBase = typeof baseRes.rows[0].content === 'string'
-        ? JSON.parse(baseRes.rows[0].content)
-        : (baseRes.rows[0].content || {});
-      initialContent = upgradeContent(rawBase);
+      initialContent = normalizeStoredSyllabusContent(baseRes.rows[0].content);
     } else {
       noBaseSyllabus = true;
     }
