@@ -1,5 +1,19 @@
 // Syllabus Editor — CTDT shell
 
+function normalizeCtdtPerson(raw, nestedKey) {
+  const source = raw && typeof raw === 'object' ? { ...raw } : {};
+  const nested = source[nestedKey] && typeof source[nestedKey] === 'object' ? source[nestedKey] : {};
+  return {
+    ...source,
+    name: source.name ?? nested.name ?? '',
+    title: source.title ?? source.title_degree ?? nested.title ?? nested.title_degree ?? '',
+    address: source.address ?? source.office_address ?? nested.address ?? nested.office_address ?? '',
+    phone: source.phone ?? nested.phone ?? '',
+    email: source.email ?? nested.email ?? '',
+    website: source.website ?? nested.website ?? '',
+  };
+}
+
 function normalizeCtdtSyllabusContent(raw) {
   const c = raw && typeof raw === 'object' ? { ...raw } : {};
   const teachingMethods = Array.isArray(c.teaching_methods)
@@ -44,11 +58,17 @@ function normalizeCtdtSyllabusContent(raw) {
   const ctdtOverrides = c.ctdt_overrides && typeof c.ctdt_overrides === 'object'
     ? { ...c.ctdt_overrides }
     : {};
-  if (!ctdtOverrides.section3 || typeof ctdtOverrides.section3 !== 'object') {
-    ctdtOverrides.section3 = { knowledge_area: null, course_requirement: null };
-  }
+  const section3 = ctdtOverrides.section3 && typeof ctdtOverrides.section3 === 'object'
+    ? { ...ctdtOverrides.section3 }
+    : {};
+  ctdtOverrides.section3 = {
+    ...section3,
+    knowledge_area: section3.knowledge_area ?? null,
+    course_requirement: section3.course_requirement ?? null,
+  };
 
   return {
+    ...c,
     _schema_version: 4,
     course_description: c.course_description || c.summary || '',
     course_objectives: c.course_objectives || c.objectives || '',
@@ -62,17 +82,10 @@ function normalizeCtdtSyllabusContent(raw) {
     references: Array.isArray(c.references) ? c.references : (typeof c.references === 'string' ? c.references.split('\n').map(s => s.trim()).filter(Boolean) : []),
     tools: Array.isArray(c.tools) ? c.tools : [],
     other_requirements: c.other_requirements || '',
-    instructor: c.instructor || {
-      primary: { name: '', title_degree: '', office_address: '', phone: '', email: '', website: '' },
-      assistant: { name: '', title_degree: '', office_address: '', phone: '', email: '', website: '' },
-      contact_note: '',
-    },
-    signatures: c.signatures || {
-      date_text: '',
-      khoa_vien: '',
-      nganh_bo_mon: '',
-      nguoi_bien_soan: '',
-    },
+    instructor: normalizeCtdtPerson(c.instructor, 'primary'),
+    assistant_instructor: normalizeCtdtPerson(c.assistant_instructor, 'assistant'),
+    contact_info: c.contact_info ?? c.signatures?.contact_info ?? '',
+    signature_date: c.signature_date ?? c.signatures?.date_text ?? '',
     ctdt_overrides: ctdtOverrides,
   };
 }
@@ -991,51 +1004,8 @@ window.SyllabusEditorPage = {
 
   // ============ SAVE ALL ============
   async saveAll() {
-    try {
-      // 1. Collect currently-active tab into in-memory state
-      this._collectCurrentTabIntoState();
-
-      // 2. PUT content (covers Tabs 0, 3, 4, 5 — all live in this.syllabus.content)
-      const res = await fetch(`/api/syllabi/${this.syllabusId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: this.syllabus.content }),
-      });
-      if (!res.ok) throw new Error((await res.json()).error || 'Lỗi lưu nội dung');
-
-      // 3. Persist pending imported CLOs + mappings (if any)
-      if (this.importedClos) {
-        await this._persistImportedClos();
-      }
-
-      // 4. Persist Tab 2 manual map edits if any.
-      //    At this point importedClos is null (either it was never set, or step 3
-      //    cleared it). If the user also tweaked Tab 2 selects after an import,
-      //    step 3 wrote the imported mapping and step 4 overwrites it with the
-      //    user's edits — intentional last-write-wins.
-      //    NOTE on empty arrays: `_collectCloPloMap` writes `[]` when all selects
-      //    are 0. The truthy-array check below intentionally fires a PUT in that
-      //    case — an empty array legitimately represents "user zero'd all mappings,
-      //    save this as the new state". Do NOT change this to a `.length > 0` check
-      //    or null-coalesce, because that would break the deliberate-erase use case.
-      //    In single-user scenarios, if Tab 2 renders with all-zero selects, the
-      //    server already has an empty mapping (selects are rendered from server
-      //    state), so PUT [] is a safe no-op.
-      if (this.dirtyMapChanges) {
-        const res2 = await fetch(`/api/syllabi/${this.syllabusId}/clo-pi-map`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mappings: this.dirtyMapChanges }),
-        });
-        if (!res2.ok) throw new Error((await res2.json()).error || 'Lỗi lưu CLO-PI');
-        this.dirtyMapChanges = null;
-      }
-
-      window.toast.success('Đã lưu tất cả');
-      this.renderSylTab();
-    } catch (e) {
-      window.toast.error(e.message);
-    }
+    this._collectCurrentTabIntoState();
+    window.toast.info('Task 3 shell: chưa bật lưu mục 3, 9, 10 để tránh ghi đè nội dung khóa.');
   },
 
   // ============ APPROVAL ============
