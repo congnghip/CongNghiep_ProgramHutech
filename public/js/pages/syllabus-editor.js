@@ -145,7 +145,7 @@ window.SyllabusEditorPage = {
           </div>
           <div class="page-header-actions">
             ${editable && s.has_base_syllabus ? '<button class="btn btn-secondary btn-sm" onclick="window.SyllabusEditorPage.loadFromBase()">Lấy từ ĐC cơ bản</button>' : ''}
-            ${editable ? '<button class="btn btn-primary btn-sm" onclick="window.SyllabusEditorPage.saveAll()">Lưu mục 3, 9, 10</button>' : ''}
+            ${editable ? '<button class="btn btn-primary btn-sm" onclick="window.SyllabusEditorPage.saveAll()">Lưu</button>' : ''}
             ${editable ? '<button class="btn btn-primary btn-sm" onclick="window.SyllabusEditorPage.submitForApproval()">Nộp duyệt</button>' : ''}
           </div>
         </div>
@@ -530,8 +530,9 @@ window.SyllabusEditorPage = {
   _collectCurrentTabIntoState() {
     switch (this.activeTab) {
       case 0: this.collectSection3(); break;
-      case 1: this.collectSection9?.(); break;
-      case 2: this._collectCloPiMap(); break;
+      case 1: this._collectCloPiMap(); break;
+      case 2: this.collectSection9?.(); break;
+      // cases 3–5 are read-only; nothing to collect
     }
   },
 
