@@ -442,62 +442,6 @@ window.SyllabusEditorPage = {
     `;
   },
 
-  renderSections11To17(body) {
-    const c = this.syllabus.content || {};
-    body.innerHTML = `
-      <div style="display:grid;gap:20px;max-width:960px;">
-        <div style="padding:12px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg-secondary);font-size:13px;color:var(--text-muted);">
-          Các mục 11–17 là read-only trong CTDT.
-        </div>
-        <div>
-          <h3 style="font-size:15px;font-weight:600;margin-bottom:8px;">11. Mô tả tóm tắt nội dung học phần</h3>
-          <div style="white-space:pre-wrap;">${c.course_description || ''}</div>
-        </div>
-        <div>
-          <h3 style="font-size:15px;font-weight:600;margin-bottom:8px;">12. Phương pháp, hình thức tổ chức dạy học</h3>
-          <table class="data-table">
-            <thead><tr><th>Phương pháp</th><th>Mục tiêu</th></tr></thead>
-            <tbody>
-              ${(c.teaching_methods || []).map(t => `<tr><td>${t.method || ''}</td><td>${t.objective || ''}</td></tr>`).join('')}
-            </tbody>
-          </table>
-        </div>
-        <div>
-          <h3 style="font-size:15px;font-weight:600;margin-bottom:8px;">13. Nội dung chi tiết học phần</h3>
-          ${(c.course_outline || []).map(l => `
-            <div style="border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px;margin-bottom:8px;background:var(--bg-secondary);">
-              <strong>Bài ${l.lesson || ''}: ${l.title || ''}</strong><br>
-              LT ${l.lt_hours || 0} · TH ${l.th_hours || 0}<br>
-              ${(Array.isArray(l.topics) ? l.topics : []).join('<br>')}
-            </div>
-          `).join('')}
-        </div>
-        <div>
-          <h3 style="font-size:15px;font-weight:600;margin-bottom:8px;">14. Đánh giá</h3>
-          <table class="data-table">
-            <thead><tr><th>Thành phần</th><th>Quy định</th><th>Bài đánh giá</th><th>%</th><th>CLO</th></tr></thead>
-            <tbody>
-              ${(c.assessment_methods || []).map(a => `<tr><td>${a.component || ''}</td><td>${a.description || ''}</td><td>${a.task_ref || ''}</td><td>${a.weight || 0}</td><td>${(a.clo_codes || []).join(', ')}</td></tr>`).join('')}
-            </tbody>
-          </table>
-        </div>
-        <div>
-          <h3 style="font-size:15px;font-weight:600;margin-bottom:8px;">15. Tài liệu</h3>
-          <div>${(c.textbooks || []).join('<br>')}</div>
-          <hr style="margin:12px 0;">
-          <div>${(c.references || []).join('<br>')}</div>
-        </div>
-        <div>
-          <h3 style="font-size:15px;font-weight:600;margin-bottom:8px;">16. Tự học</h3>
-          ${(c.course_outline || []).map(l => `<div style="margin-bottom:8px;"><strong>Bài ${l.lesson || ''}:</strong> ${l.title || ''}<br>${(l.self_study_tasks || []).join('<br>')}</div>`).join('')}
-        </div>
-        <div>
-          <h3 style="font-size:15px;font-weight:600;margin-bottom:8px;">17. Các yêu cầu của học phần</h3>
-          <div style="white-space:pre-wrap;">${c.other_requirements || ''}</div>
-        </div>
-      </div>
-    `;
-  },
 
   // ============ TAB 0: Thông tin chung ============
   renderGeneralTab(body, editable, c) {
