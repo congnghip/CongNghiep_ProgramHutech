@@ -652,20 +652,36 @@ window.SyllabusEditorPage = {
   },
 
   // ============ TAB 3: Nội dung chi tiết (course_outline) ============
-  renderOutlineTab(body, editable, c) {
+  async renderOutlineTab(body, editable, c) {
     const lessons = c.course_outline || [];
+    let cloCodes = [];
+    try {
+      const clos = await fetch(`/api/syllabi/${this.syllabusId}/clos`).then(r => r.json());
+      cloCodes = Array.isArray(clos) ? clos.map(x => x.code).filter(Boolean) : [];
+    } catch (_) {}
+    this._currentCloCodes = cloCodes;
+
+    const totals = lessons.reduce((acc, l) => ({
+      lt: acc.lt + (l.lt_hours || 0),
+      th: acc.th + (l.th_hours || 0),
+      ss: acc.ss + (l.self_study_hours || 0),
+    }), { lt: 0, th: 0, ss: 0 });
+
     body.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <h3 style="font-size:15px;font-weight:600;">Nội dung chi tiết học phần</h3>
+        <h3 style="font-size:15px;font-weight:600;">Nội dung chi tiết học phần (mục 13 + 16)</h3>
         <div style="display:flex;gap:8px;">
           ${editable ? '<button class="btn btn-secondary btn-sm" onclick="window.SyllabusEditorPage.openAddOutlineModal()">+ Thêm bài</button>' : ''}
           ${editable ? '<button class="btn btn-primary btn-sm" onclick="window.SyllabusEditorPage.saveOutline()">Lưu</button>' : ''}
         </div>
       </div>
       <div id="outline-container">
-        ${lessons.length === 0 ? '<p style="color:var(--text-muted);font-size:13px;">Chưa có nội dung. Bấm "+ Thêm bài" để bắt đầu.</p>' :
-          lessons.map((l, i) => this._outlineRowHtml(l, i, editable)).join('')}
+        ${lessons.length === 0 ? '<p style="color:var(--text-muted);font-size:13px;">Chưa có nội dung.</p>' :
+          lessons.map((l, i) => this._outlineRowHtml(l, i, editable, cloCodes)).join('')}
       </div>
+      ${lessons.length ? `<div style="margin-top:12px;padding:12px;background:var(--bg-secondary);border-radius:var(--radius);font-size:13px;">
+        <strong>Tổng:</strong> LT ${totals.lt} tiết &nbsp;|&nbsp; TH ${totals.th} tiết &nbsp;|&nbsp; Tự học ${totals.ss} tiết
+      </div>` : ''}
     `;
   },
 
@@ -757,10 +773,13 @@ window.SyllabusEditorPage = {
     const course_outline = Array.from(rows).map((r, i) => ({
       lesson: i + 1,
       title: r.querySelector('[data-field="title"]').value,
-      hours: parseFloat(r.querySelector('[data-field="hours"]').value) || 0,
+      lt_hours: parseFloat(r.querySelector('[data-field="lt_hours"]').value) || 0,
+      th_hours: parseFloat(r.querySelector('[data-field="th_hours"]').value) || 0,
       topics: r.querySelector('[data-field="topics"]').value.split('\n').map(s => s.trim()).filter(Boolean),
       teaching_methods: r.querySelector('[data-field="teaching_methods"]').value,
-      clos: r.querySelector('[data-field="clos"]').value.split(',').map(s => s.trim()).filter(Boolean),
+      clo_codes: Array.from(r.querySelector('[data-field="clo_codes"]').selectedOptions).map(o => o.value),
+      self_study_hours: parseFloat(r.querySelector('[data-field="self_study_hours"]').value) || 0,
+      self_study_tasks: r.querySelector('[data-field="self_study_tasks"]').value.split('\n').map(s => s.trim()).filter(Boolean),
     }));
     this.syllabus.content = { ...this.syllabus.content, course_outline };
   },
