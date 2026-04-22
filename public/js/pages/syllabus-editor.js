@@ -102,8 +102,6 @@ window.SyllabusEditorPage = {
   section10Mappings: [],
   section3Draft: null,
   activeTab: 0,
-  importedClos: null,
-  importedMappings: null,
   dirtyMapChanges: null,
 
   async render(container, syllabusId) {
@@ -112,8 +110,6 @@ window.SyllabusEditorPage = {
     this.section10Clos = [];
     this.section10Mappings = [];
     this.section3Draft = null;
-    this.importedClos = null;
-    this.importedMappings = null;
     this.dirtyMapChanges = null;
     container.innerHTML = '<div class="spinner"></div>';
     try {
@@ -172,7 +168,6 @@ window.SyllabusEditorPage = {
           <div style="font-size:13px;line-height:1.5;white-space:pre-wrap;">${s.rejection_reason || 'Chưa có lý do cụ thể.'}</div>
         </div>
       ` : ''}
-      <div id="syl-import-warnings" style="display:none;margin-bottom:16px;"></div>
       <div class="tab-bar" id="syl-tabs">
         <div class="tab-item active" data-tab="0">Mục 1–8</div>
         <div class="tab-item" data-tab="1">Mục 9</div>
@@ -180,30 +175,6 @@ window.SyllabusEditorPage = {
         <div class="tab-item" data-tab="3">Mục 11–17</div>
       </div>
       <div id="syl-tab-content"><div class="spinner"></div></div>
-
-      <!-- Add CLO Modal -->
-      <div id="clo-add-modal" class="modal-overlay">
-        <div class="modal">
-          <div class="modal-header"><h2>Thêm CLO</h2></div>
-          <div class="modal-body">
-            <form id="clo-add-form">
-              <div class="input-group">
-                <label>Mã CLO <span class="required-mark">*</span></label>
-                <input type="text" id="clo-add-code" required placeholder="CLO1">
-              </div>
-              <div class="input-group">
-                <label>Mô tả</label>
-                <textarea id="clo-add-desc" rows="3" placeholder="Mô tả CLO..."></textarea>
-              </div>
-              <div class="modal-error" id="clo-add-error"></div>
-              <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" onclick="window.SyllabusEditorPage.closeAddCLOModal()">Hủy</button>
-                <button type="submit" class="btn btn-primary">Thêm</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      </div>
 
       <!-- Add Outline Lesson Modal -->
       <div id="outline-add-modal" class="modal-overlay">
@@ -252,11 +223,6 @@ window.SyllabusEditorPage = {
         this.activeTab = parseInt(el.dataset.tab);
         this.renderSylTab();
       });
-    });
-
-    document.getElementById('clo-add-form')?.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      await this.submitAddCLO();
     });
 
     document.getElementById('outline-add-form')?.addEventListener('submit', (e) => {
@@ -334,28 +300,139 @@ window.SyllabusEditorPage = {
   },
 
   async renderSection9(body, editable) {
+    const data = await fetch(`/api/syllabi/${this.syllabusId}/ctdt-section9`).then(r => r.json());
+    if (data.error) throw new Error(data.error);
+    this.section9Data = data;
+
+    const ploMap = new Map((data.course_plo_map || []).map(m => [String(m.plo_id), m.contribution_level]));
+    const piMap = new Map((data.course_pi_map || []).map(m => [String(m.pi_id), m.contribution_level]));
+    const plos = Array.isArray(data.plos) ? data.plos : [];
+    const pis = Array.isArray(data.pis) ? data.pis : [];
+
     body.innerHTML = `
-      <div style="max-width:900px;">
-        <div style="margin-bottom:12px;padding:12px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg-secondary);font-size:13px;color:var(--text-muted);">
-          Mục 9 sẽ dùng dữ liệu mapping của CTDT trong version hiện tại.
+      <div style="display:grid;gap:20px;max-width:960px;">
+        <div style="margin-bottom:4px;padding:12px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg-secondary);font-size:13px;color:var(--text-muted);">
+          Mục 9 chỉ chỉnh sửa các mapping của học phần hiện tại trong CTDT.
         </div>
-        <div class="empty-state" style="padding:32px 16px;">
-          <div class="icon">9</div>
-          <p>Shell mục 9 đã sẵn sàng. Phần nhập liệu sẽ được hoàn thiện ở task tiếp theo.</p>
+        <div>
+          <h3 style="font-size:15px;font-weight:600;margin-bottom:12px;">9. Ma trận học phần ↔ PLO</h3>
+          <table class="data-table" id="ctdt-section9-plo-table">
+            <thead><tr><th>PLO</th><th>Mô tả</th><th style="width:120px;">Mức độ</th></tr></thead>
+            <tbody>
+              ${plos.length ? plos.map(plo => `
+                <tr>
+                  <td><strong>${plo.code || ''}</strong></td>
+                  <td>${plo.description || ''}</td>
+                  <td>
+                    <select data-plo-id="${plo.id}" ${editable ? '' : 'disabled'} style="${INP}">
+                      <option value="0" ${(ploMap.get(String(plo.id)) || 0) === 0 ? 'selected' : ''}>—</option>
+                      <option value="1" ${(ploMap.get(String(plo.id)) || 0) === 1 ? 'selected' : ''}>1</option>
+                      <option value="2" ${(ploMap.get(String(plo.id)) || 0) === 2 ? 'selected' : ''}>2</option>
+                      <option value="3" ${(ploMap.get(String(plo.id)) || 0) === 3 ? 'selected' : ''}>3</option>
+                    </select>
+                  </td>
+                </tr>
+              `).join('') : '<tr><td colspan="3" style="text-align:center;color:var(--text-muted);">Chưa có PLO</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+
+        <div>
+          <h3 style="font-size:15px;font-weight:600;margin-bottom:12px;">9. Ma trận học phần ↔ PI</h3>
+          <table class="data-table" id="ctdt-section9-pi-table">
+            <thead><tr><th>PI</th><th>Mô tả</th><th style="width:120px;">Mức độ</th></tr></thead>
+            <tbody>
+              ${pis.length ? pis.map(pi => `
+                <tr>
+                  <td><strong>${pi.pi_code || ''}</strong></td>
+                  <td>${pi.description || ''}</td>
+                  <td>
+                    <select data-pi-id="${pi.id}" ${editable ? '' : 'disabled'} style="${INP}">
+                      <option value="0" ${(piMap.get(String(pi.id)) || 0) === 0 ? 'selected' : ''}>—</option>
+                      <option value="1" ${(piMap.get(String(pi.id)) || 0) === 1 ? 'selected' : ''}>1</option>
+                      <option value="2" ${(piMap.get(String(pi.id)) || 0) === 2 ? 'selected' : ''}>2</option>
+                      <option value="3" ${(piMap.get(String(pi.id)) || 0) === 3 ? 'selected' : ''}>3</option>
+                    </select>
+                  </td>
+                </tr>
+              `).join('') : '<tr><td colspan="3" style="text-align:center;color:var(--text-muted);">Chưa có PI</td></tr>'}
+            </tbody>
+          </table>
         </div>
       </div>
     `;
   },
 
   async renderSection10(body, editable) {
+    const [clos, maps, section9] = await Promise.all([
+      fetch(`/api/syllabi/${this.syllabusId}/clos`).then(r => r.json()),
+      fetch(`/api/syllabi/${this.syllabusId}/clo-pi-map`).then(r => r.json()),
+      fetch(`/api/syllabi/${this.syllabusId}/ctdt-section9`).then(r => r.json()),
+    ]);
+    if (clos.error) throw new Error(clos.error);
+    if (maps.error) throw new Error(maps.error);
+    if (section9.error) throw new Error(section9.error);
+
+    this.section10Clos = clos;
+    this.section10Mappings = maps;
+
+    const allPIs = Array.isArray(section9.pis) ? section9.pis : [];
+    const mapObj = {};
+    (maps || []).forEach(m => { mapObj[`${m.clo_id}-${m.pi_id}`] = m.contribution_level; });
+
     body.innerHTML = `
-      <div style="max-width:900px;">
-        <div style="margin-bottom:12px;padding:12px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg-secondary);font-size:13px;color:var(--text-muted);">
-          Mục 10 sẽ giữ CLO kế thừa từ đề cương gốc và chỉ mở phần mapping ở CTDT.
+      <div style="display:grid;gap:20px;max-width:960px;">
+        <div style="margin-bottom:4px;padding:12px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg-secondary);font-size:13px;color:var(--text-muted);">
+          Mục 10 giữ CLO đọc-only và chỉ cho phép chỉnh sửa ma trận CLO ↔ PI của CTDT.
         </div>
-        <div class="empty-state" style="padding:32px 16px;">
-          <div class="icon">10</div>
-          <p>Shell mục 10 đã sẵn sàng. Bảng CLO ↔ PI sẽ được nối ở task tiếp theo.</p>
+        <div>
+          <h3 style="font-size:15px;font-weight:600;margin-bottom:12px;">10. CLO kế thừa từ đề cương gốc</h3>
+          <table class="data-table">
+            <thead><tr><th style="width:120px;">Mã</th><th>Mô tả</th><th style="width:120px;">Bloom</th></tr></thead>
+            <tbody>
+              ${clos.length ? clos.map(c => `
+                <tr>
+                  <td><strong>${c.code || ''}</strong></td>
+                  <td>${c.description || ''}</td>
+                  <td><span class="badge badge-info">${['','Nhớ','Hiểu','Áp dụng','Phân tích','Đánh giá','Sáng tạo'][c.bloom_level] || c.bloom_level || ''}</span></td>
+                </tr>
+              `).join('') : '<tr><td colspan="3" style="text-align:center;color:var(--text-muted);">Chưa có CLO</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+
+        <div>
+          <h3 style="font-size:15px;font-weight:600;margin-bottom:12px;">10. CLO ↔ PI trong CTDT</h3>
+          <p style="color:var(--text-muted);font-size:12px;margin-bottom:12px;">— = Không · 1 = Thấp · 2 = TB · 3 = Cao</p>
+          <div style="overflow-x:auto;">
+            <table class="data-table" id="clo-pi-table">
+              <thead>
+                <tr>
+                  <th rowspan="2" style="vertical-align:middle;">CLO</th>
+                  <th colspan="${allPIs.length || 1}" style="text-align:center;font-size:11px;border-bottom:none;">PI</th>
+                </tr>
+                <tr>
+                  ${allPIs.length ? allPIs.map(pi => `<th style="text-align:center;min-width:45px;font-size:10px;">${pi.pi_code || ''}</th>`).join('') : '<th style="text-align:center;min-width:45px;font-size:10px;">-</th>'}
+                </tr>
+              </thead>
+              <tbody>
+                ${clos.length ? clos.map(c => `
+                  <tr>
+                    <td><strong>${c.code || ''}</strong></td>
+                    ${allPIs.length ? allPIs.map(pi => {
+                      const val = mapObj[`${c.id}-${pi.id}`] || 0;
+                      return `<td style="text-align:center;">
+                        <select data-clo="${c.id}" data-pi="${pi.id}" style="width:40px;padding:2px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius);font-family:inherit;" ${editable ? '' : 'disabled'}>
+                          <option value="0" ${val===0?'selected':''}>—</option><option value="1" ${val===1?'selected':''}>1</option>
+                          <option value="2" ${val===2?'selected':''}>2</option><option value="3" ${val===3?'selected':''}>3</option>
+                        </select>
+                      </td>`;
+                    }).join('') : '<td style="text-align:center;color:var(--text-muted);">Không có PI</td>'}
+                  </tr>
+                `).join('') : `<tr><td colspan="${Math.max(allPIs.length + 1, 2)}" style="text-align:center;color:var(--text-muted);">Chưa có CLO</td></tr>`}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     `;
@@ -364,16 +441,55 @@ window.SyllabusEditorPage = {
   renderSections11To17(body) {
     const c = this.syllabus.content || {};
     body.innerHTML = `
-      <div style="max-width:900px;">
-        <div style="margin-bottom:12px;padding:12px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg-secondary);font-size:13px;color:var(--text-muted);">
-          Các mục 11–17 hiển thị read-only theo nội dung CTDT đã normalize.
+      <div style="display:grid;gap:20px;max-width:960px;">
+        <div style="padding:12px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg-secondary);font-size:13px;color:var(--text-muted);">
+          Các mục 11–17 là read-only trong CTDT.
         </div>
-        <div class="empty-state" style="padding:32px 16px;">
-          <div class="icon">11–17</div>
-          <p>Đã tải dữ liệu nền cho các mục 11–17. Phần hiển thị chi tiết sẽ được hoàn thiện ở task tiếp theo.</p>
+        <div>
+          <h3 style="font-size:15px;font-weight:600;margin-bottom:8px;">11. Mô tả tóm tắt nội dung học phần</h3>
+          <div style="white-space:pre-wrap;">${c.course_description || ''}</div>
         </div>
-        <div style="font-size:12px;color:var(--text-muted);margin-top:12px;white-space:pre-wrap;">
-          ${c.course_description || ''}
+        <div>
+          <h3 style="font-size:15px;font-weight:600;margin-bottom:8px;">12. Phương pháp, hình thức tổ chức dạy học</h3>
+          <table class="data-table">
+            <thead><tr><th>Phương pháp</th><th>Mục tiêu</th></tr></thead>
+            <tbody>
+              ${(c.teaching_methods || []).map(t => `<tr><td>${t.method || ''}</td><td>${t.objective || ''}</td></tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <h3 style="font-size:15px;font-weight:600;margin-bottom:8px;">13. Nội dung chi tiết học phần</h3>
+          ${(c.course_outline || []).map(l => `
+            <div style="border:1px solid var(--border);border-radius:var(--radius-lg);padding:12px;margin-bottom:8px;background:var(--bg-secondary);">
+              <strong>Bài ${l.lesson || ''}: ${l.title || ''}</strong><br>
+              LT ${l.lt_hours || 0} · TH ${l.th_hours || 0}<br>
+              ${(Array.isArray(l.topics) ? l.topics : []).join('<br>')}
+            </div>
+          `).join('')}
+        </div>
+        <div>
+          <h3 style="font-size:15px;font-weight:600;margin-bottom:8px;">14. Đánh giá</h3>
+          <table class="data-table">
+            <thead><tr><th>Thành phần</th><th>Quy định</th><th>Bài đánh giá</th><th>%</th><th>CLO</th></tr></thead>
+            <tbody>
+              ${(c.assessment_methods || []).map(a => `<tr><td>${a.component || ''}</td><td>${a.description || ''}</td><td>${a.task_ref || ''}</td><td>${a.weight || 0}</td><td>${(a.clo_codes || []).join(', ')}</td></tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <h3 style="font-size:15px;font-weight:600;margin-bottom:8px;">15. Tài liệu</h3>
+          <div>${(c.textbooks || []).join('<br>')}</div>
+          <hr style="margin:12px 0;">
+          <div>${(c.references || []).join('<br>')}</div>
+        </div>
+        <div>
+          <h3 style="font-size:15px;font-weight:600;margin-bottom:8px;">16. Tự học</h3>
+          ${(c.course_outline || []).map(l => `<div style="margin-bottom:8px;"><strong>Bài ${l.lesson || ''}:</strong> ${l.title || ''}<br>${(l.self_study_tasks || []).join('<br>')}</div>`).join('')}
+        </div>
+        <div>
+          <h3 style="font-size:15px;font-weight:600;margin-bottom:8px;">17. Các yêu cầu của học phần</h3>
+          <div style="white-space:pre-wrap;">${c.other_requirements || ''}</div>
         </div>
       </div>
     `;
@@ -425,7 +541,7 @@ window.SyllabusEditorPage = {
     };
   },
 
-  async saveSection3() {
+  async saveSection3(options = {}) {
     this.collectSection3();
     try {
       const res = await fetch(`/api/syllabi/${this.syllabusId}/ctdt-section3`, {
@@ -443,188 +559,55 @@ window.SyllabusEditorPage = {
           section3: data.section3,
         },
       };
-      window.toast.success('Đã lưu mục 3');
-      this.renderSylTab();
+      if (!options.silent) window.toast.success('Đã lưu mục 3');
+      return data;
     } catch (e) {
-      window.toast.error(e.message);
+      if (!options.silent) window.toast.error(e.message);
+      throw e;
     }
   },
 
-  async saveGeneral() {
-    this._collectGeneral();
+  collectSection9() {
+    const ploTable = document.getElementById('ctdt-section9-plo-table');
+    const piTable = document.getElementById('ctdt-section9-pi-table');
+    if (!ploTable || !piTable) return;
+
+    const plo_mappings = Array.from(ploTable.querySelectorAll('select'))
+      .map(sel => ({
+        plo_id: parseInt(sel.dataset.ploId, 10),
+        contribution_level: parseInt(sel.value, 10) || 0,
+      }))
+      .filter(m => m.contribution_level > 0);
+
+    const pi_mappings = Array.from(piTable.querySelectorAll('select'))
+      .map(sel => ({
+        pi_id: parseInt(sel.dataset.piId, 10),
+        contribution_level: parseInt(sel.value, 10) || 0,
+      }))
+      .filter(m => m.contribution_level > 0);
+
+    this.section9Data = { ...(this.section9Data || {}), plo_mappings, pi_mappings };
+  },
+
+  async saveSection9(options = {}) {
+    this.collectSection9();
     try {
-      await fetch(`/api/syllabi/${this.syllabusId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content: this.syllabus.content }) });
-      window.toast.success('Đã lưu');
-    } catch (e) { window.toast.error(e.message); }
-  },
-
-  // ============ TAB 1: CLO ============
-  async renderCLOTab(body, editable) {
-    // If we have imported CLOs pending, show them instead of fetching from DB
-    if (this.importedClos) {
-      this.clos = this.importedClos.map((c, i) => ({ id: null, code: c.code, description: c.description, _idx: i }));
-    } else {
-      this.clos = await fetch(`/api/syllabi/${this.syllabusId}/clos`).then(r => r.json());
-    }
-    const hasPending = !!this.importedClos;
-    body.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-        <h3 style="font-size:15px;font-weight:600;">Chuẩn đầu ra môn học (CLO)</h3>
-        <div style="display:flex;gap:8px;">
-          ${hasPending ? '<span class="badge" style="background:var(--warning);color:#fff;">Đã import — cần Lưu</span>' : ''}
-          ${editable ? '<button class="btn btn-primary btn-sm" onclick="window.SyllabusEditorPage.openAddCLOModal()">+ Thêm</button>' : ''}
-        </div>
-      </div>
-      <table class="data-table">
-        <thead><tr><th>Mã</th><th>Mô tả</th><th style="width:140px;">Bloom</th>${editable ? '<th style="width:100px;"></th>' : ''}</tr></thead>
-        <tbody>
-          ${this.clos.length === 0 ? `<tr><td colspan="${editable ? 4 : 3}" style="color:var(--text-muted);text-align:center;">Chưa có CLO</td></tr>` : this.clos.map(c => `
-            <tr>
-              <td><strong style="color:var(--primary);">${c.code}</strong></td>
-              <td style="font-size:13px;">${c.description || ''}</td>
-              <td><span class="badge badge-info">${['','Nhớ','Hiểu','Áp dụng','Phân tích','Đánh giá','Sáng tạo'][c.bloom_level] || c.bloom_level || ''}</span></td>
-              ${editable ? `<td style="white-space:nowrap;">
-                ${c.id ? `<button class="btn btn-secondary btn-sm" onclick="window.SyllabusEditorPage.editCLO(${c.id},'${c.code}',\`${(c.description||'').replace(/`/g,"'")}\`,${c.bloom_level||1})">Sửa</button>
-                <button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="window.SyllabusEditorPage.deleteCLO(${c.id})">Xóa</button>` : ''}
-              </td>` : ''}
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-      ${hasPending ? `<div style="margin-top:16px;"><button class="btn btn-primary" onclick="window.SyllabusEditorPage.saveImportedClos()">Lưu CLO đã import</button></div>` : ''}
-      <div id="clo-form-area" style="display:none;margin-top:16px;padding:16px;background:var(--bg-secondary);border-radius:var(--radius-lg);">
-        <input type="hidden" id="clo-edit-id">
-        <div style="display:flex;gap:10px;align-items:end;">
-          <div class="input-group" style="width:100px;margin:0;"><label>Mã</label><input type="text" id="clo-code" placeholder="CLO1"></div>
-          <div class="input-group" style="flex:1;margin:0;"><label>Mô tả</label><input type="text" id="clo-desc" placeholder="Mô tả CLO"></div>
-          <div class="input-group" style="width:150px;margin:0;">
-            <label>Bloom</label>
-            <select id="clo-bloom">
-              <option value="1">1 — Nhớ</option>
-              <option value="2">2 — Hiểu</option>
-              <option value="3">3 — Áp dụng</option>
-              <option value="4">4 — Phân tích</option>
-              <option value="5">5 — Đánh giá</option>
-              <option value="6">6 — Sáng tạo</option>
-            </select>
-          </div>
-          <button class="btn btn-primary btn-sm" onclick="window.SyllabusEditorPage.saveCLO()">Lưu</button>
-          <button class="btn btn-secondary btn-sm" onclick="document.getElementById('clo-form-area').style.display='none'">Hủy</button>
-        </div>
-      </div>
-    `;
-  },
-
-  editCLO(id, code, desc, bloom) {
-    document.getElementById('clo-edit-id').value = id;
-    document.getElementById('clo-code').value = code;
-    document.getElementById('clo-desc').value = desc;
-    document.getElementById('clo-bloom').value = bloom || 1;
-    document.getElementById('clo-form-area').style.display = 'block';
-  },
-
-  async saveCLO() {
-    const id = document.getElementById('clo-edit-id').value;
-    const code = document.getElementById('clo-code').value.trim();
-    const description = document.getElementById('clo-desc').value.trim();
-    const bloom_level = parseInt(document.getElementById('clo-bloom').value) || 1;
-    if (!code) { window.toast.warning('Nhập mã CLO'); return; }
-    try {
-      const url = id ? `/api/clos/${id}` : `/api/syllabi/${this.syllabusId}/clos`;
-      const res = await fetch(url, { method: id ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code, description, bloom_level }) });
-      if (!res.ok) throw new Error((await res.json()).error);
-      window.toast.success(id ? 'Đã cập nhật' : 'Đã thêm');
-      this.renderSylTab();
-    } catch (e) { window.toast.error(e.message); }
-  },
-
-  async deleteCLO(id) {
-    const confirmed = await window.ui.confirm({
-      title: 'Xóa CLO',
-      eyebrow: 'Xác nhận thao tác',
-      message: 'Bạn có chắc muốn xóa CLO này?',
-      confirmText: 'Xóa',
-      cancelText: 'Hủy',
-      tone: 'danger',
-      confirmVariant: 'danger'
-    });
-    if (!confirmed) return;
-    await fetch(`/api/clos/${id}`, { method: 'DELETE' });
-    window.toast.success('Đã xóa');
-    this.renderSylTab();
-  },
-
-  openAddCLOModal() {
-    const form = document.getElementById('clo-add-form');
-    form.reset();
-    document.getElementById('clo-add-code').value = `CLO${this.clos.length + 1}`;
-    const errorEl = document.getElementById('clo-add-error');
-    errorEl.classList.remove('show');
-    errorEl.textContent = '';
-    const bloomEl = document.getElementById('clo-bloom');
-    if (bloomEl) bloomEl.value = '1';
-    document.getElementById('clo-add-modal').classList.add('active');
-    App.modalGuard('clo-add-modal', () => this.submitAddCLO());
-  },
-
-  closeAddCLOModal() {
-    document.getElementById('clo-add-modal').classList.remove('active');
-  },
-
-  async submitAddCLO() {
-    const code = document.getElementById('clo-add-code').value.trim();
-    const description = document.getElementById('clo-add-desc').value.trim();
-    const errorEl = document.getElementById('clo-add-error');
-    if (!code) {
-      errorEl.textContent = 'Nhập mã CLO';
-      errorEl.classList.add('show');
-      return;
-    }
-    try {
-      const res = await fetch(`/api/syllabi/${this.syllabusId}/clos`, {
-        method: 'POST',
+      const res = await fetch(`/api/syllabi/${this.syllabusId}/ctdt-section9`, {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, description }),
+        body: JSON.stringify({
+          plo_mappings: this.section9Data?.plo_mappings || [],
+          pi_mappings: this.section9Data?.pi_mappings || [],
+        }),
       });
-      if (!res.ok) throw new Error((await res.json()).error);
-      this.closeAddCLOModal();
-      window.toast.success('Đã thêm CLO');
-      this.renderSylTab();
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Lỗi lưu mục 9');
+      if (data.section9) this.section9Data = data.section9;
+      return data;
     } catch (e) {
-      errorEl.textContent = e.message;
-      errorEl.classList.add('show');
+      if (!options.silent) window.toast.error(e.message);
+      throw e;
     }
-  },
-
-  async _persistImportedClos() {
-    if (!this.importedClos) return;
-    // Step 1: Delete existing CLOs
-    const existingClos = await fetch(`/api/syllabi/${this.syllabusId}/clos`).then(r => r.json());
-    for (const c of existingClos) {
-      await fetch(`/api/clos/${c.id}`, { method: 'DELETE' });
-    }
-    // Step 2: Create new CLOs and collect ID map
-    const cloIdMap = {}; // code → new DB id
-    for (const c of this.importedClos) {
-      const res = await fetch(`/api/syllabi/${this.syllabusId}/clos`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: c.code, description: c.description }),
-      });
-      if (!res.ok) throw new Error((await res.json()).error);
-      const created = await res.json();
-      cloIdMap[c.code] = created.id;
-    }
-    // Step 3: CLO-PI mappings skipped during import — user maps manually in tab CLO ↔ PI
-    this.importedClos = null;
-    this.importedMappings = null;
-  },
-
-  async saveImportedClos() {
-    try {
-      await this._persistImportedClos();
-      window.toast.success('Đã lưu CLO');
-      this.renderSylTab();
-    } catch (e) { window.toast.error(e.message); }
   },
 
   _collectCloPiMap() {
@@ -641,83 +624,6 @@ window.SyllabusEditorPage = {
       });
     });
     this.dirtyMapChanges = mappings;
-  },
-
-  // ============ TAB 2: CLO ↔ PI ============
-  async renderCLOPITab(body, editable) {
-    const [clos, maps] = await Promise.all([
-      fetch(`/api/syllabi/${this.syllabusId}/clos`).then(r => r.json()),
-      fetch(`/api/syllabi/${this.syllabusId}/clo-pi-map`).then(r => r.json()),
-    ]);
-    const plos = await fetch(`/api/versions/${this.syllabus.version_id}/plos`).then(r => r.json());
-    // PLOs endpoint already includes nested pis array
-    const allPIs = [];
-    for (const plo of plos) {
-      (plo.pis || []).forEach(pi => { pi._plo_code = plo.code; pi._plo_id = plo.id; });
-      allPIs.push(...(plo.pis || []));
-    }
-    if (!clos.length || !allPIs.length) {
-      body.innerHTML = '<p style="color:var(--text-muted);font-size:13px;">Cần có CLO và PI (chỉ số thực hiện của PLO) trước.</p>';
-      return;
-    }
-    const mapObj = {};
-    maps.forEach(m => { mapObj[`${m.clo_id}-${m.pi_id}`] = m.contribution_level; });
-
-    // Group PIs by PLO for 2-level header
-    const ploGroups = [];
-    let lastPlo = null;
-    allPIs.forEach(pi => {
-      if (!lastPlo || lastPlo.plo_id !== pi._plo_id) {
-        lastPlo = { plo_id: pi._plo_id, plo_code: pi._plo_code, pis: [] };
-        ploGroups.push(lastPlo);
-      }
-      lastPlo.pis.push(pi);
-    });
-
-    body.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <h3 style="font-size:15px;font-weight:600;">Ma trận CLO ↔ PI</h3>
-        ${editable ? '<button class="btn btn-primary btn-sm" id="save-clo-pi-btn">Lưu</button>' : ''}
-      </div>
-      <p style="color:var(--text-muted);font-size:12px;margin-bottom:12px;">— = Không · 1 = Thấp · 2 = TB · 3 = Cao</p>
-      <div style="overflow-x:auto;">
-        <table class="data-table" id="clo-pi-table">
-          <thead>
-            <tr>
-              <th rowspan="2" style="vertical-align:middle;"></th>
-              ${ploGroups.map(g => `<th colspan="${g.pis.length}" style="text-align:center;font-size:11px;border-bottom:none;">${g.plo_code}</th>`).join('')}
-            </tr>
-            <tr>
-              ${allPIs.map(pi => `<th style="text-align:center;min-width:45px;font-size:10px;">${pi.pi_code}</th>`).join('')}
-            </tr>
-          </thead>
-          <tbody>
-            ${clos.map(c => `<tr>
-              <td><strong>${c.code}</strong></td>
-              ${allPIs.map(pi => {
-                const val = mapObj[`${c.id}-${pi.id}`] || 0;
-                return `<td style="text-align:center;">
-                  <select data-clo="${c.id}" data-pi="${pi.id}" style="width:40px;padding:2px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius);font-family:inherit;" ${editable ? '' : 'disabled'}>
-                    <option value="0" ${val===0?'selected':''}>—</option><option value="1" ${val===1?'selected':''}>1</option>
-                    <option value="2" ${val===2?'selected':''}>2</option><option value="3" ${val===3?'selected':''}>3</option>
-                  </select>
-                </td>`;
-              }).join('')}
-            </tr>`).join('')}
-          </tbody>
-        </table>
-      </div>
-    `;
-    document.getElementById('save-clo-pi-btn')?.addEventListener('click', async () => {
-      this._collectCloPiMap();
-      const mappings = this.dirtyMapChanges || [];
-      try {
-        const res = await fetch(`/api/syllabi/${this.syllabusId}/clo-pi-map`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mappings }) });
-        if (!res.ok) throw new Error((await res.json()).error);
-        this.dirtyMapChanges = null;
-        window.toast.success(`Đã lưu ${mappings.length} liên kết`);
-      } catch (e) { window.toast.error(e.message); }
-    });
   },
 
   // ============ TAB 3: Nội dung chi tiết (course_outline) ============
@@ -954,95 +860,12 @@ window.SyllabusEditorPage = {
     } catch (e) { window.toast.error(e.message); }
   },
 
-  // ============ PDF IMPORT ============
-  importPdf() {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.pdf';
-    input.onchange = async () => {
-      const file = input.files[0];
-      if (!file) return;
-
-      // Check existing data
-      const c = this.syllabus.content || {};
-      const hasData = c.course_description || c.course_objectives || (c.course_outline && c.course_outline.length);
-      if (hasData) {
-        const confirmed = await window.ui.confirm({
-          title: 'Ghi đè dữ liệu đề cương',
-          eyebrow: 'Cẩn thận khi import',
-          message: 'Đề cương đã có dữ liệu. Import sẽ ghi đè toàn bộ nội dung.\n\nBạn có muốn tiếp tục không?',
-          confirmText: 'Tiếp tục import',
-          cancelText: 'Hủy',
-          tone: 'warning'
-        });
-        if (!confirmed) return;
-      }
-
-      // Show loading
-      const tabContent = document.getElementById('syl-tab-content');
-      tabContent.innerHTML = '<div style="text-align:center;padding:40px;"><div class="spinner"></div><p style="margin-top:12px;color:var(--text-muted);">Đang phân tích đề cương bằng AI...</p></div>';
-
-      try {
-        const formData = new FormData();
-        formData.append('file', file);
-
-        const res = await fetch(`/api/syllabi/${this.syllabusId}/import-pdf`, { method: 'POST', body: formData });
-        const json = await res.json();
-        if (!res.ok) throw new Error(json.error || 'Import thất bại');
-
-        const { content, clos, warnings, course_info } = json.data;
-
-        // Apply content
-        this.syllabus.content = { ...content, _schema_version: 2 };
-
-        // Save content to DB immediately
-        await fetch(`/api/syllabi/${this.syllabusId}`, {
-          method: 'PUT', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ content: this.syllabus.content })
-        });
-
-        // Store CLOs and mappings for later save
-        this.importedClos = clos;
-        this.importedMappings = null;
-
-        // Show warnings
-        const warningsEl = document.getElementById('syl-import-warnings');
-        if (warnings && warnings.length) {
-          warningsEl.style.display = 'block';
-          warningsEl.innerHTML = `
-            <div style="background:var(--warning-bg, #fff3cd);border:1px solid var(--warning, #ffc107);border-radius:var(--radius-lg);padding:12px;">
-              <strong style="font-size:13px;">Cảnh báo import:</strong>
-              <ul style="margin:8px 0 0 16px;font-size:13px;">${warnings.map(w => `<li>${w}</li>`).join('')}</ul>
-            </div>`;
-        }
-
-        // Show course info
-        if (course_info) {
-          const matchBadge = course_info.matched
-            ? '<span class="badge" style="background:var(--success);color:#fff;">Khớp</span>'
-            : '<span class="badge" style="background:var(--warning);color:#fff;">Không khớp</span>';
-          window.toast.success(`Import thành công: ${course_info.pdf_course_code} — ${course_info.pdf_course_name} ${course_info.matched ? '' : '(mã HP không khớp)'}`);
-        } else {
-          window.toast.success('Import thành công!');
-        }
-
-        // Re-render current tab
-        this.renderSylTab();
-
-      } catch (e) {
-        window.toast.error(e.message);
-        this.renderSylTab();
-      }
-    };
-    input.click();
-  },
-
   // ============ LOAD FROM BASE SYLLABUS ============
   async loadFromBase() {
     const confirmed = await window.ui.confirm({
       title: 'Lấy từ đề cương cơ bản',
       eyebrow: 'Xác nhận thao tác',
-      message: 'Tải đề cương cơ bản sẽ thay thế toàn bộ nội dung và CLO hiện tại. Tiếp tục?',
+      message: 'Tải đề cương cơ bản sẽ ghi đè nội dung đề cương CTDT hiện tại. Sau khi tải, chỉ các mục 3, 9, 10 được phép chỉnh sửa. Tiếp tục?',
       confirmText: 'Tải đề cương',
       cancelText: 'Hủy',
       tone: 'warning'
@@ -1061,8 +884,27 @@ window.SyllabusEditorPage = {
 
   // ============ SAVE ALL ============
   async saveAll() {
-    this._collectCurrentTabIntoState();
-    window.toast.info('Task 3 shell: chưa bật lưu mục 3, 9, 10 để tránh ghi đè nội dung khóa.');
+    try {
+      this._collectCurrentTabIntoState();
+      await this.saveSection3({ silent: true });
+      await this.saveSection9({ silent: true });
+
+      if (this.dirtyMapChanges) {
+        const res = await fetch(`/api/syllabi/${this.syllabusId}/clo-pi-map`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mappings: this.dirtyMapChanges }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Lỗi lưu mục 10');
+        this.dirtyMapChanges = null;
+      }
+
+      window.toast.success('Đã lưu mục 3, 9, 10');
+      await this.render(document.getElementById('page-content'), this.syllabusId);
+    } catch (e) {
+      window.toast.error(e.message);
+    }
   },
 
   // ============ APPROVAL ============
