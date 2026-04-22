@@ -437,7 +437,6 @@ window.SyllabusEditorPage = {
 
         <div>
           <h3 style="font-size:15px;font-weight:600;margin-bottom:12px;">10. CLO ↔ PI trong CTDT</h3>
-          <p style="color:var(--text-muted);font-size:12px;margin-bottom:12px;">— = Không · 1 = Thấp · 2 = TB · 3 = Cao</p>
           <div style="overflow-x:auto;">
             <table class="data-table" id="clo-pi-table">
               <thead>
@@ -446,7 +445,7 @@ window.SyllabusEditorPage = {
                   <th colspan="${allPIs.length || 1}" style="text-align:center;font-size:11px;border-bottom:none;">PI</th>
                 </tr>
                 <tr>
-                  ${allPIs.length ? allPIs.map(pi => `<th style="text-align:center;min-width:45px;font-size:10px;">${pi.pi_code || ''}</th>`).join('') : '<th style="text-align:center;min-width:45px;font-size:10px;">-</th>'}
+                  ${allPIs.length ? allPIs.map(pi => `<th style="text-align:center;min-width:34px;font-size:10px;">${pi.pi_code || ''}</th>`).join('') : '<th style="text-align:center;min-width:34px;font-size:10px;">-</th>'}
                 </tr>
               </thead>
               <tbody>
@@ -454,12 +453,9 @@ window.SyllabusEditorPage = {
                   <tr>
                     <td><strong>${c.code || ''}</strong></td>
                     ${allPIs.length ? allPIs.map(pi => {
-                      const val = mapObj[`${c.id}-${pi.id}`] || 0;
+                      const checked = (mapObj[`${c.id}-${pi.id}`] || 0) > 0;
                       return `<td style="text-align:center;">
-                        <select data-clo="${c.id}" data-pi="${pi.id}" style="width:40px;padding:2px;font-size:12px;border:1px solid var(--border);border-radius:var(--radius);font-family:inherit;" ${editable ? '' : 'disabled'}>
-                          <option value="0" ${val===0?'selected':''}>—</option><option value="1" ${val===1?'selected':''}>1</option>
-                          <option value="2" ${val===2?'selected':''}>2</option><option value="3" ${val===3?'selected':''}>3</option>
-                        </select>
+                        <input type="checkbox" data-clo="${c.id}" data-pi="${pi.id}" ${checked ? 'checked' : ''} ${editable ? '' : 'disabled'} style="width:15px;height:15px;cursor:${editable ? 'pointer' : 'default'};">
                       </td>`;
                     }).join('') : '<td style="text-align:center;color:var(--text-muted);">Không có PI</td>'}
                   </tr>
@@ -624,14 +620,12 @@ window.SyllabusEditorPage = {
   _collectCloPiMap() {
     const table = document.getElementById('clo-pi-table');
     if (!table) return;
-    const selects = table.querySelectorAll('select');
     const mappings = [];
-    selects.forEach(s => {
-      const v = parseInt(s.value);
-      if (v > 0) mappings.push({
-        clo_id: parseInt(s.dataset.clo),
-        pi_id: parseInt(s.dataset.pi),
-        contribution_level: v,
+    table.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+      if (cb.checked) mappings.push({
+        clo_id: parseInt(cb.dataset.clo),
+        pi_id: parseInt(cb.dataset.pi),
+        contribution_level: 1,
       });
     });
     this.dirtyMapChanges = mappings;
