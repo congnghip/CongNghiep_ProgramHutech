@@ -793,57 +793,75 @@ window.SyllabusEditorPage = {
   },
 
   // ============ TAB 4: Đánh giá (assessment_methods) ============
-  renderGradingTab(body, editable, c) {
-    const items = c.assessment_methods || [
-      { component: 'Chuyên cần', weight: 10, assessment_tool: 'Điểm danh', clos: [] },
-      { component: 'Bài tập', weight: 20, assessment_tool: 'Bài tập nhóm', clos: [] },
-      { component: 'Giữa kỳ', weight: 20, assessment_tool: 'Trắc nghiệm', clos: [] },
-      { component: 'Cuối kỳ', weight: 50, assessment_tool: 'Tự luận', clos: [] },
-    ];
+  async renderGradingTab(body, editable, c) {
+    const items = c.assessment_methods || [];
+    let cloCodes = [];
+    try {
+      const clos = await fetch(`/api/syllabi/${this.syllabusId}/clos`).then(r => r.json());
+      cloCodes = Array.isArray(clos) ? clos.map(x => x.code).filter(Boolean) : [];
+    } catch (_) {}
+    this._gradingCloCodes = cloCodes;
+
+    const dis = editable ? '' : 'disabled';
+    const totalWeight = items.reduce((s, g) => s + (parseInt(g.weight) || 0), 0);
+    const weightColor = totalWeight === 100 ? 'var(--success)' : 'var(--danger)';
+
     body.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <h3 style="font-size:15px;font-weight:600;">Hình thức đánh giá</h3>
-        ${editable ? '<button class="btn btn-primary btn-sm" onclick="window.SyllabusEditorPage.saveGrading()">Lưu</button>' : ''}
+        <h3 style="font-size:15px;font-weight:600;">Phương pháp kiểm tra/đánh giá (mục 14)</h3>
+        <div style="font-size:13px;">Tổng trọng số: <strong style="color:${weightColor};">${totalWeight}%</strong></div>
       </div>
-      <table class="data-table" id="grading-table">
-        <thead><tr><th>Thành phần</th><th style="width:70px;">%</th><th>Hình thức đánh giá</th><th style="width:120px;">CLO</th>${editable ? '<th></th>' : ''}</tr></thead>
+      <table class="data-table" id="ctdt-grading-table">
+        <thead><tr>
+          <th style="width:180px;">Thành phần</th>
+          <th>Quy định</th>
+          <th style="width:140px;">Bài đánh giá</th>
+          <th style="width:80px;">%</th>
+          <th style="width:160px;">CLO đáp ứng</th>
+          ${editable ? '<th style="width:50px;"></th>' : ''}
+        </tr></thead>
         <tbody>
-          ${items.map((g, i) => {
-            const closStr = Array.isArray(g.clos) ? g.clos.join(', ') : (g.clos || '');
-            return `<tr data-idx="${i}">
-              <td><input type="text" value="${g.component || ''}" data-field="component" ${editable ? '' : 'disabled'} style="${INP}"></td>
-              <td><input type="number" value="${g.weight || 0}" data-field="weight" ${editable ? '' : 'disabled'} min="0" max="100" style="${INP}text-align:center;"></td>
-              <td><input type="text" value="${g.assessment_tool || ''}" data-field="assessment_tool" ${editable ? '' : 'disabled'} style="${INP}"></td>
-              <td><input type="text" value="${closStr}" data-field="clos" ${editable ? '' : 'disabled'} style="${INP}" placeholder="CLO1, CLO2"></td>
-              ${editable ? `<td><button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="this.closest('tr').remove()">✕</button></td>` : ''}
-            </tr>`;
-          }).join('')}
+          ${items.map((g, i) => this._gradingRowHtml(g, i, editable, cloCodes, dis)).join('')}
         </tbody>
       </table>
       ${editable ? '<button class="btn btn-secondary btn-sm" style="margin-top:12px;" onclick="window.SyllabusEditorPage.addGradingRow()">+ Thêm dòng</button>' : ''}
     `;
   },
 
+  _gradingRowHtml(g, i, editable, cloCodes, dis) {
+    const esc = s => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    const selected = Array.isArray(g.clo_codes) ? g.clo_codes : [];
+    return `<tr data-idx="${i}">
+      <td><input type="text" value="${esc(g.component)}" data-field="component" ${dis} style="${INP}" placeholder="VD: Điểm đánh giá quá trình"></td>
+      <td><input type="text" value="${esc(g.description)}" data-field="description" ${dis} style="${INP}" placeholder="VD: Bài tập nhóm"></td>
+      <td><input type="text" value="${esc(g.task_ref)}" data-field="task_ref" ${dis} style="${INP}" placeholder="VD: Bài 1,2,3,5"></td>
+      <td><input type="number" value="${g.weight || 0}" data-field="weight" ${dis} min="0" max="100" style="${INP}text-align:center;"></td>
+      <td>
+        <select data-field="clo_codes" multiple size="3" ${dis} style="${INP}font-size:12px;">
+          ${cloCodes.map(c => `<option value="${esc(c)}" ${selected.includes(c) ? 'selected' : ''}>${esc(c)}</option>`).join('')}
+        </select>
+      </td>
+      ${editable ? `<td><button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="this.closest('tr').remove()">✕</button></td>` : ''}
+    </tr>`;
+  },
+
   addGradingRow() {
-    const tbody = document.querySelector('#grading-table tbody');
-    tbody.insertAdjacentHTML('beforeend', `<tr>
-      <td><input type="text" data-field="component" style="${INP}"></td>
-      <td><input type="number" data-field="weight" value="0" style="${INP}text-align:center;"></td>
-      <td><input type="text" data-field="assessment_tool" style="${INP}"></td>
-      <td><input type="text" data-field="clos" style="${INP}" placeholder="CLO1, CLO2"></td>
-      <td><button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="this.closest('tr').remove()">✕</button></td>
-    </tr>`);
+    const tbody = document.querySelector('#ctdt-grading-table tbody');
+    if (!tbody) return;
+    const codes = this._gradingCloCodes || [];
+    tbody.insertAdjacentHTML('beforeend', this._gradingRowHtml({}, tbody.children.length, true, codes, ''));
   },
 
   _collectGrading() {
-    const table = document.getElementById('grading-table');
+    const table = document.getElementById('ctdt-grading-table');
     if (!table) return; // Tab 4 not mounted
     const rows = table.querySelectorAll('tbody tr');
     const assessment_methods = Array.from(rows).map(r => ({
       component: r.querySelector('[data-field="component"]').value,
+      description: r.querySelector('[data-field="description"]').value,
+      task_ref: r.querySelector('[data-field="task_ref"]').value,
       weight: parseInt(r.querySelector('[data-field="weight"]').value) || 0,
-      assessment_tool: r.querySelector('[data-field="assessment_tool"]').value,
-      clos: r.querySelector('[data-field="clos"]').value.split(',').map(s => s.trim()).filter(Boolean),
+      clo_codes: Array.from(r.querySelector('[data-field="clo_codes"]').selectedOptions).map(o => o.value),
     }));
     this.syllabus.content = { ...this.syllabus.content, assessment_methods };
   },
