@@ -411,8 +411,17 @@ window.SyllabusEditorPage = {
     this.section10Mappings = maps;
 
     const allPIs = Array.isArray(section9.pis) ? section9.pis : [];
+    const allPLOs = Array.isArray(section9.plos) ? section9.plos : [];
     const mapObj = {};
     (maps || []).forEach(m => { mapObj[`${m.clo_id}-${m.pi_id}`] = m.contribution_level; });
+
+    // Group PIs by PLO for header grouping
+    const pisByPlo = {};
+    allPIs.forEach(pi => {
+      if (!pisByPlo[pi.plo_id]) pisByPlo[pi.plo_id] = [];
+      pisByPlo[pi.plo_id].push(pi);
+    });
+    const plosWithPIs = allPLOs.filter(p => (pisByPlo[p.id] || []).length > 0);
 
     body.innerHTML = `
       <div style="display:grid;gap:20px;max-width:960px;">
@@ -442,22 +451,22 @@ window.SyllabusEditorPage = {
               <thead>
                 <tr>
                   <th rowspan="2" style="vertical-align:middle;">CLO</th>
-                  <th colspan="${allPIs.length || 1}" style="text-align:center;font-size:11px;border-bottom:none;">PI</th>
+                  ${plosWithPIs.map(plo => `<th colspan="${(pisByPlo[plo.id] || []).length}" style="text-align:center;font-size:12px;border-bottom:1px solid var(--border);border-left:2px solid var(--border);background:#f1f3f5;">${plo.code}</th>`).join('')}
                 </tr>
                 <tr>
-                  ${allPIs.length ? allPIs.map(pi => `<th style="text-align:center;min-width:34px;font-size:10px;">${pi.pi_code || ''}</th>`).join('') : '<th style="text-align:center;min-width:34px;font-size:10px;">-</th>'}
+                  ${plosWithPIs.map(plo => (pisByPlo[plo.id] || []).map((pi, i) => `<th style="text-align:center;min-width:34px;font-size:10px;color:var(--primary);${i===0?'border-left:2px solid var(--border);':''}" title="${pi.pi_code}: ${pi.description || ''}">${pi.pi_code || ''}</th>`).join('')).join('')}
                 </tr>
               </thead>
               <tbody>
                 ${clos.length ? clos.map(c => `
                   <tr>
                     <td><strong>${c.code || ''}</strong></td>
-                    ${allPIs.length ? allPIs.map(pi => {
+                    ${plosWithPIs.map(plo => (pisByPlo[plo.id] || []).map((pi, i) => {
                       const checked = (mapObj[`${c.id}-${pi.id}`] || 0) > 0;
-                      return `<td style="text-align:center;">
+                      return `<td style="text-align:center;${i===0?'border-left:2px solid var(--border);':''}">
                         <input type="checkbox" data-clo="${c.id}" data-pi="${pi.id}" ${checked ? 'checked' : ''} ${editable ? '' : 'disabled'} style="width:15px;height:15px;cursor:${editable ? 'pointer' : 'default'};">
                       </td>`;
-                    }).join('') : '<td style="text-align:center;color:var(--text-muted);">Không có PI</td>'}
+                    }).join('')).join('')}
                   </tr>
                 `).join('') : `<tr><td colspan="${Math.max(allPIs.length + 1, 2)}" style="text-align:center;color:var(--text-muted);">Chưa có CLO</td></tr>`}
               </tbody>
