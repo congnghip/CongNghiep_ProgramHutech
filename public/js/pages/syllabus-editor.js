@@ -169,10 +169,12 @@ window.SyllabusEditorPage = {
         </div>
       ` : ''}
       <div class="tab-bar" id="syl-tabs">
-        <div class="tab-item active" data-tab="0">Mục 1–8</div>
-        <div class="tab-item" data-tab="1">Mục 9</div>
-        <div class="tab-item" data-tab="2">Mục 10</div>
-        <div class="tab-item" data-tab="3">Mục 11–17</div>
+        <div class="tab-item active" data-tab="0">Thông tin chung</div>
+        <div class="tab-item" data-tab="1">CLO</div>
+        <div class="tab-item" data-tab="2">Ma trận PLO/PI</div>
+        <div class="tab-item" data-tab="3">Nội dung giảng dạy</div>
+        <div class="tab-item" data-tab="4">Đánh giá</div>
+        <div class="tab-item" data-tab="5">Tài liệu</div>
       </div>
       <div id="syl-tab-content"><div class="spinner"></div></div>
 
