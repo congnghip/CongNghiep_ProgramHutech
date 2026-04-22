@@ -2122,27 +2122,27 @@ app.put('/api/versions/:vId/course-pi-map', authMiddleware, requireDraft('vId'),
   } finally { client.release(); }
 });
 
-function parseJsonContent(raw) {
-  if (!raw) return {};
-  return typeof raw === 'string' ? JSON.parse(raw) : raw;
-}
-
 function ensureCtdtOverrides(content) {
   const c = content && typeof content === 'object' ? { ...content } : {};
-  if (!c.ctdt_overrides || typeof c.ctdt_overrides !== 'object') c.ctdt_overrides = {};
-  const section3 = c.ctdt_overrides.section3 && typeof c.ctdt_overrides.section3 === 'object'
-    ? c.ctdt_overrides.section3
+  const overrides = c.ctdt_overrides && typeof c.ctdt_overrides === 'object' ? { ...c.ctdt_overrides } : {};
+  const section3 = overrides.section3 && typeof overrides.section3 === 'object'
+    ? overrides.section3
     : {};
-  c.ctdt_overrides.section3 = {
+  overrides.section3 = {
     knowledge_area: section3.knowledge_area ?? null,
     course_requirement: section3.course_requirement ?? null,
   };
+  c.ctdt_overrides = overrides;
   return c;
 }
 
 async function getSyllabusContext(syllabusId) {
   const result = await pool.query(
-    'SELECT id, version_id, course_id FROM version_syllabi WHERE id = $1',
+    `SELECT vs.id, vs.version_id, vs.course_id, vc.id AS version_course_id
+     FROM version_syllabi vs
+     LEFT JOIN version_courses vc
+       ON vc.version_id = vs.version_id AND vc.course_id = vs.course_id
+     WHERE vs.id = $1`,
     [syllabusId]
   );
   return result.rows[0] || null;
@@ -2268,7 +2268,12 @@ app.get('/api/syllabi/:id', authMiddleware, requireViewVersion, async (req, res)
     `, [req.params.id]);
     if (!result.rows.length) return res.status(404).json({ error: 'Không tìm thấy' });
     const row = result.rows[0];
-    row.content = normalizeStoredSyllabusContent(row.content);
+    const rawContent = row.content && typeof row.content === 'object' ? row.content : {};
+    row.content = ensureCtdtOverrides(normalizeStoredSyllabusContent(row.content));
+    if (rawContent.ctdt_overrides && typeof rawContent.ctdt_overrides.section3 === 'object') {
+      row.knowledge_area = row.content.ctdt_overrides.section3.knowledge_area;
+      row.course_requirement = row.content.ctdt_overrides.section3.course_requirement;
+    }
     res.json(row);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -2316,31 +2321,34 @@ app.put('/api/syllabi/:id/ctdt-section3', authMiddleware, async (req, res) => {
       await checkVersionEditAccess(req.user.id, syl.version_id, 'syllabus.edit');
     }
 
-    const currentRes = await pool.query('SELECT content FROM version_syllabi WHERE id=$1', [req.params.id]);
-    const current = ensureCtdtOverrides(parseJsonContent(currentRes.rows[0].content));
-    current.ctdt_overrides.section3 = {
-      knowledge_area,
-      course_requirement,
-    };
-
     await pool.query(
-      'UPDATE version_syllabi SET content=$1, updated_at=NOW() WHERE id=$2',
-      [JSON.stringify(current), req.params.id]
+      `UPDATE version_syllabi
+       SET content = jsonb_set(
+         COALESCE(content, '{}'::jsonb),
+         '{ctdt_overrides,section3}',
+         $1::jsonb,
+         true
+       ),
+       updated_at = NOW()
+       WHERE id = $2`,
+      [JSON.stringify({ knowledge_area, course_requirement }), req.params.id]
     );
 
-    res.json({ success: true, section3: current.ctdt_overrides.section3 });
+    res.json({ success: true, section3: { knowledge_area, course_requirement } });
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
 app.get('/api/syllabi/:id/ctdt-section9', authMiddleware, requireViewVersion, async (req, res) => {
   try {
     const syl = await getSyllabusContext(req.params.id);
-    if (!syl) return res.status(404).json({ error: 'Không tìm thấy đề cương' });
+    if (!syl || !syl.version_course_id) {
+      return res.status(404).json({ error: 'Không tìm thấy học phần phiên bản của đề cương' });
+    }
 
     const [plosRes, coursePloRes, coursePiRes] = await Promise.all([
       pool.query('SELECT * FROM version_plos WHERE version_id=$1 ORDER BY code', [syl.version_id]),
-      pool.query('SELECT * FROM course_plo_map WHERE version_id=$1 AND course_id=$2', [syl.version_id, syl.course_id]),
-      pool.query('SELECT * FROM version_pi_courses WHERE version_id=$1 AND course_id=$2', [syl.version_id, syl.course_id]),
+      pool.query('SELECT * FROM course_plo_map WHERE version_id=$1 AND course_id=$2', [syl.version_id, syl.version_course_id]),
+      pool.query('SELECT * FROM version_pi_courses WHERE version_id=$1 AND course_id=$2', [syl.version_id, syl.version_course_id]),
     ]);
 
     const ploIds = plosRes.rows.map(r => r.id);
@@ -2361,11 +2369,12 @@ app.get('/api/syllabi/:id/ctdt-section9', authMiddleware, requireViewVersion, as
 });
 
 app.put('/api/syllabi/:id/ctdt-section9', authMiddleware, async (req, res) => {
-  const { plo_mappings = [], pi_mappings = [] } = req.body || {};
-  const client = await pool.connect();
+  const { plo_mappings, pi_mappings } = req.body || {};
   try {
     const syl = await getSyllabusContext(req.params.id);
-    if (!syl) return res.status(404).json({ error: 'Không tìm thấy đề cương' });
+    if (!syl || !syl.version_course_id) {
+      return res.status(404).json({ error: 'Không tìm thấy học phần phiên bản của đề cương' });
+    }
 
     const assignRes = await pool.query(
       'SELECT id FROM syllabus_assignments WHERE version_id=$1 AND course_id=$2 AND assigned_to=$3',
@@ -2375,43 +2384,106 @@ app.put('/api/syllabi/:id/ctdt-section9', authMiddleware, async (req, res) => {
       await checkVersionEditAccess(req.user.id, syl.version_id, 'syllabus.edit');
     }
 
-    await client.query('BEGIN');
-
-    await client.query(
-      'DELETE FROM course_plo_map WHERE version_id=$1 AND course_id=$2',
-      [syl.version_id, syl.course_id]
-    );
-    for (const m of plo_mappings) {
-      await client.query(
-        `INSERT INTO course_plo_map (version_id, course_id, plo_id, contribution_level)
-         VALUES ($1,$2,$3,$4)`,
-        [syl.version_id, syl.course_id, m.plo_id, m.contribution_level]
-      );
+    if (!Array.isArray(plo_mappings) || !Array.isArray(pi_mappings)) {
+      return res.status(400).json({ error: 'plo_mappings và pi_mappings phải là mảng' });
     }
 
-    await client.query(
-      'DELETE FROM version_pi_courses WHERE version_id=$1 AND course_id=$2',
-      [syl.version_id, syl.course_id]
+    const ploIds = plo_mappings.map(m => Number(m.plo_id));
+    if (ploIds.some(id => !Number.isInteger(id) || id <= 0)) {
+      return res.status(400).json({ error: 'plo_mappings chứa plo_id không hợp lệ' });
+    }
+    if (new Set(ploIds).size !== ploIds.length) {
+      return res.status(400).json({ error: 'plo_mappings không được chứa PLO trùng lặp' });
+    }
+
+    const piIds = pi_mappings.map(m => Number(m.pi_id));
+    if (piIds.some(id => !Number.isInteger(id) || id <= 0)) {
+      return res.status(400).json({ error: 'pi_mappings chứa pi_id không hợp lệ' });
+    }
+    if (new Set(piIds).size !== piIds.length) {
+      return res.status(400).json({ error: 'pi_mappings không được chứa PI trùng lặp' });
+    }
+
+    const plosCheck = ploIds.length
+      ? await pool.query(
+          'SELECT id FROM version_plos WHERE version_id=$1 AND id = ANY($2::int[])',
+          [syl.version_id, ploIds]
+        )
+      : { rows: [] };
+    if (plosCheck.rows.length !== ploIds.length) {
+      return res.status(400).json({ error: 'Một hoặc nhiều PLO không thuộc CTĐT này' });
+    }
+
+    const pisCheck = piIds.length
+      ? await pool.query(
+          `SELECT p.id, p.plo_id
+           FROM plo_pis p
+           JOIN version_plos vp ON vp.id = p.plo_id
+           WHERE vp.version_id = $1 AND p.id = ANY($2::int[])`,
+          [syl.version_id, piIds]
+        )
+      : { rows: [] };
+    if (pisCheck.rows.length !== piIds.length) {
+      return res.status(400).json({ error: 'Một hoặc nhiều PI không thuộc CTĐT này' });
+    }
+
+    const mappedPloIds = new Set(
+      plo_mappings
+        .filter(m => Number(m.contribution_level) > 0)
+        .map(m => Number(m.plo_id))
     );
+    const piParentById = new Map(pisCheck.rows.map(r => [r.id, r.plo_id]));
     for (const m of pi_mappings) {
-      await client.query(
-        `INSERT INTO version_pi_courses (version_id, pi_id, course_id, contribution_level)
-         VALUES ($1,$2,$3,$4)`,
-        [syl.version_id, m.pi_id, syl.course_id, m.contribution_level]
-      );
+      const parentPloId = piParentById.get(Number(m.pi_id));
+      if (!mappedPloIds.has(parentPloId)) {
+        return res.status(400).json({
+          error: 'PI chỉ được map khi PLO cha được map cho học phần với mức đóng góp > 0',
+        });
+      }
     }
 
-    await client.query('COMMIT');
-    res.json({
-      success: true,
-      plo_count: plo_mappings.length,
-      pi_count: pi_mappings.length,
-    });
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      await client.query(
+        'DELETE FROM course_plo_map WHERE version_id=$1 AND course_id=$2',
+        [syl.version_id, syl.version_course_id]
+      );
+      for (const m of plo_mappings) {
+        await client.query(
+          `INSERT INTO course_plo_map (version_id, course_id, plo_id, contribution_level)
+           VALUES ($1,$2,$3,$4)`,
+          [syl.version_id, syl.version_course_id, m.plo_id, m.contribution_level]
+        );
+      }
+
+      await client.query(
+        'DELETE FROM version_pi_courses WHERE version_id=$1 AND course_id=$2',
+        [syl.version_id, syl.version_course_id]
+      );
+      for (const m of pi_mappings) {
+        await client.query(
+          `INSERT INTO version_pi_courses (version_id, pi_id, course_id, contribution_level)
+           VALUES ($1,$2,$3,$4)`,
+          [syl.version_id, m.pi_id, syl.version_course_id, m.contribution_level]
+        );
+      }
+
+      await client.query('COMMIT');
+      res.json({
+        success: true,
+        plo_count: plo_mappings.length,
+        pi_count: pi_mappings.length,
+      });
+    } catch (e) {
+      await client.query('ROLLBACK');
+      res.status(400).json({ error: e.message });
+    } finally {
+      client.release();
+    }
   } catch (e) {
-    await client.query('ROLLBACK');
     res.status(400).json({ error: e.message });
-  } finally {
-    client.release();
   }
 });
 
