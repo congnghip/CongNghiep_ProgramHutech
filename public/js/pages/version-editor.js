@@ -711,27 +711,31 @@ window.VersionEditorPage = {
     const blocks = kbData.blocks || [];
     // Build grouped <select> options: optgroup for parents with children, plain option for leaves
     function buildBlockOptions(blocks) {
+      const esc = (s) => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+      if (blocks.length === 0) {
+        return '<option value="" disabled>Chưa có khối kiến thức — tạo ở tab Khối KT</option>';
+      }
       const parents = blocks.filter(b => !b.parent_id);
       const childrenOf = (pid) => blocks.filter(b => b.parent_id === pid);
       let html = '<option value="">-- Chọn khối kiến thức --</option>';
       for (const parent of parents) {
         const children = childrenOf(parent.id);
         if (children.length > 0) {
-          html += `<optgroup label="${parent.name}">`;
+          html += `<optgroup label="${esc(parent.name)}">`;
           for (const child of children) {
             const grandchildren = childrenOf(child.id);
             if (grandchildren.length > 0) {
-              html += `<option disabled>  ${child.name}</option>`;
+              html += `<option disabled>&nbsp;&nbsp;${esc(child.name)}</option>`;
               for (const gc of grandchildren) {
-                html += `<option value="${gc.id}">&nbsp;&nbsp;&nbsp;&nbsp;${gc.name}</option>`;
+                html += `<option value="${gc.id}">&nbsp;&nbsp;&nbsp;&nbsp;${esc(gc.name)}</option>`;
               }
             } else {
-              html += `<option value="${child.id}">${child.name}</option>`;
+              html += `<option value="${child.id}">${esc(child.name)}</option>`;
             }
           }
           html += `</optgroup>`;
         } else {
-          html += `<option value="${parent.id}">${parent.name}</option>`;
+          html += `<option value="${parent.id}">${esc(parent.name)}</option>`;
         }
       }
       return html;
