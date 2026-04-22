@@ -313,6 +313,15 @@ window.SyllabusEditorPage = {
     const plos = Array.isArray(data.plos) ? data.plos : [];
     const pis = Array.isArray(data.pis) ? data.pis : [];
 
+    // Group PIs by PLO for the matrix layout
+    const pisByPlo = {};
+    pis.forEach(pi => {
+      if (!pisByPlo[pi.plo_id]) pisByPlo[pi.plo_id] = [];
+      pisByPlo[pi.plo_id].push(pi);
+    });
+    const courseCode = this.syllabus?.course_code || '';
+    const hasPIs = plos.some(p => (pisByPlo[p.id] || []).length > 0);
+
     body.innerHTML = `
       <div style="display:grid;gap:20px;max-width:960px;">
         <div style="margin-bottom:4px;padding:12px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg-secondary);font-size:13px;color:var(--text-muted);">
@@ -343,25 +352,51 @@ window.SyllabusEditorPage = {
 
         <div>
           <h3 style="font-size:15px;font-weight:600;margin-bottom:12px;">9. Ma trận học phần ↔ PI</h3>
-          <table class="data-table" id="ctdt-section9-pi-table">
-            <thead><tr><th>PI</th><th>Mô tả</th><th style="width:120px;">Mức độ</th></tr></thead>
-            <tbody>
-              ${pis.length ? pis.map(pi => `
+          ${!hasPIs ? '<p style="color:var(--text-muted);font-size:13px;">Chưa có PI trong CTDT.</p>' : `
+          <p style="color:var(--text-muted);font-size:12px;margin-bottom:12px;">Chỉ các ô có HP ↔ PLO đã map (≥1) mới được chỉnh sửa.</p>
+          <div style="overflow-x:auto;padding-bottom:16px;">
+            <table class="data-table" id="ctdt-section9-pi-table" style="border-collapse:collapse;white-space:nowrap;">
+              <thead>
                 <tr>
-                  <td><strong>${pi.pi_code || ''}</strong></td>
-                  <td>${pi.description || ''}</td>
-                  <td>
-                    <select data-pi-id="${pi.id}" ${editable ? '' : 'disabled'} style="${INP}">
-                      <option value="0" ${(piMap.get(String(pi.id)) || 0) === 0 ? 'selected' : ''}>—</option>
-                      <option value="1" ${(piMap.get(String(pi.id)) || 0) === 1 ? 'selected' : ''}>1</option>
-                      <option value="2" ${(piMap.get(String(pi.id)) || 0) === 2 ? 'selected' : ''}>2</option>
-                      <option value="3" ${(piMap.get(String(pi.id)) || 0) === 3 ? 'selected' : ''}>3</option>
-                    </select>
-                  </td>
+                  <th rowspan="2" style="position:sticky;left:0;z-index:10;min-width:70px;background:#f8f9fa;box-shadow:inset -1px 0 0 var(--border);">Mã HP</th>
+                  ${plos.map(plo => {
+                    const pisForPlo = pisByPlo[plo.id] || [];
+                    if (!pisForPlo.length) return '';
+                    return `<th colspan="${pisForPlo.length}" style="text-align:center;font-size:12px;border-bottom:1px solid var(--border);border-left:2px solid var(--border);background:#f1f3f5;">${plo.code}</th>`;
+                  }).join('')}
                 </tr>
-              `).join('') : '<tr><td colspan="3" style="text-align:center;color:var(--text-muted);">Chưa có PI</td></tr>'}
-            </tbody>
-          </table>
+                <tr>
+                  ${plos.map(plo => (pisByPlo[plo.id] || []).map(pi =>
+                    `<th style="text-align:center;font-size:11px;min-width:28px;padding:4px;color:var(--primary);background:#f8f9fa;" title="${pi.pi_code}: ${pi.description || ''}">${pi.pi_code}</th>`
+                  ).join('')).join('')}
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="position:sticky;left:0;z-index:5;font-size:12px;background:#ffffff;box-shadow:inset -1px 0 0 var(--border),inset 0 -1px 0 var(--border);"><strong>${courseCode}</strong></td>
+                  ${plos.map(plo => {
+                    const pisForPlo = pisByPlo[plo.id] || [];
+                    const isPloMapped = (ploMap.get(String(plo.id)) || 0) > 0;
+                    return pisForPlo.map((pi, piIndex) => {
+                      const val = piMap.get(String(pi.id)) || 0;
+                      const isDisabled = !(isPloMapped && editable);
+                      return `<td style="text-align:center;${piIndex === 0 ? 'border-left:2px solid var(--border);' : ''}">
+                        <select data-pi-id="${pi.id}"
+                                style="width:34px;padding:1px;font-size:11px;border:1px solid var(--border);border-radius:var(--radius);font-family:inherit;${isDisabled ? 'background:var(--bg-secondary);opacity:0.5;cursor:not-allowed;' : 'cursor:pointer;'}"
+                                ${isDisabled ? 'disabled' : ''}>
+                          <option value="0" ${val === 0 ? 'selected' : ''}>—</option>
+                          <option value="1" ${val === 1 ? 'selected' : ''}>1</option>
+                          <option value="2" ${val === 2 ? 'selected' : ''}>2</option>
+                          <option value="3" ${val === 3 ? 'selected' : ''}>3</option>
+                        </select>
+                      </td>`;
+                    }).join('');
+                  }).join('')}
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          `}
         </div>
       </div>
     `;
