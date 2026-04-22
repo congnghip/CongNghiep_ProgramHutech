@@ -1494,6 +1494,13 @@ app.post('/api/courses/:courseId/base-syllabus/validate', authMiddleware, requir
       issues.push({ code: 'WEIGHT_SUM', actual: totalWeight, message: `Tổng trọng số đánh giá = ${totalWeight}% (cần 100%)` });
     }
 
+    if (!content.instructor || !content.instructor.name) {
+      issues.push({ code: 'NO_INSTRUCTOR_NAME', message: 'Chưa nhập tên giảng viên phụ trách' });
+    }
+    if (!content.instructor || !content.instructor.email) {
+      issues.push({ code: 'NO_INSTRUCTOR_EMAIL', message: 'Chưa nhập email giảng viên phụ trách' });
+    }
+
     res.json({ ok: issues.length === 0, issues });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -1931,11 +1938,24 @@ app.put('/api/versions/:vId/teaching-plan/bulk', authMiddleware, requireDraft('v
 });
 
 app.post('/api/versions/:vId/courses', authMiddleware, requireDraft('vId'), async (req, res) => {
-  const { course_id, semester, course_type } = req.body;
+  const { course_id, semester, course_type, knowledge_block_id } = req.body;
+  if (!knowledge_block_id) return res.status(400).json({ error: 'Vui lòng chọn khối kiến thức' });
   try {
+    // Validate block belongs to this version and is a leaf (no children)
+    const blockRes = await pool.query(
+      'SELECT id, version_id FROM knowledge_blocks WHERE id=$1',
+      [knowledge_block_id]
+    );
+    if (!blockRes.rows.length) return res.status(400).json({ error: 'Khối kiến thức không tồn tại' });
+    if (blockRes.rows[0].version_id !== parseInt(req.params.vId)) {
+      return res.status(400).json({ error: 'Khối kiến thức không thuộc phiên bản này' });
+    }
+    const childRes = await pool.query('SELECT id FROM knowledge_blocks WHERE parent_id=$1 LIMIT 1', [knowledge_block_id]);
+    if (childRes.rows.length > 0) return res.status(400).json({ error: 'Chỉ được chọn khối kiến thức lá (không có khối con)' });
+
     const result = await pool.query(
-      'INSERT INTO version_courses (version_id, course_id, semester, course_type) VALUES ($1,$2,$3,$4) RETURNING *',
-      [req.params.vId, course_id, semester || 1, course_type || 'required']
+      'INSERT INTO version_courses (version_id, course_id, semester, course_type, knowledge_block_id) VALUES ($1,$2,$3,$4,$5) RETURNING *',
+      [req.params.vId, course_id, semester || 1, course_type || 'required', knowledge_block_id]
     );
     res.json(result.rows[0]);
   } catch (e) { res.status(400).json({ error: e.message }); }
