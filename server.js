@@ -2324,7 +2324,12 @@ app.put('/api/syllabi/:id/ctdt-section3', authMiddleware, async (req, res) => {
     await pool.query(
       `UPDATE version_syllabi
        SET content = jsonb_set(
-         COALESCE(content, '{}'::jsonb),
+         jsonb_set(
+           COALESCE(content, '{}'::jsonb),
+           '{ctdt_overrides}',
+           COALESCE(content->'ctdt_overrides', '{}'::jsonb),
+           true
+         ),
          '{ctdt_overrides,section3}',
          $1::jsonb,
          true
