@@ -299,6 +299,17 @@ window.SyllabusEditorPage = {
             <button class="btn btn-primary btn-sm" onclick="window.SyllabusEditorPage.saveSection3()">Lưu mục 3</button>
           </div>
         ` : ''}
+
+        <h4 style="font-size:14px;font-weight:600;margin:20px 0 8px;">Phương pháp, hình thức tổ chức dạy học (mục 12)</h4>
+        <table class="data-table" id="ctdt-teaching-methods-table">
+          <thead><tr><th style="width:35%;">Phương pháp</th><th>Mục tiêu</th></tr></thead>
+          <tbody>
+            ${(Array.isArray(c.teaching_methods) ? c.teaching_methods : []).map(t => `<tr>
+              <td><input type="text" data-field="method" value="${String(t.method || '').replace(/"/g,'&quot;')}" disabled style="${INP}"></td>
+              <td><input type="text" data-field="objective" value="${String(t.objective || '').replace(/"/g,'&quot;')}" disabled style="${INP}"></td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
       </div>
     `;
   },
