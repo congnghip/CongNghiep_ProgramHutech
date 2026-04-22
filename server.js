@@ -2189,7 +2189,10 @@ app.post('/api/versions/:vId/syllabi', authMiddleware, async (req, res) => {
         [course_id]
       );
       if (baseRes.rows.length) {
-        initialContent = baseRes.rows[0].content;
+        const rawBase = typeof baseRes.rows[0].content === 'string'
+          ? JSON.parse(baseRes.rows[0].content)
+          : (baseRes.rows[0].content || {});
+        initialContent = upgradeContent(rawBase);
       } else {
         noBaseSyllabus = true;
       }
@@ -2220,7 +2223,9 @@ app.post('/api/versions/:vId/syllabi', authMiddleware, async (req, res) => {
 app.get('/api/syllabi/:id', authMiddleware, requireViewVersion, async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT vs.*, c.code as course_code, c.name as course_name, c.credits, c.is_proposed,
+      SELECT vs.*, c.code as course_code, c.name as course_name, c.name_en as course_name_en,
+             c.credits, c.credits_theory, c.credits_practice, c.training_level,
+             c.knowledge_area, c.course_requirement, c.is_proposed,
              u.display_name as author_name, d.name as dept_name,
              p.name as program_name, pv.academic_year,
              (cbs.id IS NOT NULL) as has_base_syllabus
@@ -2288,10 +2293,15 @@ app.post('/api/syllabi/:sId/load-from-base', authMiddleware, async (req, res) =>
     const baseRes = await pool.query('SELECT content FROM course_base_syllabi WHERE course_id = $1', [course_id]);
     if (!baseRes.rows.length) return res.status(400).json({ error: 'Học phần này chưa có đề cương cơ bản' });
 
+    const rawBase = typeof baseRes.rows[0].content === 'string'
+      ? JSON.parse(baseRes.rows[0].content)
+      : (baseRes.rows[0].content || {});
+    const normalizedBase = upgradeContent(rawBase);
+
     // Overwrite content
     await pool.query(
       'UPDATE version_syllabi SET content=$1, updated_at=NOW() WHERE id=$2',
-      [JSON.stringify(baseRes.rows[0].content), req.params.sId]
+      [JSON.stringify(normalizedBase), req.params.sId]
     );
 
     // Replace CLOs: delete old, copy from base
@@ -2872,7 +2882,10 @@ app.post('/api/my-assignments/:assignmentId/create-syllabus', authMiddleware, as
       [assignment.course_id]
     );
     if (baseRes.rows.length) {
-      initialContent = baseRes.rows[0].content;
+      const rawBase = typeof baseRes.rows[0].content === 'string'
+        ? JSON.parse(baseRes.rows[0].content)
+        : (baseRes.rows[0].content || {});
+      initialContent = upgradeContent(rawBase);
     } else {
       noBaseSyllabus = true;
     }
