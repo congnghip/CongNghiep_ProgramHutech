@@ -236,7 +236,7 @@ window.SyllabusEditorPage = {
   async renderSylTab() {
     const body = document.getElementById('syl-tab-content');
     body.innerHTML = '<div class="spinner"></div>';
-    const editable = this.syllabus.status === 'draft';
+    const editable = ['draft', 'approved'].includes(this.syllabus.status);
     const c = this.syllabus.content || {};
     try {
       switch (this.activeTab) {
@@ -589,9 +589,41 @@ window.SyllabusEditorPage = {
     this.section9Data = { ...(this.section9Data || {}), plo_mappings, pi_mappings };
   },
 
+  _normalizeSection9Data(raw) {
+    const data = raw && typeof raw === 'object' ? raw : {};
+    if (Array.isArray(data.plo_mappings) || Array.isArray(data.pi_mappings)) {
+      return {
+        ...data,
+        plo_mappings: Array.isArray(data.plo_mappings) ? data.plo_mappings : [],
+        pi_mappings: Array.isArray(data.pi_mappings) ? data.pi_mappings : [],
+      };
+    }
+    return {
+      ...data,
+      plo_mappings: (data.course_plo_map || [])
+        .map(m => ({
+          plo_id: m.plo_id,
+          contribution_level: m.contribution_level,
+        }))
+        .filter(m => m.contribution_level > 0),
+      pi_mappings: (data.course_pi_map || [])
+        .map(m => ({
+          pi_id: m.pi_id,
+          contribution_level: m.contribution_level,
+        }))
+        .filter(m => m.contribution_level > 0),
+    };
+  },
+
   async saveSection9(options = {}) {
-    this.collectSection9();
     try {
+      this.collectSection9();
+      if (!this.section9Data || (!Array.isArray(this.section9Data.plo_mappings) && !Array.isArray(this.section9Data.pi_mappings))) {
+        const fresh = await fetch(`/api/syllabi/${this.syllabusId}/ctdt-section9`).then(r => r.json());
+        if (fresh.error) throw new Error(fresh.error);
+        this.section9Data = fresh;
+      }
+      this.section9Data = this._normalizeSection9Data(this.section9Data);
       const res = await fetch(`/api/syllabi/${this.syllabusId}/ctdt-section9`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -602,7 +634,7 @@ window.SyllabusEditorPage = {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Lỗi lưu mục 9');
-      if (data.section9) this.section9Data = data.section9;
+      if (data.section9) this.section9Data = this._normalizeSection9Data(data.section9);
       return data;
     } catch (e) {
       if (!options.silent) window.toast.error(e.message);
