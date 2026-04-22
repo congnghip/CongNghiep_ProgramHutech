@@ -876,56 +876,101 @@ window.SyllabusEditorPage = {
 
   // ============ TAB 5: Tài liệu (textbooks, references, course_requirements) ============
   renderResourcesTab(body, editable, c) {
+    const esc = s => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     const textbooks = Array.isArray(c.textbooks) ? c.textbooks : [];
     const references = Array.isArray(c.references) ? c.references : [];
-    const req = c.course_requirements || { software: [], hardware: [], lab_equipment: [], classroom_setup: '' };
+    const tools = Array.isArray(c.tools) ? c.tools : [];
+    const dis = editable ? '' : 'disabled';
 
     body.innerHTML = `
-      <div style="max-width:600px;">
-        <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;">Tài liệu & Yêu cầu</h3>
-
-        <div class="input-group"><label>Giáo trình chính (mỗi dòng = 1 tài liệu)</label>
-          <textarea id="syl-textbooks" ${editable ? '' : 'disabled'} rows="3" placeholder="Tên sách, Tác giả, NXB">${textbooks.join('\n')}</textarea>
+      <div style="max-width:820px;">
+        <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;">Tài liệu phục vụ học phần (mục 15)</h3>
+        <div class="input-group"><label>Tài liệu/giáo trình chính (mỗi dòng = 1 tài liệu)</label>
+          <textarea id="ctdt-textbooks" ${dis} rows="3" placeholder="Tên sách, Tác giả, NXB">${esc(textbooks.join('\n'))}</textarea>
+        </div>
+        <div class="input-group"><label>Tài liệu tham khảo/bổ sung (mỗi dòng = 1 tài liệu)</label>
+          <textarea id="ctdt-references" ${dis} rows="3">${esc(references.join('\n'))}</textarea>
         </div>
 
-        <div class="input-group"><label>Tài liệu tham khảo (mỗi dòng = 1 tài liệu)</label>
-          <textarea id="syl-references" ${editable ? '' : 'disabled'} rows="3" placeholder="Bài báo, website...">${references.join('\n')}</textarea>
+        <h4 style="font-size:14px;font-weight:600;margin:20px 0 8px;">Các công cụ theo lĩnh vực</h4>
+        <div id="ctdt-tools-container">
+          ${tools.map((t, i) => this._toolCategoryHtml(t, i, editable, dis)).join('')}
         </div>
 
-        <h4 style="font-size:14px;font-weight:600;margin:20px 0 12px;">Yêu cầu học phần</h4>
-
-        <div class="input-group"><label>Phần mềm / Công cụ (mỗi dòng = 1 item)</label>
-          <textarea id="syl-software" ${editable ? '' : 'disabled'} rows="3">${(req.software || []).join('\n')}</textarea>
-        </div>
-        <div class="input-group"><label>Phần cứng (mỗi dòng = 1 item)</label>
-          <textarea id="syl-hardware" ${editable ? '' : 'disabled'} rows="2">${(req.hardware || []).join('\n')}</textarea>
-        </div>
-        <div class="input-group"><label>Thiết bị phòng thí nghiệm (mỗi dòng = 1 item)</label>
-          <textarea id="syl-lab" ${editable ? '' : 'disabled'} rows="2">${(req.lab_equipment || []).join('\n')}</textarea>
-        </div>
-        <div class="input-group"><label>Yêu cầu phòng học</label>
-          <input type="text" id="syl-classroom" ${editable ? '' : 'disabled'} value="${req.classroom_setup || ''}" placeholder="VD: Phòng máy tính">
+        <h4 style="font-size:14px;font-weight:600;margin:24px 0 8px;">Các yêu cầu của HP (mục 17)</h4>
+        <div class="input-group">
+          <textarea id="ctdt-other-req" ${dis} rows="3" placeholder="Yêu cầu khác (nếu có)">${esc(c.other_requirements)}</textarea>
         </div>
 
-        ${editable ? '<button class="btn btn-primary" onclick="window.SyllabusEditorPage.saveResources()">Lưu nháp</button>' : ''}
+        <h4 style="font-size:14px;font-weight:600;margin:24px 0 8px;">Giảng viên phụ trách học phần</h4>
+        ${this._instructorFormHtml('ctdt-instr', c.instructor || {}, dis)}
+
+        <h4 style="font-size:14px;font-weight:600;margin:24px 0 8px;">Giảng viên hỗ trợ / Trợ giảng (nếu có)</h4>
+        ${this._instructorFormHtml('ctdt-asst', c.assistant_instructor || {}, dis)}
+
+        <h4 style="font-size:14px;font-weight:600;margin:24px 0 8px;">Cách liên lạc với giảng viên/trợ giảng</h4>
+        <div class="input-group">
+          <textarea id="ctdt-contact-info" ${dis} rows="2" placeholder="Ví dụ: Email, giờ tiếp sinh viên...">${esc(c.contact_info)}</textarea>
+        </div>
+
+        <h4 style="font-size:14px;font-weight:600;margin:24px 0 8px;">Ngày ký</h4>
+        <div class="input-group" style="max-width:300px;">
+          <input type="text" id="ctdt-signature-date" ${dis} placeholder="VD: 01 tháng 09 năm 2025" value="${esc(c.signature_date)}">
+        </div>
       </div>
     `;
   },
 
+  _toolCategoryHtml(t, i, editable, dis) {
+    const esc = s => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    const items = Array.isArray(t.items) ? t.items.join('\n') : '';
+    return `<div class="tool-category" data-idx="${i}" style="border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:8px;background:var(--bg-secondary);">
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:8px;">
+        <label style="font-size:12px;white-space:nowrap;">Lĩnh vực:</label>
+        <input type="text" data-field="category" value="${esc(t.category)}" ${dis} placeholder="VD: Phần mềm" style="flex:1;${INP}">
+      </div>
+      <textarea data-field="items" ${dis} rows="3" placeholder="Mỗi dòng = 1 công cụ" style="${INP}">${esc(items)}</textarea>
+    </div>`;
+  },
+
+  _instructorFormHtml(prefix, data, dis) {
+    const esc = s => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div class="input-group" style="margin:0;"><label style="font-size:12px;">Họ và tên</label><input type="text" id="${prefix}-name" ${dis} value="${esc(data.name)}"></div>
+      <div class="input-group" style="margin:0;"><label style="font-size:12px;">Học hàm, học vị</label><input type="text" id="${prefix}-title" ${dis} value="${esc(data.title)}"></div>
+      <div class="input-group" style="margin:0;"><label style="font-size:12px;">Địa chỉ cơ quan</label><input type="text" id="${prefix}-address" ${dis} value="${esc(data.address)}"></div>
+      <div class="input-group" style="margin:0;"><label style="font-size:12px;">Điện thoại liên hệ</label><input type="text" id="${prefix}-phone" ${dis} value="${esc(data.phone)}"></div>
+      <div class="input-group" style="margin:0;"><label style="font-size:12px;">Email</label><input type="text" id="${prefix}-email" ${dis} value="${esc(data.email)}"></div>
+      <div class="input-group" style="margin:0;"><label style="font-size:12px;">Website</label><input type="text" id="${prefix}-website" ${dis} value="${esc(data.website)}"></div>
+    </div>`;
+  },
+
   _collectResources() {
-    const textbooks = document.getElementById('syl-textbooks');
-    if (!textbooks) return; // Tab 5 not mounted
-    const toArr = id => document.getElementById(id).value.split('\n').map(s => s.trim()).filter(Boolean);
+    if (!document.getElementById('ctdt-textbooks')) return; // Tab 5 not mounted
+    const toArr = id => (document.getElementById(id)?.value || '').split('\n').map(s => s.trim()).filter(Boolean);
+    const toolsContainer = document.getElementById('ctdt-tools-container');
+    const tools = toolsContainer ? Array.from(toolsContainer.querySelectorAll('.tool-category')).map(div => ({
+      category: div.querySelector('[data-field="category"]').value,
+      items: div.querySelector('[data-field="items"]').value.split('\n').map(s => s.trim()).filter(Boolean),
+    })).filter(t => t.category || t.items.length) : [];
+    const collectInstructor = prefix => ({
+      name: document.getElementById(`${prefix}-name`)?.value || '',
+      title: document.getElementById(`${prefix}-title`)?.value || '',
+      address: document.getElementById(`${prefix}-address`)?.value || '',
+      phone: document.getElementById(`${prefix}-phone`)?.value || '',
+      email: document.getElementById(`${prefix}-email`)?.value || '',
+      website: document.getElementById(`${prefix}-website`)?.value || '',
+    });
     this.syllabus.content = {
       ...this.syllabus.content,
-      textbooks: toArr('syl-textbooks'),
-      references: toArr('syl-references'),
-      course_requirements: {
-        software: toArr('syl-software'),
-        hardware: toArr('syl-hardware'),
-        lab_equipment: toArr('syl-lab'),
-        classroom_setup: document.getElementById('syl-classroom').value,
-      },
+      textbooks: toArr('ctdt-textbooks'),
+      references: toArr('ctdt-references'),
+      tools,
+      other_requirements: document.getElementById('ctdt-other-req')?.value || '',
+      instructor: collectInstructor('ctdt-instr'),
+      assistant_instructor: collectInstructor('ctdt-asst'),
+      contact_info: document.getElementById('ctdt-contact-info')?.value || '',
+      signature_date: document.getElementById('ctdt-signature-date')?.value || '',
     };
   },
 
