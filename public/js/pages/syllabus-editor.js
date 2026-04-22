@@ -243,9 +243,11 @@ window.SyllabusEditorPage = {
     try {
       switch (this.activeTab) {
         case 0: await this.renderSections1To8(body, editable); break;
-        case 1: await this.renderSection9(body, editable); break;
-        case 2: await this.renderSection10(body, editable); break;
-        case 3: this.renderSections11To17(body); break;
+        case 1: await this.renderSection10(body, editable); break;
+        case 2: await this.renderSection9(body, editable); break;
+        case 3: this.renderOutlineTab(body, false, c); break;
+        case 4: this.renderGradingTab(body, false, c); break;
+        case 5: this.renderResourcesTab(body, false, c); break;
       }
     } catch (e) { body.innerHTML = `<p style="color:var(--danger);">Lỗi: ${e.message}</p>`; }
   },
