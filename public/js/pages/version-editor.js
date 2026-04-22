@@ -796,9 +796,15 @@ window.VersionEditorPage = {
     const course_id = document.getElementById('add-vc-course').value;
     const semester = parseInt(document.getElementById('add-vc-sem').value);
     const course_type = document.getElementById('add-vc-type').value;
+    const knowledge_block_id = document.getElementById('add-vc-block')?.value;
+    if (!knowledge_block_id) {
+      window.toast.error('Vui lòng chọn khối kiến thức');
+      return;
+    }
     try {
       const res = await fetch(`/api/versions/${this.versionId}/courses`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ course_id, semester, course_type })
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ course_id, semester, course_type, knowledge_block_id: parseInt(knowledge_block_id) })
       });
       if (!res.ok) throw new Error((await res.json()).error);
       window.toast.success('Đã thêm');
