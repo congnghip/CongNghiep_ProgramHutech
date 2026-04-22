@@ -330,19 +330,14 @@ window.SyllabusEditorPage = {
         <div>
           <h3 style="font-size:15px;font-weight:600;margin-bottom:12px;">9. Ma trận học phần ↔ PLO</h3>
           <table class="data-table" id="ctdt-section9-plo-table">
-            <thead><tr><th>PLO</th><th>Mô tả</th><th style="width:120px;">Mức độ</th></tr></thead>
+            <thead><tr><th>PLO</th><th>Mô tả</th><th style="width:80px;text-align:center;">Đạt</th></tr></thead>
             <tbody>
               ${plos.length ? plos.map(plo => `
                 <tr>
                   <td><strong>${plo.code || ''}</strong></td>
                   <td>${plo.description || ''}</td>
-                  <td>
-                    <select data-plo-id="${plo.id}" ${editable ? '' : 'disabled'} style="${INP}">
-                      <option value="0" ${(ploMap.get(String(plo.id)) || 0) === 0 ? 'selected' : ''}>—</option>
-                      <option value="1" ${(ploMap.get(String(plo.id)) || 0) === 1 ? 'selected' : ''}>1</option>
-                      <option value="2" ${(ploMap.get(String(plo.id)) || 0) === 2 ? 'selected' : ''}>2</option>
-                      <option value="3" ${(ploMap.get(String(plo.id)) || 0) === 3 ? 'selected' : ''}>3</option>
-                    </select>
+                  <td style="text-align:center;">
+                    <input type="checkbox" data-plo-id="${plo.id}" ${(ploMap.get(String(plo.id)) || 0) > 0 ? 'checked' : ''} ${editable ? '' : 'disabled'} style="width:16px;height:16px;cursor:${editable ? 'pointer' : 'default'};">
                   </td>
                 </tr>
               `).join('') : '<tr><td colspan="3" style="text-align:center;color:var(--text-muted);">Chưa có PLO</td></tr>'}
@@ -556,10 +551,10 @@ window.SyllabusEditorPage = {
     const piTable = document.getElementById('ctdt-section9-pi-table');
     if (!ploTable || !piTable) return;
 
-    const plo_mappings = Array.from(ploTable.querySelectorAll('select'))
-      .map(sel => ({
-        plo_id: parseInt(sel.dataset.ploId, 10),
-        contribution_level: parseInt(sel.value, 10) || 0,
+    const plo_mappings = Array.from(ploTable.querySelectorAll('input[type="checkbox"]'))
+      .map(cb => ({
+        plo_id: parseInt(cb.dataset.ploId, 10),
+        contribution_level: cb.checked ? 1 : 0,
       }))
       .filter(m => m.contribution_level > 0);
 
