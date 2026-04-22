@@ -2130,9 +2130,13 @@ function parseJsonContent(raw) {
 function ensureCtdtOverrides(content) {
   const c = content && typeof content === 'object' ? { ...content } : {};
   if (!c.ctdt_overrides || typeof c.ctdt_overrides !== 'object') c.ctdt_overrides = {};
-  if (!c.ctdt_overrides.section3 || typeof c.ctdt_overrides.section3 !== 'object') {
-    c.ctdt_overrides.section3 = { knowledge_area: null, course_requirement: null };
-  }
+  const section3 = c.ctdt_overrides.section3 && typeof c.ctdt_overrides.section3 === 'object'
+    ? c.ctdt_overrides.section3
+    : {};
+  c.ctdt_overrides.section3 = {
+    knowledge_area: section3.knowledge_area ?? null,
+    course_requirement: section3.course_requirement ?? null,
+  };
   return c;
 }
 
