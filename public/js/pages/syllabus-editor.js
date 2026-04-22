@@ -669,22 +669,37 @@ window.SyllabusEditorPage = {
     `;
   },
 
-  _outlineRowHtml(l, i, editable) {
+  _outlineRowHtml(l, i, editable, cloCodes) {
+    const esc = s => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     const dis = editable ? '' : 'disabled';
     const topicsStr = Array.isArray(l.topics) ? l.topics.join('\n') : '';
-    const closStr = Array.isArray(l.clos) ? l.clos.join(', ') : '';
+    const tasksStr = Array.isArray(l.self_study_tasks) ? l.self_study_tasks.join('\n') : '';
+    const codes = Array.isArray(cloCodes) ? cloCodes : [];
+    const selected = Array.isArray(l.clo_codes) ? l.clo_codes : [];
     return `<div class="outline-row" data-idx="${i}" style="border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;margin-bottom:12px;background:var(--bg-secondary);">
       <div style="display:flex;gap:12px;align-items:center;margin-bottom:10px;">
         <strong style="color:var(--primary);white-space:nowrap;">Bài ${l.lesson || i + 1}</strong>
-        <input type="text" data-field="title" value="${(l.title || '').replace(/"/g, '&quot;')}" ${dis} placeholder="Tên bài" style="flex:1;${INP}">
-        <div style="display:flex;align-items:center;gap:4px;"><label style="font-size:12px;white-space:nowrap;">Số tiết:</label><input type="number" data-field="hours" value="${l.hours || 0}" ${dis} min="0" style="width:60px;${INP}text-align:center;"></div>
-        <div style="display:flex;align-items:center;gap:4px;"><label style="font-size:12px;white-space:nowrap;">CLO:</label><input type="text" data-field="clos" value="${closStr}" ${dis} placeholder="CLO1, CLO2" style="width:120px;${INP}"></div>
+        <input type="text" data-field="title" value="${esc(l.title)}" ${dis} placeholder="Tên bài" style="flex:1;${INP}">
+        <div style="display:flex;align-items:center;gap:4px;"><label style="font-size:12px;">LT:</label><input type="number" data-field="lt_hours" value="${l.lt_hours || 0}" ${dis} min="0" style="width:56px;${INP}text-align:center;"></div>
+        <div style="display:flex;align-items:center;gap:4px;"><label style="font-size:12px;">TH:</label><input type="number" data-field="th_hours" value="${l.th_hours || 0}" ${dis} min="0" style="width:56px;${INP}text-align:center;"></div>
         ${editable ? `<button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="this.closest('.outline-row').remove()">✕</button>` : ''}
       </div>
-      <div style="display:flex;gap:12px;">
-        <div class="input-group" style="flex:1;margin:0;"><label style="font-size:12px;">Nội dung chi tiết (mỗi dòng = 1 mục)</label><textarea data-field="topics" ${dis} rows="3" style="${INP}">${topicsStr}</textarea></div>
-        <div class="input-group" style="flex:1;margin:0;"><label style="font-size:12px;">Phương pháp dạy học</label><textarea data-field="teaching_methods" ${dis} rows="3" style="${INP}">${l.teaching_methods || ''}</textarea></div>
+      <div style="display:flex;gap:12px;margin-bottom:10px;">
+        <div class="input-group" style="flex:1;margin:0;"><label style="font-size:12px;">Nội dung chi tiết (mỗi dòng = 1 mục)</label><textarea data-field="topics" ${dis} rows="3" style="${INP}">${esc(topicsStr)}</textarea></div>
+        <div class="input-group" style="flex:1;margin:0;"><label style="font-size:12px;">Phương pháp dạy học</label><textarea data-field="teaching_methods" ${dis} rows="3" style="${INP}">${esc(l.teaching_methods)}</textarea></div>
       </div>
+      <div class="input-group" style="margin-bottom:10px;"><label style="font-size:12px;">CLO đáp ứng</label>
+        <select data-field="clo_codes" multiple size="3" ${dis} style="${INP}">
+          ${codes.map(c => `<option value="${esc(c)}" ${selected.includes(c) ? 'selected' : ''}>${esc(c)}</option>`).join('')}
+        </select>
+      </div>
+      <details style="margin-top:6px;">
+        <summary style="cursor:pointer;font-size:13px;font-weight:600;color:var(--primary);">▸ Hướng dẫn tự học (mục 16)</summary>
+        <div style="display:flex;gap:12px;margin-top:8px;">
+          <div class="input-group" style="width:150px;margin:0;"><label style="font-size:12px;">Số tiết tự học</label><input type="number" data-field="self_study_hours" value="${l.self_study_hours || 0}" ${dis} min="0" style="${INP}text-align:center;"></div>
+          <div class="input-group" style="flex:1;margin:0;"><label style="font-size:12px;">Nhiệm vụ SV (mỗi dòng = 1)</label><textarea data-field="self_study_tasks" ${dis} rows="3" style="${INP}">${esc(tasksStr)}</textarea></div>
+        </div>
+      </details>
     </div>`;
   },
 
