@@ -1,4 +1,5 @@
 // Syllabus Editor — CTDT shell
+const _esc = s => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
 function normalizeCtdtPerson(raw, nestedKey) {
   const source = raw && typeof raw === 'object' ? { ...raw } : {};
@@ -245,8 +246,8 @@ window.SyllabusEditorPage = {
         case 0: await this.renderSections1To8(body, editable); break;
         case 1: await this.renderSection10(body, editable); break;
         case 2: await this.renderSection9(body, editable); break;
-        case 3: this.renderOutlineTab(body, false, c); break;
-        case 4: this.renderGradingTab(body, false, c); break;
+        case 3: await this.renderOutlineTab(body, false, c); break;
+        case 4: await this.renderGradingTab(body, false, c); break;
         case 5: this.renderResourcesTab(body, false, c); break;
       }
     } catch (e) { body.innerHTML = `<p style="color:var(--danger);">Lỗi: ${e.message}</p>`; }
@@ -651,15 +652,17 @@ window.SyllabusEditorPage = {
     this.dirtyMapChanges = mappings;
   },
 
+  async _fetchCloCodes() {
+    try {
+      const clos = await fetch(`/api/syllabi/${this.syllabusId}/clos`).then(r => r.json());
+      return Array.isArray(clos) ? clos.map(x => x.code).filter(Boolean) : [];
+    } catch (_) { return []; }
+  },
+
   // ============ TAB 3: Nội dung chi tiết (course_outline) ============
   async renderOutlineTab(body, editable, c) {
     const lessons = c.course_outline || [];
-    let cloCodes = [];
-    try {
-      const clos = await fetch(`/api/syllabi/${this.syllabusId}/clos`).then(r => r.json());
-      cloCodes = Array.isArray(clos) ? clos.map(x => x.code).filter(Boolean) : [];
-    } catch (_) {}
-    this._currentCloCodes = cloCodes;
+    const cloCodes = await this._fetchCloCodes();
 
     const totals = lessons.reduce((acc, l) => ({
       lt: acc.lt + (l.lt_hours || 0),
@@ -686,7 +689,6 @@ window.SyllabusEditorPage = {
   },
 
   _outlineRowHtml(l, i, editable, cloCodes) {
-    const esc = s => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     const dis = editable ? '' : 'disabled';
     const topicsStr = Array.isArray(l.topics) ? l.topics.join('\n') : '';
     const tasksStr = Array.isArray(l.self_study_tasks) ? l.self_study_tasks.join('\n') : '';
@@ -695,25 +697,25 @@ window.SyllabusEditorPage = {
     return `<div class="outline-row" data-idx="${i}" style="border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px;margin-bottom:12px;background:var(--bg-secondary);">
       <div style="display:flex;gap:12px;align-items:center;margin-bottom:10px;">
         <strong style="color:var(--primary);white-space:nowrap;">Bài ${l.lesson || i + 1}</strong>
-        <input type="text" data-field="title" value="${esc(l.title)}" ${dis} placeholder="Tên bài" style="flex:1;${INP}">
+        <input type="text" data-field="title" value="${_esc(l.title)}" ${dis} placeholder="Tên bài" style="flex:1;${INP}">
         <div style="display:flex;align-items:center;gap:4px;"><label style="font-size:12px;">LT:</label><input type="number" data-field="lt_hours" value="${l.lt_hours || 0}" ${dis} min="0" style="width:56px;${INP}text-align:center;"></div>
         <div style="display:flex;align-items:center;gap:4px;"><label style="font-size:12px;">TH:</label><input type="number" data-field="th_hours" value="${l.th_hours || 0}" ${dis} min="0" style="width:56px;${INP}text-align:center;"></div>
         ${editable ? `<button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="this.closest('.outline-row').remove()">✕</button>` : ''}
       </div>
       <div style="display:flex;gap:12px;margin-bottom:10px;">
-        <div class="input-group" style="flex:1;margin:0;"><label style="font-size:12px;">Nội dung chi tiết (mỗi dòng = 1 mục)</label><textarea data-field="topics" ${dis} rows="3" style="${INP}">${esc(topicsStr)}</textarea></div>
-        <div class="input-group" style="flex:1;margin:0;"><label style="font-size:12px;">Phương pháp dạy học</label><textarea data-field="teaching_methods" ${dis} rows="3" style="${INP}">${esc(l.teaching_methods)}</textarea></div>
+        <div class="input-group" style="flex:1;margin:0;"><label style="font-size:12px;">Nội dung chi tiết (mỗi dòng = 1 mục)</label><textarea data-field="topics" ${dis} rows="3" style="${INP}">${_esc(topicsStr)}</textarea></div>
+        <div class="input-group" style="flex:1;margin:0;"><label style="font-size:12px;">Phương pháp dạy học</label><textarea data-field="teaching_methods" ${dis} rows="3" style="${INP}">${_esc(l.teaching_methods)}</textarea></div>
       </div>
       <div class="input-group" style="margin-bottom:10px;"><label style="font-size:12px;">CLO đáp ứng</label>
         <select data-field="clo_codes" multiple size="3" ${dis} style="${INP}">
-          ${codes.map(c => `<option value="${esc(c)}" ${selected.includes(c) ? 'selected' : ''}>${esc(c)}</option>`).join('')}
+          ${codes.map(c => `<option value="${_esc(c)}" ${selected.includes(c) ? 'selected' : ''}>${_esc(c)}</option>`).join('')}
         </select>
       </div>
       <details style="margin-top:6px;">
         <summary style="cursor:pointer;font-size:13px;font-weight:600;color:var(--primary);">▸ Hướng dẫn tự học (mục 16)</summary>
         <div style="display:flex;gap:12px;margin-top:8px;">
           <div class="input-group" style="width:150px;margin:0;"><label style="font-size:12px;">Số tiết tự học</label><input type="number" data-field="self_study_hours" value="${l.self_study_hours || 0}" ${dis} min="0" style="${INP}text-align:center;"></div>
-          <div class="input-group" style="flex:1;margin:0;"><label style="font-size:12px;">Nhiệm vụ SV (mỗi dòng = 1)</label><textarea data-field="self_study_tasks" ${dis} rows="3" style="${INP}">${esc(tasksStr)}</textarea></div>
+          <div class="input-group" style="flex:1;margin:0;"><label style="font-size:12px;">Nhiệm vụ SV (mỗi dòng = 1)</label><textarea data-field="self_study_tasks" ${dis} rows="3" style="${INP}">${_esc(tasksStr)}</textarea></div>
         </div>
       </details>
     </div>`;
@@ -795,14 +797,9 @@ window.SyllabusEditorPage = {
   // ============ TAB 4: Đánh giá (assessment_methods) ============
   async renderGradingTab(body, editable, c) {
     const items = c.assessment_methods || [];
-    let cloCodes = [];
-    try {
-      const clos = await fetch(`/api/syllabi/${this.syllabusId}/clos`).then(r => r.json());
-      cloCodes = Array.isArray(clos) ? clos.map(x => x.code).filter(Boolean) : [];
-    } catch (_) {}
+    const cloCodes = await this._fetchCloCodes();
     this._gradingCloCodes = cloCodes;
 
-    const dis = editable ? '' : 'disabled';
     const totalWeight = items.reduce((s, g) => s + (parseInt(g.weight) || 0), 0);
     const weightColor = totalWeight === 100 ? 'var(--success)' : 'var(--danger)';
 
@@ -821,24 +818,24 @@ window.SyllabusEditorPage = {
           ${editable ? '<th style="width:50px;"></th>' : ''}
         </tr></thead>
         <tbody>
-          ${items.map((g, i) => this._gradingRowHtml(g, i, editable, cloCodes, dis)).join('')}
+          ${items.map((g, i) => this._gradingRowHtml(g, i, editable, cloCodes)).join('')}
         </tbody>
       </table>
       ${editable ? '<button class="btn btn-secondary btn-sm" style="margin-top:12px;" onclick="window.SyllabusEditorPage.addGradingRow()">+ Thêm dòng</button>' : ''}
     `;
   },
 
-  _gradingRowHtml(g, i, editable, cloCodes, dis) {
-    const esc = s => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  _gradingRowHtml(g, i, editable, cloCodes) {
+    const dis = editable ? '' : 'disabled';
     const selected = Array.isArray(g.clo_codes) ? g.clo_codes : [];
     return `<tr data-idx="${i}">
-      <td><input type="text" value="${esc(g.component)}" data-field="component" ${dis} style="${INP}" placeholder="VD: Điểm đánh giá quá trình"></td>
-      <td><input type="text" value="${esc(g.description)}" data-field="description" ${dis} style="${INP}" placeholder="VD: Bài tập nhóm"></td>
-      <td><input type="text" value="${esc(g.task_ref)}" data-field="task_ref" ${dis} style="${INP}" placeholder="VD: Bài 1,2,3,5"></td>
+      <td><input type="text" value="${_esc(g.component)}" data-field="component" ${dis} style="${INP}" placeholder="VD: Điểm đánh giá quá trình"></td>
+      <td><input type="text" value="${_esc(g.description)}" data-field="description" ${dis} style="${INP}" placeholder="VD: Bài tập nhóm"></td>
+      <td><input type="text" value="${_esc(g.task_ref)}" data-field="task_ref" ${dis} style="${INP}" placeholder="VD: Bài 1,2,3,5"></td>
       <td><input type="number" value="${g.weight || 0}" data-field="weight" ${dis} min="0" max="100" style="${INP}text-align:center;"></td>
       <td>
         <select data-field="clo_codes" multiple size="3" ${dis} style="${INP}font-size:12px;">
-          ${cloCodes.map(c => `<option value="${esc(c)}" ${selected.includes(c) ? 'selected' : ''}>${esc(c)}</option>`).join('')}
+          ${cloCodes.map(c => `<option value="${_esc(c)}" ${selected.includes(c) ? 'selected' : ''}>${_esc(c)}</option>`).join('')}
         </select>
       </td>
       ${editable ? `<td><button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="this.closest('tr').remove()">✕</button></td>` : ''}
@@ -849,7 +846,7 @@ window.SyllabusEditorPage = {
     const tbody = document.querySelector('#ctdt-grading-table tbody');
     if (!tbody) return;
     const codes = this._gradingCloCodes || [];
-    tbody.insertAdjacentHTML('beforeend', this._gradingRowHtml({}, tbody.children.length, true, codes, ''));
+    tbody.insertAdjacentHTML('beforeend', this._gradingRowHtml({}, tbody.children.length, true, codes));
   },
 
   _collectGrading() {
@@ -876,7 +873,6 @@ window.SyllabusEditorPage = {
 
   // ============ TAB 5: Tài liệu (textbooks, references, course_requirements) ============
   renderResourcesTab(body, editable, c) {
-    const esc = s => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     const textbooks = Array.isArray(c.textbooks) ? c.textbooks : [];
     const references = Array.isArray(c.references) ? c.references : [];
     const tools = Array.isArray(c.tools) ? c.tools : [];
@@ -886,10 +882,10 @@ window.SyllabusEditorPage = {
       <div style="max-width:820px;">
         <h3 style="font-size:15px;font-weight:600;margin-bottom:16px;">Tài liệu phục vụ học phần (mục 15)</h3>
         <div class="input-group"><label>Tài liệu/giáo trình chính (mỗi dòng = 1 tài liệu)</label>
-          <textarea id="ctdt-textbooks" ${dis} rows="3" placeholder="Tên sách, Tác giả, NXB">${esc(textbooks.join('\n'))}</textarea>
+          <textarea id="ctdt-textbooks" ${dis} rows="3" placeholder="Tên sách, Tác giả, NXB">${_esc(textbooks.join('\n'))}</textarea>
         </div>
         <div class="input-group"><label>Tài liệu tham khảo/bổ sung (mỗi dòng = 1 tài liệu)</label>
-          <textarea id="ctdt-references" ${dis} rows="3">${esc(references.join('\n'))}</textarea>
+          <textarea id="ctdt-references" ${dis} rows="3">${_esc(references.join('\n'))}</textarea>
         </div>
 
         <h4 style="font-size:14px;font-weight:600;margin:20px 0 8px;">Các công cụ theo lĩnh vực</h4>
@@ -899,7 +895,7 @@ window.SyllabusEditorPage = {
 
         <h4 style="font-size:14px;font-weight:600;margin:24px 0 8px;">Các yêu cầu của HP (mục 17)</h4>
         <div class="input-group">
-          <textarea id="ctdt-other-req" ${dis} rows="3" placeholder="Yêu cầu khác (nếu có)">${esc(c.other_requirements)}</textarea>
+          <textarea id="ctdt-other-req" ${dis} rows="3" placeholder="Yêu cầu khác (nếu có)">${_esc(c.other_requirements)}</textarea>
         </div>
 
         <h4 style="font-size:14px;font-weight:600;margin:24px 0 8px;">Giảng viên phụ trách học phần</h4>
@@ -910,38 +906,36 @@ window.SyllabusEditorPage = {
 
         <h4 style="font-size:14px;font-weight:600;margin:24px 0 8px;">Cách liên lạc với giảng viên/trợ giảng</h4>
         <div class="input-group">
-          <textarea id="ctdt-contact-info" ${dis} rows="2" placeholder="Ví dụ: Email, giờ tiếp sinh viên...">${esc(c.contact_info)}</textarea>
+          <textarea id="ctdt-contact-info" ${dis} rows="2" placeholder="Ví dụ: Email, giờ tiếp sinh viên...">${_esc(c.contact_info)}</textarea>
         </div>
 
         <h4 style="font-size:14px;font-weight:600;margin:24px 0 8px;">Ngày ký</h4>
         <div class="input-group" style="max-width:300px;">
-          <input type="text" id="ctdt-signature-date" ${dis} placeholder="VD: 01 tháng 09 năm 2025" value="${esc(c.signature_date)}">
+          <input type="text" id="ctdt-signature-date" ${dis} placeholder="VD: 01 tháng 09 năm 2025" value="${_esc(c.signature_date)}">
         </div>
       </div>
     `;
   },
 
   _toolCategoryHtml(t, i, editable, dis) {
-    const esc = s => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     const items = Array.isArray(t.items) ? t.items.join('\n') : '';
     return `<div class="tool-category" data-idx="${i}" style="border:1px solid var(--border);border-radius:var(--radius);padding:12px;margin-bottom:8px;background:var(--bg-secondary);">
       <div style="display:flex;gap:12px;align-items:center;margin-bottom:8px;">
         <label style="font-size:12px;white-space:nowrap;">Lĩnh vực:</label>
-        <input type="text" data-field="category" value="${esc(t.category)}" ${dis} placeholder="VD: Phần mềm" style="flex:1;${INP}">
+        <input type="text" data-field="category" value="${_esc(t.category)}" ${dis} placeholder="VD: Phần mềm" style="flex:1;${INP}">
       </div>
-      <textarea data-field="items" ${dis} rows="3" placeholder="Mỗi dòng = 1 công cụ" style="${INP}">${esc(items)}</textarea>
+      <textarea data-field="items" ${dis} rows="3" placeholder="Mỗi dòng = 1 công cụ" style="${INP}">${_esc(items)}</textarea>
     </div>`;
   },
 
   _instructorFormHtml(prefix, data, dis) {
-    const esc = s => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-      <div class="input-group" style="margin:0;"><label style="font-size:12px;">Họ và tên</label><input type="text" id="${prefix}-name" ${dis} value="${esc(data.name)}"></div>
-      <div class="input-group" style="margin:0;"><label style="font-size:12px;">Học hàm, học vị</label><input type="text" id="${prefix}-title" ${dis} value="${esc(data.title)}"></div>
-      <div class="input-group" style="margin:0;"><label style="font-size:12px;">Địa chỉ cơ quan</label><input type="text" id="${prefix}-address" ${dis} value="${esc(data.address)}"></div>
-      <div class="input-group" style="margin:0;"><label style="font-size:12px;">Điện thoại liên hệ</label><input type="text" id="${prefix}-phone" ${dis} value="${esc(data.phone)}"></div>
-      <div class="input-group" style="margin:0;"><label style="font-size:12px;">Email</label><input type="text" id="${prefix}-email" ${dis} value="${esc(data.email)}"></div>
-      <div class="input-group" style="margin:0;"><label style="font-size:12px;">Website</label><input type="text" id="${prefix}-website" ${dis} value="${esc(data.website)}"></div>
+      <div class="input-group" style="margin:0;"><label style="font-size:12px;">Họ và tên</label><input type="text" id="${prefix}-name" ${dis} value="${_esc(data.name)}"></div>
+      <div class="input-group" style="margin:0;"><label style="font-size:12px;">Học hàm, học vị</label><input type="text" id="${prefix}-title" ${dis} value="${_esc(data.title)}"></div>
+      <div class="input-group" style="margin:0;"><label style="font-size:12px;">Địa chỉ cơ quan</label><input type="text" id="${prefix}-address" ${dis} value="${_esc(data.address)}"></div>
+      <div class="input-group" style="margin:0;"><label style="font-size:12px;">Điện thoại liên hệ</label><input type="text" id="${prefix}-phone" ${dis} value="${_esc(data.phone)}"></div>
+      <div class="input-group" style="margin:0;"><label style="font-size:12px;">Email</label><input type="text" id="${prefix}-email" ${dis} value="${_esc(data.email)}"></div>
+      <div class="input-group" style="margin:0;"><label style="font-size:12px;">Website</label><input type="text" id="${prefix}-website" ${dis} value="${_esc(data.website)}"></div>
     </div>`;
   },
 
