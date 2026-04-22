@@ -1940,6 +1940,7 @@ app.put('/api/versions/:vId/teaching-plan/bulk', authMiddleware, requireDraft('v
 app.post('/api/versions/:vId/courses', authMiddleware, requireDraft('vId'), async (req, res) => {
   const { course_id, semester, course_type, knowledge_block_id } = req.body;
   if (!knowledge_block_id) return res.status(400).json({ error: 'Vui lòng chọn khối kiến thức' });
+  if (!course_id) return res.status(400).json({ error: 'Vui lòng chọn học phần' });
   try {
     // Validate block belongs to this version and is a leaf (no children)
     const blockRes = await pool.query(
@@ -1958,7 +1959,12 @@ app.post('/api/versions/:vId/courses', authMiddleware, requireDraft('vId'), asyn
       [req.params.vId, course_id, semester || 1, course_type || 'required', knowledge_block_id]
     );
     res.json(result.rows[0]);
-  } catch (e) { res.status(400).json({ error: e.message }); }
+  } catch (e) {
+    if (e.code === '23505' || (e.message && e.message.includes('unique'))) {
+      return res.status(400).json({ error: 'Học phần đã tồn tại trong phiên bản này' });
+    }
+    res.status(400).json({ error: e.message });
+  }
 });
 
 app.put('/api/version-courses/:id', authMiddleware, async (req, res) => {
