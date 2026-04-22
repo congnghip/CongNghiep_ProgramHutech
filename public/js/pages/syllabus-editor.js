@@ -1,39 +1,80 @@
-// Syllabus Editor — Notion-style (v2: new JSONB structure + PDF import)
+// Syllabus Editor — CTDT shell
 
-function migrateOldToNew(c) {
-  if (c._schema_version >= 2) return c;
-  const n = { _schema_version: 2 };
-  n.course_description = c.summary || c.course_description || '';
-  n.course_objectives = c.objectives || c.course_objectives || '';
-  n.prerequisites = c.prerequisites || '';
-  n.language_instruction = c.language_instruction || '';
-  n.learning_methods = c.methods || c.learning_methods || '';
-  // schedule → course_outline
-  if (Array.isArray(c.schedule)) {
-    n.course_outline = c.schedule.map(w => ({
-      lesson: w.week || 0, title: w.topic || '', hours: 0,
-      topics: [], teaching_methods: w.activities || '',
-      clos: typeof w.clos === 'string' ? w.clos.split(',').map(s => s.trim()).filter(Boolean).map(s => /^\d+$/.test(s) ? `CLO${s}` : s) : (Array.isArray(w.clos) ? w.clos : []),
-    }));
-  } else { n.course_outline = c.course_outline || []; }
-  // grading → assessment_methods
-  if (Array.isArray(c.grading)) {
-    n.assessment_methods = c.grading.map(g => ({
-      component: g.component || '', weight: g.weight || 0,
-      assessment_tool: g.method || g.assessment_tool || '',
-      clos: typeof g.clos === 'string' ? g.clos.split(',').map(s => s.trim()).filter(Boolean).map(s => /^\d+$/.test(s) ? `CLO${s}` : s) : (Array.isArray(g.clos) ? g.clos : []),
-    }));
-  } else { n.assessment_methods = c.assessment_methods || []; }
-  // textbooks/references: string → array
-  if (typeof c.textbooks === 'string') { n.textbooks = c.textbooks.split('\n').map(s => s.trim()).filter(Boolean); }
-  else { n.textbooks = Array.isArray(c.textbooks) ? c.textbooks : []; }
-  if (typeof c.references === 'string') { n.references = c.references.split('\n').map(s => s.trim()).filter(Boolean); }
-  else { n.references = Array.isArray(c.references) ? c.references : []; }
-  // tools → course_requirements
-  if (typeof c.tools === 'string') {
-    n.course_requirements = { software: c.tools.split(',').map(s => s.trim()).filter(Boolean), hardware: [], lab_equipment: [], classroom_setup: '' };
-  } else { n.course_requirements = c.course_requirements || { software: [], hardware: [], lab_equipment: [], classroom_setup: '' }; }
-  return n;
+function normalizeCtdtSyllabusContent(raw) {
+  const c = raw && typeof raw === 'object' ? { ...raw } : {};
+  const teachingMethods = Array.isArray(c.teaching_methods)
+    ? c.teaching_methods.map(item => (
+        item && typeof item === 'object'
+          ? {
+              method: item.method || item.name || item.title || '',
+              objective: item.objective || '',
+            }
+          : { method: String(item || ''), objective: '' }
+      ))
+    : String(c.learning_methods || c.methods || '')
+        .split('\n')
+        .map(s => s.trim())
+        .filter(Boolean)
+        .map(line => ({ method: line, objective: '' }));
+
+  const courseOutline = Array.isArray(c.course_outline)
+    ? c.course_outline.map((l, idx) => ({
+        lesson: l && typeof l.lesson === 'number' ? l.lesson : idx + 1,
+        title: l?.title || '',
+        lt_hours: typeof l?.lt_hours === 'number' ? l.lt_hours : (typeof l?.hours === 'number' ? l.hours : 0),
+        th_hours: typeof l?.th_hours === 'number' ? l.th_hours : 0,
+        topics: Array.isArray(l?.topics) ? l.topics : [],
+        teaching_methods: l?.teaching_methods || '',
+        clo_codes: Array.isArray(l?.clo_codes) ? l.clo_codes : (Array.isArray(l?.clos) ? l.clos : []),
+        self_study_hours: typeof l?.self_study_hours === 'number' ? l.self_study_hours : 0,
+        self_study_tasks: Array.isArray(l?.self_study_tasks) ? l.self_study_tasks : [],
+      }))
+    : [];
+
+  const assessmentMethods = Array.isArray(c.assessment_methods)
+    ? c.assessment_methods.map(a => ({
+        component: a?.component || '',
+        description: a?.description || a?.assessment_tool || '',
+        task_ref: a?.task_ref || '',
+        weight: typeof a?.weight === 'number' ? a.weight : (parseInt(a?.weight, 10) || 0),
+        clo_codes: Array.isArray(a?.clo_codes) ? a.clo_codes : (Array.isArray(a?.clos) ? a.clos : []),
+      }))
+    : [];
+
+  const ctdtOverrides = c.ctdt_overrides && typeof c.ctdt_overrides === 'object'
+    ? { ...c.ctdt_overrides }
+    : {};
+  if (!ctdtOverrides.section3 || typeof ctdtOverrides.section3 !== 'object') {
+    ctdtOverrides.section3 = { knowledge_area: null, course_requirement: null };
+  }
+
+  return {
+    _schema_version: 4,
+    course_description: c.course_description || c.summary || '',
+    course_objectives: c.course_objectives || c.objectives || '',
+    prerequisites: c.prerequisites || '',
+    prerequisites_concurrent: c.prerequisites_concurrent || '',
+    language_instruction: c.language_instruction || '',
+    teaching_methods: teachingMethods,
+    course_outline: courseOutline,
+    assessment_methods: assessmentMethods,
+    textbooks: Array.isArray(c.textbooks) ? c.textbooks : (typeof c.textbooks === 'string' ? c.textbooks.split('\n').map(s => s.trim()).filter(Boolean) : []),
+    references: Array.isArray(c.references) ? c.references : (typeof c.references === 'string' ? c.references.split('\n').map(s => s.trim()).filter(Boolean) : []),
+    tools: Array.isArray(c.tools) ? c.tools : [],
+    other_requirements: c.other_requirements || '',
+    instructor: c.instructor || {
+      primary: { name: '', title_degree: '', office_address: '', phone: '', email: '', website: '' },
+      assistant: { name: '', title_degree: '', office_address: '', phone: '', email: '', website: '' },
+      contact_note: '',
+    },
+    signatures: c.signatures || {
+      date_text: '',
+      khoa_vien: '',
+      nganh_bo_mon: '',
+      nguoi_bien_soan: '',
+    },
+    ctdt_overrides: ctdtOverrides,
+  };
 }
 
 const INP = 'width:100%;padding:4px 8px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:inherit;';
@@ -43,6 +84,10 @@ window.SyllabusEditorPage = {
   syllabus: null,
   clos: [],
   plos: [],
+  section9Data: null,
+  section10Clos: [],
+  section10Mappings: [],
+  section3Draft: null,
   activeTab: 0,
   importedClos: null,
   importedMappings: null,
@@ -50,6 +95,10 @@ window.SyllabusEditorPage = {
 
   async render(container, syllabusId) {
     this.syllabusId = syllabusId;
+    this.section9Data = null;
+    this.section10Clos = [];
+    this.section10Mappings = [];
+    this.section3Draft = null;
     this.importedClos = null;
     this.importedMappings = null;
     this.dirtyMapChanges = null;
@@ -58,8 +107,12 @@ window.SyllabusEditorPage = {
       this.syllabus = await fetch(`/api/syllabi/${syllabusId}`).then(r => r.json());
       if (this.syllabus.error) throw new Error(this.syllabus.error);
       let content = typeof this.syllabus.content === 'string' ? JSON.parse(this.syllabus.content) : (this.syllabus.content || {});
-      content = migrateOldToNew(content);
+      content = normalizeCtdtSyllabusContent(content);
       this.syllabus.content = content;
+      this.section3Draft = {
+        knowledge_area: content.ctdt_overrides?.section3?.knowledge_area ?? null,
+        course_requirement: content.ctdt_overrides?.section3?.course_requirement ?? null,
+      };
     } catch (e) { container.innerHTML = `<div class="empty-state"><div class="icon">!</div><p>${e.message}</p></div>`; return; }
 
     const statusLabels = { draft:'Nháp', submitted:'Đã nộp', approved:'Đã duyệt', published:'Công bố' };
@@ -83,8 +136,7 @@ window.SyllabusEditorPage = {
           </div>
           <div class="page-header-actions">
             ${editable && s.has_base_syllabus ? '<button class="btn btn-secondary btn-sm" onclick="window.SyllabusEditorPage.loadFromBase()">Lấy từ ĐC cơ bản</button>' : ''}
-            ${editable ? '<button class="btn btn-primary btn-sm" onclick="window.SyllabusEditorPage.saveAll()">Lưu tất cả</button>' : ''}
-            ${editable ? '<button class="btn btn-secondary btn-sm" onclick="window.SyllabusEditorPage.importPdf()">Import từ PDF</button>' : ''}
+            ${editable ? '<button class="btn btn-primary btn-sm" onclick="window.SyllabusEditorPage.saveAll()">Lưu mục 3, 9, 10</button>' : ''}
             ${editable ? '<button class="btn btn-primary btn-sm" onclick="window.SyllabusEditorPage.submitForApproval()">Nộp duyệt</button>' : ''}
           </div>
         </div>
@@ -109,12 +161,10 @@ window.SyllabusEditorPage = {
       ` : ''}
       <div id="syl-import-warnings" style="display:none;margin-bottom:16px;"></div>
       <div class="tab-bar" id="syl-tabs">
-        <div class="tab-item active" data-tab="0">Thông tin chung</div>
-        <div class="tab-item" data-tab="1">CLO</div>
-        <div class="tab-item" data-tab="2">CLO ↔ PI</div>
-        <div class="tab-item" data-tab="3">Nội dung chi tiết</div>
-        <div class="tab-item" data-tab="4">Đánh giá</div>
-        <div class="tab-item" data-tab="5">Tài liệu</div>
+        <div class="tab-item active" data-tab="0">Mục 1–8</div>
+        <div class="tab-item" data-tab="1">Mục 9</div>
+        <div class="tab-item" data-tab="2">Mục 10</div>
+        <div class="tab-item" data-tab="3">Mục 11–17</div>
       </div>
       <div id="syl-tab-content"><div class="spinner"></div></div>
 
@@ -211,14 +261,84 @@ window.SyllabusEditorPage = {
     const c = this.syllabus.content || {};
     try {
       switch (this.activeTab) {
-        case 0: this.renderGeneralTab(body, editable, c); break;
-        case 1: await this.renderCLOTab(body, editable); break;
-        case 2: await this.renderCLOPITab(body, editable); break;
-        case 3: this.renderOutlineTab(body, editable, c); break;
-        case 4: this.renderGradingTab(body, editable, c); break;
-        case 5: this.renderResourcesTab(body, editable, c); break;
+        case 0: await this.renderSections1To8(body, editable); break;
+        case 1: await this.renderSection9(body, editable); break;
+        case 2: await this.renderSection10(body, editable); break;
+        case 3: this.renderSections11To17(body); break;
       }
     } catch (e) { body.innerHTML = `<p style="color:var(--danger);">Lỗi: ${e.message}</p>`; }
+  },
+
+  // ============ CTDT SHELL TABS ============
+  async renderSections1To8(body, editable) {
+    const s = this.syllabus || {};
+    const c = this.syllabus.content || {};
+    const section3 = this.section3Draft || { knowledge_area: null, course_requirement: null };
+    body.innerHTML = `
+      <div style="max-width:900px;">
+        <div style="margin-bottom:12px;padding:12px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg-secondary);font-size:13px;color:var(--text-muted);">
+          Các mục ngoài 3, 9, 10 được kế thừa từ đề cương gốc và không chỉnh sửa trong đề cương CTDT.
+        </div>
+        <table class="data-table">
+          <tbody>
+            <tr><th style="width:180px;">1. Tên học phần</th><td>Tên tiếng Việt: <strong>${s.course_name || ''}</strong><br>Tên tiếng Anh: <strong>${s.course_name_en || ''}</strong></td></tr>
+            <tr><th>2. Mã học phần</th><td>${s.course_code || ''}</td></tr>
+            <tr><th>3. Thuộc khối kiến thức</th><td>${section3.knowledge_area || ''}<br>${section3.course_requirement || ''}</td></tr>
+            <tr><th>4. Trình độ đào tạo</th><td>${s.training_level || ''}</td></tr>
+            <tr><th>5. Số tín chỉ</th><td>${s.credits || ''}${s.credits_theory != null || s.credits_practice != null ? ` (${s.credits_theory || 0}, ${s.credits_practice || 0})` : ''}</td></tr>
+            <tr><th>6. Học phần học trước/ song hành</th><td>${c.prerequisites || ''}${c.prerequisites_concurrent ? `<br>Song hành: ${c.prerequisites_concurrent}` : ''}</td></tr>
+            <tr><th>7. Mục tiêu học phần</th><td style="white-space:pre-wrap;">${c.course_objectives || ''}</td></tr>
+            <tr><th>8. Đơn vị quản lý học phần</th><td>${s.dept_name || ''}</td></tr>
+          </tbody>
+        </table>
+      </div>
+    `;
+  },
+
+  async renderSection9(body, editable) {
+    body.innerHTML = `
+      <div style="max-width:900px;">
+        <div style="margin-bottom:12px;padding:12px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg-secondary);font-size:13px;color:var(--text-muted);">
+          Mục 9 sẽ dùng dữ liệu mapping của CTDT trong version hiện tại.
+        </div>
+        <div class="empty-state" style="padding:32px 16px;">
+          <div class="icon">9</div>
+          <p>Shell mục 9 đã sẵn sàng. Phần nhập liệu sẽ được hoàn thiện ở task tiếp theo.</p>
+        </div>
+      </div>
+    `;
+  },
+
+  async renderSection10(body, editable) {
+    body.innerHTML = `
+      <div style="max-width:900px;">
+        <div style="margin-bottom:12px;padding:12px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg-secondary);font-size:13px;color:var(--text-muted);">
+          Mục 10 sẽ giữ CLO kế thừa từ đề cương gốc và chỉ mở phần mapping ở CTDT.
+        </div>
+        <div class="empty-state" style="padding:32px 16px;">
+          <div class="icon">10</div>
+          <p>Shell mục 10 đã sẵn sàng. Bảng CLO ↔ PI sẽ được nối ở task tiếp theo.</p>
+        </div>
+      </div>
+    `;
+  },
+
+  renderSections11To17(body) {
+    const c = this.syllabus.content || {};
+    body.innerHTML = `
+      <div style="max-width:900px;">
+        <div style="margin-bottom:12px;padding:12px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg-secondary);font-size:13px;color:var(--text-muted);">
+          Các mục 11–17 hiển thị read-only theo nội dung CTDT đã normalize.
+        </div>
+        <div class="empty-state" style="padding:32px 16px;">
+          <div class="icon">11–17</div>
+          <p>Đã tải dữ liệu nền cho các mục 11–17. Phần hiển thị chi tiết sẽ được hoàn thiện ở task tiếp theo.</p>
+        </div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:12px;white-space:pre-wrap;">
+          ${c.course_description || ''}
+        </div>
+      </div>
+    `;
   },
 
   // ============ TAB 0: Thông tin chung ============
