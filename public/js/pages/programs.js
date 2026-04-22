@@ -540,6 +540,7 @@ window.ProgramsPage = {
               </div>
             </div>
             <div class="flex-row" style="flex-shrink:0;" onclick="event.stopPropagation()">
+              ${window.App.hasPerm('programs.create_version') && v.status === 'published' ? `<button class="btn btn-sm btn-outline-primary" onclick="window.ProgramsPage.openCopyVariantModal(${v.id},'${variantLabels[vt]}',${cohort.id},'${programName.replace(/'/g,"\\'")}')">Copy</button>` : ''}
               ${window.App.hasPerm('programs.delete_draft') && v.status === 'draft' ? `<button class="btn btn-sm btn-ghost" style="color:var(--danger);" onclick="window.ProgramsPage.deleteVariant(${v.id},'${variantLabels[vt]}',${cohort.id},${programId},'${programName.replace(/'/g,"\\'")}')">Xóa</button>` : ''}
             </div>
           </div>`;
@@ -561,6 +562,7 @@ window.ProgramsPage = {
                     <span class="badge badge-neutral" style="margin-left:8px;">${(c.variants||[]).length} variant</span>
                   </div>
                   <div class="flex-row" onclick="event.stopPropagation()">
+                    ${window.App.hasPerm('programs.create_version') ? `<button class="btn btn-sm btn-outline-primary" onclick="window.ProgramsPage.openCopyCohortModal(${c.id},'${c.academic_year}',${programId},'${programName.replace(/'/g,"\\'")}')">Copy khóa</button>` : ''}
                     ${window.App.hasPerm('programs.delete_draft') ? `<button class="btn btn-sm btn-ghost" style="color:var(--danger);" onclick="window.ProgramsPage.deleteCohort(${c.id},'${c.academic_year}',${programId},'${programName.replace(/'/g,"\\'")}')">Xóa khóa</button>` : ''}
                   </div>
                 </div>
@@ -604,6 +606,47 @@ window.ProgramsPage = {
       const res = await fetch(`/api/versions/${versionId}`, { method: 'DELETE' });
       if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
       window.toast.success(`Đã xóa variant ${variantLabel}`);
+      await this.viewCohorts(programId, programName);
+    } catch (e) { window.toast.error(e.message); }
+  },
+
+  async openCopyCohortModal(cohortId, year, programId, programName) {
+    const newYear = prompt(`Copy khóa "${year}" sang năm học mới (4 chữ số):`);
+    if (!newYear) return;
+    if (!/^\d{4}$/.test(newYear.trim())) { window.toast.error('Năm học phải là 4 chữ số'); return; }
+    try {
+      const res = await fetch(`/api/cohorts/${cohortId}/copy`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ new_academic_year: newYear.trim() })
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error);
+      window.toast.success(`Đã copy khóa ${year} → ${newYear.trim()} (${d.variants_copied} variant)`);
+      await this.viewCohorts(programId, programName);
+    } catch (e) { window.toast.error(e.message); }
+  },
+
+  async openCopyVariantModal(versionId, variantLabel, cohortId, programName) {
+    const variantLabels = { DHCQ: 'Đại học Chính quy', QUOC_TE: 'Quốc Tế', VIET_HAN: 'Việt - Hàn', VIET_NHAT: 'Việt - Nhật' };
+    const ALL_VARIANTS = ['DHCQ', 'QUOC_TE', 'VIET_HAN', 'VIET_NHAT'];
+    const opts = ALL_VARIANTS.map((vt, i) => `${i + 1}. ${variantLabels[vt]} (${vt})`).join('\n');
+    const choice = prompt(`Copy variant "${variantLabel}" sang loại mới:\n${opts}\n\nNhập số (1-4):`);
+    if (!choice) return;
+    const idx = parseInt(choice.trim()) - 1;
+    if (idx < 0 || idx >= ALL_VARIANTS.length) { window.toast.error('Lựa chọn không hợp lệ'); return; }
+    const targetType = ALL_VARIANTS[idx];
+    try {
+      const cohortRes = await fetch(`/api/cohorts/${cohortId}`).then(r => r.json());
+      const programId = cohortRes.program_id;
+      const res = await fetch(`/api/cohorts/${cohortId}/variants`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ variant_type: targetType, copy_from_version_id: versionId })
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error);
+      window.toast.success(`Đã copy sang ${variantLabels[targetType]}`);
       await this.viewCohorts(programId, programName);
     } catch (e) { window.toast.error(e.message); }
   },

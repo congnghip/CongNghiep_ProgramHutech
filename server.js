@@ -998,10 +998,10 @@ app.post('/api/cohorts/:cId/variants', authMiddleware, requirePerm('programs.cre
       return res.status(409).json({ error: `Variant "${variant_type}" đã tồn tại trong khóa này` });
     }
 
-    // Validate copy source: must exist, be published, and have same variant_type
+    // Validate copy source: must exist and be published (any variant_type allowed)
     if (copy_from_version_id) {
       const srcVer = await client.query(
-        'SELECT status, variant_type FROM program_versions WHERE id=$1',
+        'SELECT status FROM program_versions WHERE id=$1',
         [copy_from_version_id]
       );
       if (!srcVer.rows.length) {
@@ -1011,10 +1011,6 @@ app.post('/api/cohorts/:cId/variants', authMiddleware, requirePerm('programs.cre
       if (srcVer.rows[0].status !== 'published') {
         await client.query('ROLLBACK');
         return res.status(400).json({ error: 'Chỉ có thể nhân bản từ phiên bản đã công bố' });
-      }
-      if (srcVer.rows[0].variant_type !== variant_type) {
-        await client.query('ROLLBACK');
-        return res.status(400).json({ error: `Phiên bản nguồn phải cùng variant_type (${variant_type})` });
       }
     }
 
@@ -1093,11 +1089,98 @@ app.post('/api/cohorts/:cId/variants', authMiddleware, requirePerm('programs.cre
 
       // Update knowledge_block_id for copied version_courses
       const newVCs = await client.query('SELECT id, course_id FROM version_courses WHERE version_id=$1', [newVersionId]);
+      const vcMap = {}; // oldVC.id → newVC.id
       for (const nvc of newVCs.rows) {
         const oldVC = oldCourses.rows.find(oc => oc.course_id === nvc.course_id);
-        if (oldVC && oldVC.knowledge_block_id && blockMap[oldVC.knowledge_block_id]) {
-          await client.query('UPDATE version_courses SET knowledge_block_id=$1 WHERE id=$2',
-            [blockMap[oldVC.knowledge_block_id], nvc.id]);
+        if (oldVC) {
+          vcMap[oldVC.id] = nvc.id;
+          if (oldVC.knowledge_block_id && blockMap[oldVC.knowledge_block_id]) {
+            await client.query('UPDATE version_courses SET knowledge_block_id=$1 WHERE id=$2',
+              [blockMap[oldVC.knowledge_block_id], nvc.id]);
+          }
+        }
+      }
+
+      // Build PO id map (old → new)
+      const oldPOs = await client.query('SELECT * FROM version_objectives WHERE version_id=$1', [copy_from_version_id]);
+      const newPOs = await client.query('SELECT * FROM version_objectives WHERE version_id=$1', [newVersionId]);
+      const poMap = {};
+      for (const op of oldPOs.rows) {
+        const np = newPOs.rows.find(p => p.code === op.code);
+        if (np) poMap[op.id] = np.id;
+      }
+
+      // Copy PO-PLO map
+      const oldPoPlMap = await client.query('SELECT * FROM po_plo_map WHERE version_id=$1', [copy_from_version_id]);
+      for (const r of oldPoPlMap.rows) {
+        const newPoId = poMap[r.po_id];
+        const newPloId = ploMap[r.plo_id];
+        if (newPoId && newPloId) {
+          await client.query(
+            'INSERT INTO po_plo_map (version_id, po_id, plo_id) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING',
+            [newVersionId, newPoId, newPloId]
+          );
+        }
+      }
+
+      // Copy Course-PLO map (course_plo_map references version_courses.id and version_plos.id)
+      const oldCplMap = await client.query('SELECT * FROM course_plo_map WHERE version_id=$1', [copy_from_version_id]);
+      for (const r of oldCplMap.rows) {
+        const newVcId = vcMap[r.course_id];
+        const newPloId = ploMap[r.plo_id];
+        if (newVcId && newPloId) {
+          await client.query(
+            'INSERT INTO course_plo_map (version_id, course_id, plo_id, contribution_level) VALUES ($1,$2,$3,$4) ON CONFLICT DO NOTHING',
+            [newVersionId, newVcId, newPloId, r.contribution_level]
+          );
+        }
+      }
+
+      // Build PI id map (old plo_pi.id → new plo_pi.id) via same plo+pi_code
+      const oldPis = await client.query('SELECT pp.* FROM plo_pis pp JOIN version_plos vp ON vp.id=pp.plo_id WHERE vp.version_id=$1', [copy_from_version_id]);
+      const newPis = await client.query('SELECT pp.* FROM plo_pis pp JOIN version_plos vp ON vp.id=pp.plo_id WHERE vp.version_id=$1', [newVersionId]);
+      const piMap = {};
+      for (const op of oldPis.rows) {
+        const newPloId = ploMap[op.plo_id];
+        const np = newPis.rows.find(p => p.plo_id === newPloId && p.pi_code === op.pi_code);
+        if (np) piMap[op.id] = np.id;
+      }
+
+      // Copy version_pi_courses
+      const oldVPIC = await client.query('SELECT * FROM version_pi_courses WHERE version_id=$1', [copy_from_version_id]);
+      for (const r of oldVPIC.rows) {
+        const newPiId = piMap[r.pi_id];
+        const newVcId = vcMap[r.course_id];
+        if (newPiId && newVcId) {
+          await client.query(
+            'INSERT INTO version_pi_courses (version_id, pi_id, course_id, contribution_level) VALUES ($1,$2,$3,$4) ON CONFLICT DO NOTHING',
+            [newVersionId, newPiId, newVcId, r.contribution_level]
+          );
+        }
+      }
+
+      // Copy course_clos and clo_pi_map
+      const oldCLOs = await client.query('SELECT cc.* FROM course_clos cc JOIN version_courses vc ON vc.id=cc.version_course_id WHERE vc.version_id=$1', [copy_from_version_id]);
+      const cloMap = {};
+      for (const oc of oldCLOs.rows) {
+        const newVcId = vcMap[oc.version_course_id];
+        if (newVcId) {
+          const nc = await client.query(
+            'INSERT INTO course_clos (version_course_id, code, description) VALUES ($1,$2,$3) RETURNING id',
+            [newVcId, oc.code, oc.description]
+          );
+          cloMap[oc.id] = nc.rows[0].id;
+        }
+      }
+      const oldCloPI = await client.query('SELECT cpm.* FROM clo_pi_map cpm JOIN course_clos cc ON cc.id=cpm.clo_id JOIN version_courses vc ON vc.id=cc.version_course_id WHERE vc.version_id=$1', [copy_from_version_id]);
+      for (const r of oldCloPI.rows) {
+        const newCloId = cloMap[r.clo_id];
+        const newPiId = piMap[r.pi_id];
+        if (newCloId && newPiId) {
+          await client.query(
+            'INSERT INTO clo_pi_map (clo_id, pi_id, contribution_level) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING',
+            [newCloId, newPiId, r.contribution_level]
+          );
         }
       }
     } else {
@@ -1126,6 +1209,129 @@ app.post('/api/cohorts/:cId/variants', authMiddleware, requirePerm('programs.cre
 
     await client.query('COMMIT');
     res.json(ver.rows[0]);
+  } catch (e) {
+    await client.query('ROLLBACK');
+    res.status(400).json({ error: e.message });
+  } finally { client.release(); }
+});
+
+// POST /api/cohorts/:cId/copy — copy a cohort to a new academic_year (all variants deep-copied)
+app.post('/api/cohorts/:cId/copy', authMiddleware, requirePerm('programs.create_version'), async (req, res) => {
+  const { new_academic_year, notes } = req.body;
+  if (!new_academic_year || !/^\d{4}$/.test(new_academic_year)) {
+    return res.status(400).json({ error: 'new_academic_year phải là 4 chữ số (vd: 2025)' });
+  }
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const srcCohort = await client.query('SELECT * FROM program_cohorts WHERE id=$1', [req.params.cId]);
+    if (!srcCohort.rows.length) { await client.query('ROLLBACK'); return res.status(404).json({ error: 'Khóa không tồn tại' }); }
+    const src = srcCohort.rows[0];
+
+    const dup = await client.query('SELECT id FROM program_cohorts WHERE program_id=$1 AND academic_year=$2', [src.program_id, new_academic_year]);
+    if (dup.rows.length) { await client.query('ROLLBACK'); return res.status(409).json({ error: `Khóa ${new_academic_year} đã tồn tại` }); }
+
+    const newCohort = await client.query(
+      'INSERT INTO program_cohorts (program_id, academic_year, notes) VALUES ($1,$2,$3) RETURNING *',
+      [src.program_id, new_academic_year, notes || src.notes]
+    );
+    const newCohortId = newCohort.rows[0].id;
+
+    // Copy each variant from source cohort to new cohort via the variant-copy logic
+    const srcVariants = await client.query(
+      'SELECT * FROM program_versions WHERE cohort_id=$1',
+      [req.params.cId]
+    );
+
+    for (const sv of srcVariants.rows) {
+      const ver = await client.query(
+        `INSERT INTO program_versions
+           (program_id, cohort_id, academic_year, variant_type, version_name,
+            total_credits, training_duration, change_type, effective_date, change_summary,
+            grading_scale, graduation_requirements, job_positions, further_education,
+            reference_programs, training_process, admission_targets, admission_criteria)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) RETURNING *`,
+        [src.program_id, newCohortId, new_academic_year, sv.variant_type, sv.version_name,
+         sv.total_credits, sv.training_duration, sv.change_type, sv.effective_date, sv.change_summary,
+         sv.grading_scale, sv.graduation_requirements, sv.job_positions, sv.further_education,
+         sv.reference_programs, sv.training_process, sv.admission_targets, sv.admission_criteria]
+      );
+      const newVersionId = ver.rows[0].id;
+      const srcVersionId = sv.id;
+
+      // Copy POs
+      await client.query(`INSERT INTO version_objectives (version_id, code, description) SELECT $1, code, description FROM version_objectives WHERE version_id=$2`, [newVersionId, srcVersionId]);
+
+      // Copy PLOs + PIs, build ploMap
+      const oldPlos = await client.query('SELECT * FROM version_plos WHERE version_id=$1', [srcVersionId]);
+      const ploMap = {};
+      for (const op of oldPlos.rows) {
+        const np = await client.query('INSERT INTO version_plos (version_id, code, bloom_level, description) VALUES ($1,$2,$3,$4) RETURNING id', [newVersionId, op.code, op.bloom_level, op.description]);
+        ploMap[op.id] = np.rows[0].id;
+        await client.query(`INSERT INTO plo_pis (plo_id, pi_code, description) SELECT $1, pi_code, description FROM plo_pis WHERE plo_id=$2`, [np.rows[0].id, op.id]);
+      }
+
+      // Copy version_courses, build vcMap + blockMap
+      const oldCourses = await client.query('SELECT * FROM version_courses WHERE version_id=$1', [srcVersionId]);
+      const oldBlocks = await client.query('SELECT * FROM knowledge_blocks WHERE version_id=$1 ORDER BY sort_order, id', [srcVersionId]);
+      const blockMap = {};
+      for (const ob of oldBlocks.rows) {
+        const newParentId = ob.parent_id ? (blockMap[ob.parent_id] || null) : null;
+        const nb = await client.query(`INSERT INTO knowledge_blocks (version_id, name, parent_id, level, total_credits, required_credits, elective_credits, sort_order) VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`, [newVersionId, ob.name, newParentId, ob.level || 1, ob.total_credits, ob.required_credits, ob.elective_credits, ob.sort_order]);
+        blockMap[ob.id] = nb.rows[0].id;
+      }
+      for (const oc of oldCourses.rows) {
+        await client.query('INSERT INTO version_courses (version_id, course_id, semester, course_type) VALUES ($1,$2,$3,$4)', [newVersionId, oc.course_id, oc.semester, oc.course_type]);
+      }
+      const newVCs = await client.query('SELECT id, course_id FROM version_courses WHERE version_id=$1', [newVersionId]);
+      const vcMap = {};
+      for (const nvc of newVCs.rows) {
+        const oldVC = oldCourses.rows.find(oc => oc.course_id === nvc.course_id);
+        if (oldVC) {
+          vcMap[oldVC.id] = nvc.id;
+          if (oldVC.knowledge_block_id && blockMap[oldVC.knowledge_block_id]) {
+            await client.query('UPDATE version_courses SET knowledge_block_id=$1 WHERE id=$2', [blockMap[oldVC.knowledge_block_id], nvc.id]);
+          }
+        }
+      }
+
+      // Copy syllabi
+      await client.query(`INSERT INTO version_syllabi (version_id, course_id, author_id, status, content) SELECT $1, course_id, NULL, 'draft', content FROM version_syllabi WHERE version_id=$2`, [newVersionId, srcVersionId]);
+
+      // Build poMap
+      const oldPOs = await client.query('SELECT * FROM version_objectives WHERE version_id=$1', [srcVersionId]);
+      const newPOs = await client.query('SELECT * FROM version_objectives WHERE version_id=$1', [newVersionId]);
+      const poMap = {};
+      for (const op of oldPOs.rows) { const np = newPOs.rows.find(p => p.code === op.code); if (np) poMap[op.id] = np.id; }
+
+      // Build piMap
+      const oldPis = await client.query('SELECT pp.* FROM plo_pis pp JOIN version_plos vp ON vp.id=pp.plo_id WHERE vp.version_id=$1', [srcVersionId]);
+      const newPis = await client.query('SELECT pp.* FROM plo_pis pp JOIN version_plos vp ON vp.id=pp.plo_id WHERE vp.version_id=$1', [newVersionId]);
+      const piMap = {};
+      for (const op of oldPis.rows) { const newPloId = ploMap[op.plo_id]; const np = newPis.rows.find(p => p.plo_id === newPloId && p.pi_code === op.pi_code); if (np) piMap[op.id] = np.id; }
+
+      // Copy maps: po_plo_map, course_plo_map, version_pi_courses
+      const oldPoPlo = await client.query('SELECT * FROM po_plo_map WHERE version_id=$1', [srcVersionId]);
+      for (const r of oldPoPlo.rows) { if (poMap[r.po_id] && ploMap[r.plo_id]) await client.query('INSERT INTO po_plo_map (version_id, po_id, plo_id) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING', [newVersionId, poMap[r.po_id], ploMap[r.plo_id]]); }
+
+      const oldCPlo = await client.query('SELECT * FROM course_plo_map WHERE version_id=$1', [srcVersionId]);
+      for (const r of oldCPlo.rows) { if (vcMap[r.course_id] && ploMap[r.plo_id]) await client.query('INSERT INTO course_plo_map (version_id, course_id, plo_id, contribution_level) VALUES ($1,$2,$3,$4) ON CONFLICT DO NOTHING', [newVersionId, vcMap[r.course_id], ploMap[r.plo_id], r.contribution_level]); }
+
+      const oldVPIC = await client.query('SELECT * FROM version_pi_courses WHERE version_id=$1', [srcVersionId]);
+      for (const r of oldVPIC.rows) { if (piMap[r.pi_id] && vcMap[r.course_id]) await client.query('INSERT INTO version_pi_courses (version_id, pi_id, course_id, contribution_level) VALUES ($1,$2,$3,$4) ON CONFLICT DO NOTHING', [newVersionId, piMap[r.pi_id], vcMap[r.course_id], r.contribution_level]); }
+
+      // Copy course_clos + clo_pi_map
+      const oldCLOs = await client.query('SELECT cc.* FROM course_clos cc JOIN version_courses vc ON vc.id=cc.version_course_id WHERE vc.version_id=$1', [srcVersionId]);
+      const cloMap = {};
+      for (const oc of oldCLOs.rows) { if (vcMap[oc.version_course_id]) { const nc = await client.query('INSERT INTO course_clos (version_course_id, code, description) VALUES ($1,$2,$3) RETURNING id', [vcMap[oc.version_course_id], oc.code, oc.description]); cloMap[oc.id] = nc.rows[0].id; } }
+
+      const oldCloPI = await client.query('SELECT cpm.* FROM clo_pi_map cpm JOIN course_clos cc ON cc.id=cpm.clo_id JOIN version_courses vc ON vc.id=cc.version_course_id WHERE vc.version_id=$1', [srcVersionId]);
+      for (const r of oldCloPI.rows) { if (cloMap[r.clo_id] && piMap[r.pi_id]) await client.query('INSERT INTO clo_pi_map (clo_id, pi_id, contribution_level) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING', [cloMap[r.clo_id], piMap[r.pi_id], r.contribution_level]); }
+    }
+
+    await client.query('COMMIT');
+    res.json({ cohort: newCohort.rows[0], variants_copied: srcVariants.rows.length });
   } catch (e) {
     await client.query('ROLLBACK');
     res.status(400).json({ error: e.message });
@@ -2282,7 +2488,9 @@ app.get('/api/syllabi/:id', authMiddleware, requireViewVersion, async (req, res)
              c.knowledge_area, c.course_requirement, c.is_proposed,
              u.display_name as author_name, d.name as dept_name,
              p.name as program_name, pv.academic_year,
-             (cbs.id IS NOT NULL) as has_base_syllabus
+             (cbs.id IS NOT NULL) as has_base_syllabus,
+             kb.name as knowledge_block_name, kb.id as knowledge_block_id,
+             vc.course_type
       FROM version_syllabi vs
       JOIN courses c ON vs.course_id = c.id
       LEFT JOIN users u ON vs.author_id = u.id
@@ -2290,6 +2498,8 @@ app.get('/api/syllabi/:id', authMiddleware, requireViewVersion, async (req, res)
       LEFT JOIN program_versions pv ON vs.version_id = pv.id
       LEFT JOIN programs p ON pv.program_id = p.id
       LEFT JOIN course_base_syllabi cbs ON cbs.course_id = c.id
+      LEFT JOIN version_courses vc ON vc.course_id = c.id AND vc.version_id = vs.version_id
+      LEFT JOIN knowledge_blocks kb ON kb.id = vc.knowledge_block_id
       WHERE vs.id = $1
     `, [req.params.id]);
     if (!result.rows.length) return res.status(404).json({ error: 'Không tìm thấy' });
