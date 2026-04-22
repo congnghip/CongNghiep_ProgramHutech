@@ -287,6 +287,9 @@ window.SyllabusEditorPage = {
     const s = this.syllabus || {};
     const c = this.syllabus.content || {};
     const section3 = this.section3Draft || { knowledge_area: null, course_requirement: null };
+    const knowledgeArea = section3.knowledge_area ?? s.knowledge_area ?? '';
+    const courseRequirement = section3.course_requirement ?? s.course_requirement ?? '';
+    const creditsDisplay = `${s.credits || 0} (${s.credits_theory || 0}, ${s.credits_practice || 0}) TC`;
     body.innerHTML = `
       <div style="max-width:900px;">
         <div style="margin-bottom:12px;padding:12px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg-secondary);font-size:13px;color:var(--text-muted);">
@@ -296,14 +299,36 @@ window.SyllabusEditorPage = {
           <tbody>
             <tr><th style="width:180px;">1. Tên học phần</th><td>Tên tiếng Việt: <strong>${s.course_name || ''}</strong><br>Tên tiếng Anh: <strong>${s.course_name_en || ''}</strong></td></tr>
             <tr><th>2. Mã học phần</th><td>${s.course_code || ''}</td></tr>
-            <tr><th>3. Thuộc khối kiến thức</th><td>${section3.knowledge_area || ''}<br>${section3.course_requirement || ''}</td></tr>
+            <tr>
+              <th>3. Thuộc khối kiến thức</th>
+              <td>
+                <div style="display:flex;gap:12px;flex-wrap:wrap;">
+                  <select id="ctdt-sec3-knowledge" ${editable ? '' : 'disabled'} style="${INP}max-width:240px;">
+                    <option value="">-- Chọn khối kiến thức --</option>
+                    <option value="general" ${knowledgeArea === 'general' ? 'selected' : ''}>GD đại cương</option>
+                    <option value="professional" ${knowledgeArea === 'professional' ? 'selected' : ''}>GD chuyên nghiệp</option>
+                    <option value="non_credit" ${knowledgeArea === 'non_credit' ? 'selected' : ''}>Không tích lũy</option>
+                  </select>
+                  <select id="ctdt-sec3-requirement" ${editable ? '' : 'disabled'} style="${INP}max-width:240px;">
+                    <option value="">-- Chọn tính chất --</option>
+                    <option value="required" ${courseRequirement === 'required' ? 'selected' : ''}>Bắt buộc</option>
+                    <option value="elective" ${courseRequirement === 'elective' ? 'selected' : ''}>Tự chọn</option>
+                  </select>
+                </div>
+              </td>
+            </tr>
             <tr><th>4. Trình độ đào tạo</th><td>${s.training_level || ''}</td></tr>
-            <tr><th>5. Số tín chỉ</th><td>${s.credits || ''}${s.credits_theory != null || s.credits_practice != null ? ` (${s.credits_theory || 0}, ${s.credits_practice || 0})` : ''}</td></tr>
+            <tr><th>5. Số tín chỉ</th><td>${creditsDisplay}</td></tr>
             <tr><th>6. Học phần học trước/ song hành</th><td>${c.prerequisites || ''}${c.prerequisites_concurrent ? `<br>Song hành: ${c.prerequisites_concurrent}` : ''}</td></tr>
             <tr><th>7. Mục tiêu học phần</th><td style="white-space:pre-wrap;">${c.course_objectives || ''}</td></tr>
             <tr><th>8. Đơn vị quản lý học phần</th><td>${s.dept_name || ''}</td></tr>
           </tbody>
         </table>
+        ${editable ? `
+          <div style="display:flex;justify-content:flex-end;margin-top:12px;">
+            <button class="btn btn-primary btn-sm" onclick="window.SyllabusEditorPage.saveSection3()">Lưu mục 3</button>
+          </div>
+        ` : ''}
       </div>
     `;
   },
@@ -384,12 +409,44 @@ window.SyllabusEditorPage = {
 
   _collectCurrentTabIntoState() {
     switch (this.activeTab) {
-      case 0: this._collectGeneral(); break;
+      case 0: this.collectSection3(); break;
+      case 1: this.collectSection9?.(); break;
       case 2: this._collectCloPiMap(); break;
-      case 3: this._collectOutline(); break;
-      case 4: this._collectGrading(); break;
-      case 5: this._collectResources(); break;
-      // Tab 1 (CLO): inline CRUD, nothing to collect
+    }
+  },
+
+  collectSection3() {
+    const knowledgeEl = document.getElementById('ctdt-sec3-knowledge');
+    const requirementEl = document.getElementById('ctdt-sec3-requirement');
+    if (!knowledgeEl || !requirementEl) return;
+    this.section3Draft = {
+      knowledge_area: knowledgeEl.value || null,
+      course_requirement: requirementEl.value || null,
+    };
+  },
+
+  async saveSection3() {
+    this.collectSection3();
+    try {
+      const res = await fetch(`/api/syllabi/${this.syllabusId}/ctdt-section3`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(this.section3Draft || {}),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Lỗi lưu mục 3');
+      this.section3Draft = data.section3 || this.section3Draft;
+      this.syllabus.content = {
+        ...this.syllabus.content,
+        ctdt_overrides: {
+          ...(this.syllabus.content.ctdt_overrides || {}),
+          section3: data.section3,
+        },
+      };
+      window.toast.success('Đã lưu mục 3');
+      this.renderSylTab();
+    } catch (e) {
+      window.toast.error(e.message);
     }
   },
 
