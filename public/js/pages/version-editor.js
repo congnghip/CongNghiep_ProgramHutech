@@ -703,10 +703,39 @@ window.VersionEditorPage = {
 
   // ===== TAB 6: Courses =====
   async renderCoursesTab(body, editable) {
-    const [vCourses, allCourses] = await Promise.all([
+    const [vCourses, allCourses, kbData] = await Promise.all([
       fetch(`/api/versions/${this.versionId}/courses`).then(r => r.json()),
       fetch('/api/courses/all').then(r => r.json()),
+      fetch(`/api/versions/${this.versionId}/knowledge-blocks`).then(r => r.json()).catch(() => ({ blocks: [] })),
     ]);
+    const blocks = kbData.blocks || [];
+    // Build grouped <select> options: optgroup for parents with children, plain option for leaves
+    function buildBlockOptions(blocks) {
+      const parents = blocks.filter(b => !b.parent_id);
+      const childrenOf = (pid) => blocks.filter(b => b.parent_id === pid);
+      let html = '<option value="">-- Chọn khối kiến thức --</option>';
+      for (const parent of parents) {
+        const children = childrenOf(parent.id);
+        if (children.length > 0) {
+          html += `<optgroup label="${parent.name}">`;
+          for (const child of children) {
+            const grandchildren = childrenOf(child.id);
+            if (grandchildren.length > 0) {
+              html += `<option disabled>  ${child.name}</option>`;
+              for (const gc of grandchildren) {
+                html += `<option value="${gc.id}">&nbsp;&nbsp;&nbsp;&nbsp;${gc.name}</option>`;
+              }
+            } else {
+              html += `<option value="${child.id}">${child.name}</option>`;
+            }
+          }
+          html += `</optgroup>`;
+        } else {
+          html += `<option value="${parent.id}">${parent.name}</option>`;
+        }
+      }
+      return html;
+    }
     const usedIds = new Set(vCourses.map(c => c.course_id));
     const available = allCourses.filter(c => !usedIds.has(c.id));
 
@@ -726,6 +755,9 @@ window.VersionEditorPage = {
           </div>
           <div class="input-group" style="width:120px;margin:0;"><label>Loại</label>
             <select id="add-vc-type"><option value="required">Bắt buộc</option><option value="elective">Tự chọn</option></select>
+          </div>
+          <div class="input-group" style="flex:1;min-width:160px;margin:0;"><label>Khối kiến thức <span style="color:var(--danger)">*</span></label>
+            <select id="add-vc-block">${buildBlockOptions(blocks)}</select>
           </div>
           <button class="btn btn-primary btn-sm" onclick="window.VersionEditorPage.addCourse()">Thêm</button>
           ` : ''}
