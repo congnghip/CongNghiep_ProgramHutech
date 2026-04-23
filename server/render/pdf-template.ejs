@@ -36,22 +36,28 @@
     <tr><td><span class="section-num">2.</span> Mã học phần</td><td><%= course.code || '' %></td></tr>
     <tr><td><span class="section-num">3.</span> Thuộc khối kiến thức</td>
       <td>
-        <% const isGeneral = course.knowledge_area === 'general'; const isProf = course.knowledge_area === 'professional'; const isReq = course.course_requirement === 'required'; const isElec = course.course_requirement === 'elective'; %>
+        <% const isGeneral = course.knowledge_area === 'general'; const isProf = course.knowledge_area === 'professional'; const isReq = course.course_requirement === 'required'; const isElec = course.course_requirement === 'elective'; const isNonCredit = course.knowledge_area === 'non_credit'; %>
         <table style="margin:0;">
           <tr>
-            <th colspan="2">Kiến thức GD đại cương</th><th colspan="2">Kiến thức GD chuyên nghiệp</th>
+            <th colspan="2">Kiến thức GD đại cương</th><th colspan="2">Kiến thức GD chuyên nghiệp</th><th colspan="1">Khác</th>
           </tr>
           <tr>
             <td><%= isGeneral && isReq ? '☑' : '☐' %> Bắt buộc</td>
             <td><%= isGeneral && isElec ? '☑' : '☐' %> Tự chọn</td>
             <td><%= isProf && isReq ? '☑' : '☐' %> Bắt buộc</td>
             <td><%= isProf && isElec ? '☑' : '☐' %> Tự chọn</td>
+            <td><%= isNonCredit ? '☑' : '☐' %> Kiến thức không tích luỹ</td>
           </tr>
         </table>
       </td></tr>
     <tr><td><span class="section-num">4.</span> Trình độ đào tạo</td><td><%= course.training_level || '' %></td></tr>
     <tr><td><span class="section-num">5.</span> Số tín chỉ</td><td><%= course.credits_display %></td></tr>
-    <tr><td><span class="section-num">6.</span> Học phần học trước</td><td><%= course.prerequisites || '' %></td></tr>
+    <tr><td><span class="section-num">6.</span> Học phần học trước/ song hành</td>
+      <td>
+        <% if (course.prerequisites) { %>Học trước: <%= course.prerequisites %><% } %>
+        <% if (course.prerequisites_concurrent) { %><% if (course.prerequisites) { %><br><% } %>Song hành: <%= course.prerequisites_concurrent %><% } %>
+        <% if (!course.prerequisites && !course.prerequisites_concurrent) { %>&nbsp;<% } %>
+      </td></tr>
     <tr><td><span class="section-num">7.</span> Mục tiêu của học phần</td><td><%- nl2br(course.objectives) %></td></tr>
     <tr><td><span class="section-num">8.</span> Đơn vị quản lý học phần</td><td><%= course.managing_unit || '' %></td></tr>
   </table>
@@ -134,7 +140,14 @@
     <tr><th>Nội dung</th><th style="width:80px;">Số tiết</th><th>Nhiệm vụ của sinh viên</th></tr>
     <% self_study.forEach(function(s){ %>
     <tr>
-      <td><strong>BÀI <%= s.lesson %>: <%= s.title %></strong></td>
+      <td>
+        <strong>Bài <%= s.lesson %>: <%= s.title %></strong>
+        <% if (s.topics && s.topics.length) { %>
+        <ul style="margin:2px 0;padding-left:18px;">
+          <% s.topics.forEach(function(t){ %><li style="font-size:11pt;"><%= t %></li><% }) %>
+        </ul>
+        <% } %>
+      </td>
       <td style="text-align:center;"><%= s.hours %></td>
       <td><% s.tasks.forEach(function(t){ %><%= t %><br><% }) %></td>
     </tr>
@@ -144,11 +157,40 @@
   <p><span class="section-num">17.</span> Các yêu cầu của HP</p>
   <p><%- nl2br(other_requirements) %></p>
 
-  <div class="right-italic">TP. Hồ Chí Minh, ngày… tháng… năm <%= new Date().getFullYear() %></div>
+  <% if (instructor.name || instructor.email) { %>
+  <p style="margin-top:20px;font-weight:bold;">Giảng viên phụ trách học phần</p>
+  <table class="no-border" style="width:60%;">
+    <tr><td style="width:200px;">Họ và tên:</td><td><%= instructor.name %></td></tr>
+    <tr><td>Học hàm, học vị:</td><td><%= instructor.title %></td></tr>
+    <tr><td>Địa chỉ cơ quan:</td><td><%= instructor.address %></td></tr>
+    <tr><td>Điện thoại liên hệ:</td><td><%= instructor.phone %></td></tr>
+    <tr><td>Email:</td><td><%= instructor.email %></td></tr>
+    <tr><td>Website:</td><td><%= instructor.website %></td></tr>
+  </table>
+  <% } %>
+
+  <% if (assistant_instructor.name || assistant_instructor.email) { %>
+  <p style="font-weight:bold;">Giảng viên hỗ trợ học phần/trợ giảng (nếu có)</p>
+  <table class="no-border" style="width:60%;">
+    <tr><td style="width:200px;">Họ và tên:</td><td><%= assistant_instructor.name %></td></tr>
+    <tr><td>Học hàm, học vị:</td><td><%= assistant_instructor.title %></td></tr>
+    <tr><td>Địa chỉ cơ quan:</td><td><%= assistant_instructor.address %></td></tr>
+    <tr><td>Điện thoại liên hệ:</td><td><%= assistant_instructor.phone %></td></tr>
+    <tr><td>Email:</td><td><%= assistant_instructor.email %></td></tr>
+    <tr><td>Website:</td><td><%= assistant_instructor.website %></td></tr>
+  </table>
+  <% } %>
+
+  <% if (contact_info) { %>
+  <p><strong>Cách liên lạc với giảng viên/trợ giảng:</strong> <%- nl2br(contact_info) %></p>
+  <% } %>
+
+  <div class="right-italic">TP. Hồ Chí Minh, ngày<%= signature_date ? ' ' + he(signature_date) : '… tháng… năm ' + new Date().getFullYear() %></div>
   <div class="signatures">
     <div style="flex:1;">Trưởng khoa/viện</div>
     <div style="flex:1;">Trưởng ngành/bộ môn</div>
     <div style="flex:1;">Người biên soạn</div>
+    <% if (instructor.name) { %><div style="flex:1;">Giảng viên phụ trách<br>(<%= instructor.name %>)</div><% } %>
   </div>
 </body>
 </html>

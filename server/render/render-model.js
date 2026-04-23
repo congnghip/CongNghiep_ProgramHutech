@@ -84,6 +84,7 @@ async function buildRenderModel(pool, courseId) {
     lesson: l.lesson, title: l.title,
     hours: l.self_study_hours || 0,
     tasks: Array.isArray(l.self_study_tasks) ? l.self_study_tasks : [],
+    topics: Array.isArray(l.topics) ? l.topics : [],
   }));
 
   const outline_totals = outline.reduce((acc, l) => ({
@@ -106,6 +107,7 @@ async function buildRenderModel(pool, courseId) {
       training_level: co.training_level || 'Đại học',
       credits_display: creditsDisplay,
       prerequisites: content.prerequisites || '',
+      prerequisites_concurrent: content.prerequisites_concurrent || '',
       managing_unit: facultyName,
       objectives: content.course_objectives || '',
       description: content.course_description || '',
@@ -130,7 +132,11 @@ async function buildRenderModel(pool, courseId) {
     },
     self_study,
     other_requirements: content.other_requirements || '',
-    signatures: { date: '', khoa_vien: '', nganh: '', nguoi_bien_soan: '' },
+    instructor: content.instructor || { name: '', title: '', address: '', phone: '', email: '', website: '' },
+    assistant_instructor: content.assistant_instructor || { name: '', title: '', address: '', phone: '', email: '', website: '' },
+    contact_info: content.contact_info || '',
+    signature_date: content.signature_date || '',
+    signatures: { date: content.signature_date || '', khoa_vien: '', nganh: '', nguoi_bien_soan: '' },
   };
 }
 

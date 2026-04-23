@@ -50,16 +50,23 @@ function buildDocx(model) {
 
   const isGen = model.course.knowledge_area === 'general';
   const isProf = model.course.knowledge_area === 'professional';
+  const isNonCredit = model.course.knowledge_area === 'non_credit';
   const isReq = model.course.course_requirement === 'required';
   const isElec = model.course.course_requirement === 'elective';
   const chk = b => b ? '☑' : '☐';
   children.push(fullWidthTable([
     row([tc('1. Tên học phần', { width: 20 }), tc([p(`Tên tiếng Việt: ${model.course.name_vi || ''}`, { bold: true }), p(`Tên tiếng Anh: ${model.course.name_en || ''}`, { bold: true })])]),
     row([tc('2. Mã học phần'), tc(model.course.code || '')]),
-    row([tc('3. Thuộc khối kiến thức'), tc(`${chk(isGen && isReq)} GD đại cương - Bắt buộc   ${chk(isGen && isElec)} GD đại cương - Tự chọn   ${chk(isProf && isReq)} GD chuyên nghiệp - Bắt buộc   ${chk(isProf && isElec)} GD chuyên nghiệp - Tự chọn`)]),
+    row([tc('3. Thuộc khối kiến thức'), tc(`${chk(isGen && isReq)} GD đại cương - Bắt buộc   ${chk(isGen && isElec)} GD đại cương - Tự chọn   ${chk(isProf && isReq)} GD chuyên nghiệp - Bắt buộc   ${chk(isProf && isElec)} GD chuyên nghiệp - Tự chọn   ${chk(isNonCredit)} Kiến thức không tích luỹ`)]),
     row([tc('4. Trình độ đào tạo'), tc(model.course.training_level || '')]),
     row([tc('5. Số tín chỉ'), tc(model.course.credits_display || '')]),
-    row([tc('6. Học phần học trước'), tc(model.course.prerequisites || '')]),
+    row([tc('6. Học phần học trước/ song hành'), tc((() => {
+      const prereqs = [
+        model.course.prerequisites ? `Học trước: ${model.course.prerequisites}` : null,
+        model.course.prerequisites_concurrent ? `Song hành: ${model.course.prerequisites_concurrent}` : null,
+      ].filter(Boolean);
+      return prereqs.length ? prereqs.map(s => p(s)) : [''];
+    })())]),
     row([tc('7. Mục tiêu của học phần'), tc(model.course.objectives || '')]),
     row([tc('8. Đơn vị quản lý học phần'), tc(model.course.managing_unit || '')]),
   ]));
@@ -132,18 +139,62 @@ function buildDocx(model) {
   children.push(p('16. Hướng dẫn sinh viên tự học', { bold: true, before: 200 }));
   children.push(fullWidthTable([
     headerRow(['Nội dung', 'Số tiết', 'Nhiệm vụ của sinh viên']),
-    ...model.self_study.map(s => row([tc(`BÀI ${s.lesson}: ${s.title}`), tc(String(s.hours)), tc(s.tasks.join('\n'))])),
+    ...model.self_study.map(s => {
+      const topicParas = Array.isArray(s.topics) && s.topics.length
+        ? s.topics.map(t => p(`  ${t}`, { size: 20 }))
+        : [];
+      return row([
+        tc([p(`Bài ${s.lesson}: ${s.title}`, { bold: true }), ...topicParas]),
+        tc(String(s.hours)),
+        tc(s.tasks.join('\n')),
+      ]);
+    }),
   ]));
 
   children.push(p('17. Các yêu cầu của HP', { bold: true, before: 200 }));
   children.push(p(model.other_requirements || ''));
 
-  children.push(p(`TP. Hồ Chí Minh, ngày… tháng… năm ${new Date().getFullYear()}`, { align: AlignmentType.RIGHT, italic: true, before: 400 }));
-  children.push(fullWidthTable([row([
+  // Instructor block
+  const instr = model.instructor || {};
+  const asst = model.assistant_instructor || {};
+  if (instr.name || instr.email) {
+    children.push(p('Giảng viên phụ trách học phần', { bold: true, before: 200 }));
+    children.push(fullWidthTable([
+      row([tc('Họ và tên:', { width: 30 }), tc(instr.name || '')]),
+      row([tc('Học hàm, học vị:'), tc(instr.title || '')]),
+      row([tc('Địa chỉ cơ quan:'), tc(instr.address || '')]),
+      row([tc('Điện thoại liên hệ:'), tc(instr.phone || '')]),
+      row([tc('Email:'), tc(instr.email || '')]),
+      row([tc('Website:'), tc(instr.website || '')]),
+    ]));
+  }
+  if (asst.name || asst.email) {
+    children.push(p('Giảng viên hỗ trợ học phần/trợ giảng (nếu có)', { bold: true, before: 120 }));
+    children.push(fullWidthTable([
+      row([tc('Họ và tên:', { width: 30 }), tc(asst.name || '')]),
+      row([tc('Học hàm, học vị:'), tc(asst.title || '')]),
+      row([tc('Địa chỉ cơ quan:'), tc(asst.address || '')]),
+      row([tc('Điện thoại liên hệ:'), tc(asst.phone || '')]),
+      row([tc('Email:'), tc(asst.email || '')]),
+      row([tc('Website:'), tc(asst.website || '')]),
+    ]));
+  }
+  if (model.contact_info) {
+    children.push(p('Cách liên lạc với giảng viên/trợ giảng:', { bold: true, before: 120 }));
+    children.push(p(model.contact_info));
+  }
+
+  const sigDate = model.signature_date
+    ? `TP. Hồ Chí Minh, ngày ${model.signature_date}`
+    : `TP. Hồ Chí Minh, ngày… tháng… năm ${new Date().getFullYear()}`;
+  children.push(p(sigDate, { align: AlignmentType.RIGHT, italic: true, before: 400 }));
+  const sigCells = [
     tc(p('Trưởng khoa/viện', { bold: true, align: AlignmentType.CENTER })),
     tc(p('Trưởng ngành/bộ môn', { bold: true, align: AlignmentType.CENTER })),
     tc(p('Người biên soạn', { bold: true, align: AlignmentType.CENTER })),
-  ])], { borders: NO_BORDERS }));
+  ];
+  if (instr.name) sigCells.push(tc(p(`Giảng viên phụ trách\n(${instr.name})`, { bold: true, align: AlignmentType.CENTER })));
+  children.push(fullWidthTable([row(sigCells)], { borders: NO_BORDERS }));
 
   const doc = new Document({ sections: [{ children }] });
   return Packer.toBuffer(doc);

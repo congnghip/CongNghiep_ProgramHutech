@@ -1,0 +1,213 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]:
+          - generic [ref=e6]:
+            - generic [ref=e7]: 🎓
+            - heading "HUTECH Program" [level=1] [ref=e8]
+          - button "Thu gọn sidebar" [expanded] [ref=e9] [cursor=pointer]: «
+        - navigation [ref=e10]:
+          - generic "Tổng quan" [ref=e11] [cursor=pointer]:
+            - generic [ref=e12]: 📊
+            - generic [ref=e13]: Tổng quan
+          - generic "Thông báo" [ref=e14] [cursor=pointer]:
+            - generic [ref=e15]: 🔔
+            - generic [ref=e16]: Thông báo
+            - generic [ref=e17]: "4"
+          - generic [ref=e18]: Đào tạo
+          - generic "Chương trình ĐT" [ref=e19] [cursor=pointer]:
+            - generic [ref=e20]: 📋
+            - generic [ref=e21]: Chương trình ĐT
+          - generic "Học phần" [ref=e22] [cursor=pointer]:
+            - generic [ref=e23]: 📚
+            - generic [ref=e24]: Học phần
+          - generic "Phê duyệt" [ref=e25] [cursor=pointer]:
+            - generic [ref=e26]: 📬
+            - generic [ref=e27]: Phê duyệt
+          - generic [ref=e28]: Cài đặt
+          - generic "Phân quyền" [ref=e29] [cursor=pointer]:
+            - generic [ref=e30]: ⚙️
+            - generic [ref=e31]: Phân quyền
+          - generic "Nhật ký" [ref=e32] [cursor=pointer]:
+            - generic [ref=e33]: 📜
+            - generic [ref=e34]: Nhật ký
+        - generic [ref=e35]:
+          - generic [ref=e36]:
+            - generic [ref=e37]: Quản trị viên
+            - generic [ref=e38]: Quản trị hệ thống
+          - generic [ref=e39]:
+            - button "Đổi MK" [ref=e40] [cursor=pointer]
+            - button "Đăng xuất" [ref=e41] [cursor=pointer]
+      - main [ref=e42]:
+        - generic [ref=e160]:
+          - generic [ref=e161]:
+            - generic [ref=e193]: Khóa — Công nghệ thông tin
+            - button "+ Tạo khóa" [ref=e194] [cursor=pointer]
+          - paragraph [ref=e195]: "Lỗi: Unexpected token '<', \""
+        - generic:
+          - generic:
+            - generic:
+              - heading "Tạo CTĐT" [level=2]
+            - generic:
+              - generic:
+                - paragraph: Thông tin cơ bản
+                - paragraph: Các trường có dấu * là bắt buộc.
+                - generic:
+                  - generic:
+                    - generic: Mã chương trình *
+                    - 'textbox "VD: 7220204"'
+                  - generic:
+                    - generic: Khoa quản lý *
+                    - combobox
+                  - generic:
+                    - generic: Ngành
+                    - combobox:
+                      - option "— Toàn khoa —" [selected]
+                  - generic:
+                    - generic: Bậc đào tạo
+                    - combobox:
+                      - option "Đại học" [selected]
+                      - option "Cao đẳng"
+                      - option "Sau đại học"
+                  - generic:
+                    - generic: Tên chương trình (Tiếng Việt) *
+                    - 'textbox "VD: Ngôn ngữ Trung Quốc"'
+                  - generic:
+                    - generic: Tên chương trình (Tiếng Anh) *
+                    - 'textbox "VD: Chinese Language"'
+                  - generic:
+                    - generic: Tổng tín chỉ
+                    - spinbutton
+                - separator
+                - paragraph: Thông tin bổ sung
+                - paragraph: Cung cấp thêm thông tin để đội ngũ tuyển sinh và đào tạo nắm rõ đặc điểm chương trình.
+                - generic:
+                  - generic:
+                    - generic: Cơ sở cấp bằng
+                    - 'textbox "VD: Trường Đại học Công nghệ TP.HCM"'
+                  - generic:
+                    - generic: Tên bằng cấp
+                    - 'textbox "VD: Cử nhân Ngôn ngữ Trung Quốc"'
+                  - generic:
+                    - generic: Hình thức đào tạo
+                    - combobox:
+                      - option "Chính quy" [selected]
+                      - option "Vừa làm vừa học"
+                      - option "Từ xa"
+                      - option "Liên thông"
+                - generic:
+                  - generic: Ghi chú bổ sung
+                  - textbox "Ghi chú bổ sung"
+                  - text: Tối đa 1000 ký tự — 0/1000
+            - generic:
+              - button "Hủy"
+              - button "Tạo mới"
+        - generic:
+          - generic:
+            - generic:
+              - heading "Chỉnh Sửa Khóa" [level=2]
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - generic: Số Khóa *
+                    - 'textbox "VD: 2026"'
+                  - generic:
+                    - generic: Tên Khóa
+                    - 'textbox "VD: khóa năm 2026"'
+                  - generic:
+                    - generic: Tổng Số Tín Chỉ
+                    - 'textbox "VD: 125"'
+                  - generic:
+                    - generic: Thời Gian Đào Tạo
+                    - 'textbox "VD: 3.5 năm"'
+                  - generic:
+                    - generic: Loại Thay Đổi
+                    - combobox:
+                      - option "— Chọn —" [selected]
+                      - option "Thay đổi nhỏ"
+                      - option "Thay đổi lớn"
+                      - option "Xây dựng mới"
+                  - generic:
+                    - generic: Trạng Thái
+                    - combobox [disabled]:
+                      - option "Bản nháp" [selected]
+                      - option "Đã nộp"
+                      - option "Duyệt Khoa"
+                      - option "Duyệt PĐT"
+                      - option "Đã công bố"
+                  - generic:
+                    - generic: Ngày Hiệu Lực
+                    - textbox
+                - generic:
+                  - generic: Tóm Tắt Thay Đổi
+                  - textbox "Tóm tắt những thay đổi chính..."
+                - separator
+                - generic:
+                  - generic: Thang Điểm Đánh Giá và Cách Thức Đánh Giá
+                  - textbox
+                - generic:
+                  - generic: Điều Kiện Tốt Nghiệp
+                  - textbox
+                - generic:
+                  - generic: Vị Trí Việc Làm Sau Tốt Nghiệp
+                  - textbox
+                - generic:
+                  - generic: Con Đường Học Tập Nâng Cao Trình Độ
+                  - textbox
+                - generic:
+                  - generic: Chương Trình Tham Khảo Khi Xây Dựng
+                  - textbox
+                - generic:
+                  - generic: Quy Trình Đào Tạo
+                  - textbox
+                - generic:
+                  - generic: Đối Tượng Tuyển Sinh
+                  - textbox
+                - generic:
+                  - generic: Tiêu Chí Tuyển Sinh
+                  - textbox
+            - generic:
+              - button "Hủy"
+              - button "Cập Nhật"
+    - generic:
+      - generic:
+        - generic:
+          - heading "Đổi mật khẩu" [level=2]
+        - generic:
+          - generic:
+            - generic: Mật khẩu hiện tại *
+            - textbox
+          - generic:
+            - generic: Mật khẩu mới *
+            - textbox
+          - generic:
+            - generic: Xác nhận mật khẩu mới *
+            - textbox
+          - generic:
+            - button "Hủy"
+            - button "Đổi mật khẩu"
+    - dialog "Thông báo" [ref=e44]:
+      - generic [ref=e45]:
+        - generic [ref=e46]:
+          - heading "Thông báo" [level=2] [ref=e47]
+          - paragraph [ref=e48]: Các việc cần bạn xử lý và kết quả phê duyệt.
+        - button "Đóng thông báo" [ref=e49] [cursor=pointer]: ×
+      - generic [ref=e50]:
+        - button "Tất cả" [ref=e51] [cursor=pointer]
+        - button "Chưa đọc" [ref=e52] [cursor=pointer]
+        - button "Cần xử lý" [ref=e53] [cursor=pointer]
+      - button "Đánh dấu tất cả đã đọc" [ref=e55] [cursor=pointer]
+  - generic:
+    - dialog "Thông báo":
+      - generic:
+        - generic: "?"
+        - generic:
+          - heading "Thông báo" [level=2]
+      - generic:
+        - generic:
+          - textbox
+        - generic:
+          - button "Hủy"
+          - button "Xác nhận"

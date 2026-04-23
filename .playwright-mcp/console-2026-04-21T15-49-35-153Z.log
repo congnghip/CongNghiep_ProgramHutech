@@ -1,0 +1,4 @@
+[     145ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ http://localhost:3600/:0
+[     145ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ http://localhost:3600/:0
+[     145ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ http://localhost:3600/:0
+[   11704ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3600/api/programs/1/cohorts:0

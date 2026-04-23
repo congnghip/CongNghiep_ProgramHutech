@@ -1,0 +1,180 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1776839572680,
+  "projectRoot": "/home/congnghiep/work/CongNghiep_ProgramHutech",
+  "techStack": {
+    "languages": [
+      {
+        "name": "JavaScript/TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "C/C++",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "Makefile"
+        ]
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "express",
+        "version": "4.18.2",
+        "category": "backend"
+      }
+    ],
+    "packageManager": "npm",
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": "make build",
+    "testCommand": "make test",
+    "lintCommand": null,
+    "devCommand": "npm run dev",
+    "scripts": {
+      "start": "node server.js",
+      "dev": "node --watch server.js"
+    }
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "docs",
+      "public",
+      "scripts"
+    ],
+    "gitBranches": {
+      "defaultBranch": "main",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "backups": {
+      "path": "backups",
+      "purpose": null,
+      "fileCount": 24,
+      "lastAccessed": 1776839572672,
+      "keyFiles": [
+        "db_backup_20260316_155927.sql.gz",
+        "rangbuockhoa.sql.gz",
+        "upadate quyen v4.sql.gz",
+        "upadate_quyen_v1.sql.gz",
+        "update_duyet_v6.sql.gz"
+      ]
+    },
+    "docs": {
+      "path": "docs",
+      "purpose": "Documentation",
+      "fileCount": 0,
+      "lastAccessed": 1776839572672,
+      "keyFiles": []
+    },
+    "public": {
+      "path": "public",
+      "purpose": "Public files",
+      "fileCount": 1,
+      "lastAccessed": 1776839572676,
+      "keyFiles": [
+        "index.html"
+      ]
+    },
+    "scripts": {
+      "path": "scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 1,
+      "lastAccessed": 1776839572676,
+      "keyFiles": [
+        "smoke-base-syllabus.js"
+      ]
+    },
+    "server": {
+      "path": "server",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1776839572677,
+      "keyFiles": []
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "public/js/pages/syllabus-editor.js",
+      "accessCount": 54,
+      "lastAccessed": 1776848490222,
+      "type": "file"
+    },
+    {
+      "path": "server.js",
+      "accessCount": 30,
+      "lastAccessed": 1776849375674,
+      "type": "directory"
+    },
+    {
+      "path": "public/js/pages/version-editor.js",
+      "accessCount": 19,
+      "lastAccessed": 1776844892306,
+      "type": "directory"
+    },
+    {
+      "path": "public/js/pages/programs.js",
+      "accessCount": 8,
+      "lastAccessed": 1776849456571,
+      "type": "file"
+    },
+    {
+      "path": "public/js/pages/base-syllabus-editor.js",
+      "accessCount": 4,
+      "lastAccessed": 1776847245770,
+      "type": "file"
+    },
+    {
+      "path": "",
+      "accessCount": 3,
+      "lastAccessed": 1776847245489,
+      "type": "directory"
+    },
+    {
+      "path": "db.js",
+      "accessCount": 3,
+      "lastAccessed": 1776849144137,
+      "type": "directory"
+    },
+    {
+      "path": "CLAUDE.md",
+      "accessCount": 2,
+      "lastAccessed": 1776842075992,
+      "type": "file"
+    },
+    {
+      "path": "docs/superpowers/plans/2026-04-22-add-course-knowledge-block.md",
+      "accessCount": 2,
+      "lastAccessed": 1776844196469,
+      "type": "file"
+    },
+    {
+      "path": "public/js/pages",
+      "accessCount": 1,
+      "lastAccessed": 1776843850815,
+      "type": "directory"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-04-22-add-course-knowledge-block-design.md",
+      "accessCount": 1,
+      "lastAccessed": 1776844077906,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}

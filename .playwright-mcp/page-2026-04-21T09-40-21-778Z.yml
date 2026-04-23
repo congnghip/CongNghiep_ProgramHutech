@@ -1,0 +1,150 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e16]:
+      - generic [ref=e17]:
+        - generic [ref=e18]:
+          - generic [ref=e19]:
+            - generic [ref=e20]: 🎓
+            - heading "HUTECH Program" [level=1] [ref=e21]
+          - button "Thu gọn sidebar" [expanded] [ref=e22] [cursor=pointer]: «
+        - navigation [ref=e23]:
+          - generic "Tổng quan" [ref=e24] [cursor=pointer]:
+            - generic [ref=e25]: 📊
+            - generic [ref=e26]: Tổng quan
+          - generic "Thông báo" [ref=e27] [cursor=pointer]:
+            - generic [ref=e28]: 🔔
+            - generic [ref=e29]: Thông báo
+            - generic [ref=e30]: "4"
+          - generic [ref=e31]: Đào tạo
+          - generic "Ngành học" [ref=e32] [cursor=pointer]:
+            - generic [ref=e33]: 📋
+            - generic [ref=e34]: Ngành học
+          - generic "Học phần" [ref=e35] [cursor=pointer]:
+            - generic [ref=e36]: 📚
+            - generic [ref=e37]: Học phần
+          - generic "Phê duyệt" [ref=e38] [cursor=pointer]:
+            - generic [ref=e39]: 📬
+            - generic [ref=e40]: Phê duyệt
+          - generic [ref=e41]: Cài đặt
+          - generic "Phân quyền" [ref=e42] [cursor=pointer]:
+            - generic [ref=e43]: ⚙️
+            - generic [ref=e44]: Phân quyền
+          - generic "Nhật ký" [ref=e45] [cursor=pointer]:
+            - generic [ref=e46]: 📜
+            - generic [ref=e47]: Nhật ký
+        - generic [ref=e48]:
+          - generic [ref=e49]:
+            - generic [ref=e50]: Quản trị viên
+            - generic [ref=e51]: Quản trị hệ thống
+          - generic [ref=e52]:
+            - button "Đổi MK" [ref=e53] [cursor=pointer]
+            - button "Đăng xuất" [ref=e54] [cursor=pointer]
+      - main [ref=e55]:
+        - generic [ref=e172]:
+          - heading "Ngành học" [level=2] [ref=e173]
+          - button "+ Thêm ngành" [ref=e175] [cursor=pointer]
+        - table [ref=e177]:
+          - rowgroup [ref=e178]:
+            - row "Mã ngành Tên ngành Bậc Khoa Trạng thái Thao tác" [ref=e179]:
+              - columnheader "Mã ngành" [ref=e180]
+              - columnheader "Tên ngành" [ref=e181]
+              - columnheader "Bậc" [ref=e182]
+              - columnheader "Khoa" [ref=e183]
+              - columnheader "Trạng thái" [ref=e184]
+              - columnheader "Thao tác" [ref=e185]
+          - rowgroup [ref=e186]:
+            - row "7480201 Công nghệ thông tin Đại học Khoa CNTT Hoạt động Sửa Lưu trữ" [ref=e187]:
+              - cell "7480201" [ref=e188]:
+                - strong [ref=e189]: "7480201"
+              - cell "Công nghệ thông tin" [ref=e190]:
+                - link "Công nghệ thông tin" [ref=e191] [cursor=pointer]:
+                  - /url: "#"
+              - cell "Đại học" [ref=e192]
+              - cell "Khoa CNTT" [ref=e193]
+              - cell "Hoạt động" [ref=e194]:
+                - generic [ref=e195]: Hoạt động
+              - cell "Sửa Lưu trữ" [ref=e196]:
+                - generic [ref=e197]:
+                  - button "Sửa" [ref=e198] [cursor=pointer]
+                  - button "Lưu trữ" [ref=e199] [cursor=pointer]
+            - row "7220204 Ngôn ngữ Trung Quốc Chinese Language Cử nhân Ngôn ngữ Trung Quốc Khoa Trung Quốc học Hoạt động Sửa Lưu trữ" [ref=e200]:
+              - cell "7220204" [ref=e201]:
+                - strong [ref=e202]: "7220204"
+              - cell "Ngôn ngữ Trung Quốc Chinese Language" [ref=e203]:
+                - link "Ngôn ngữ Trung Quốc" [ref=e204] [cursor=pointer]:
+                  - /url: "#"
+                - text: Chinese Language
+              - cell "Cử nhân Ngôn ngữ Trung Quốc" [ref=e205]
+              - cell "Khoa Trung Quốc học" [ref=e206]
+              - cell "Hoạt động" [ref=e207]:
+                - generic [ref=e208]: Hoạt động
+              - cell "Sửa Lưu trữ" [ref=e209]:
+                - generic [ref=e210]:
+                  - button "Sửa" [ref=e211] [cursor=pointer]
+                  - button "Lưu trữ" [ref=e212] [cursor=pointer]
+        - generic:
+          - generic:
+            - generic:
+              - heading "Thêm ngành" [level=2]
+            - generic:
+              - generic:
+                - generic: Mã ngành *
+                - 'textbox "VD: 7480201"'
+              - generic:
+                - generic: Tên ngành (tiếng Việt) *
+                - 'textbox "VD: Công nghệ thông tin"'
+              - generic:
+                - generic: Tên ngành (tiếng Anh)
+                - 'textbox "VD: Information Technology"'
+              - generic:
+                - generic: Bậc đào tạo
+                - combobox:
+                  - option "Đại học" [selected]
+                  - option "Thạc sĩ"
+                  - option "Tiến sĩ"
+              - generic:
+                - generic: Khoa/Đơn vị *
+                - combobox
+              - generic:
+                - button "Hủy"
+                - button "Lưu"
+    - generic:
+      - generic:
+        - generic:
+          - heading "Đổi mật khẩu" [level=2]
+        - generic:
+          - generic:
+            - generic: Mật khẩu hiện tại *
+            - textbox
+          - generic:
+            - generic: Mật khẩu mới *
+            - textbox
+          - generic:
+            - generic: Xác nhận mật khẩu mới *
+            - textbox
+          - generic:
+            - button "Hủy"
+            - button "Đổi mật khẩu"
+    - dialog "Thông báo" [ref=e158]:
+      - generic [ref=e159]:
+        - generic [ref=e160]:
+          - heading "Thông báo" [level=2] [ref=e161]
+          - paragraph [ref=e162]: Các việc cần bạn xử lý và kết quả phê duyệt.
+        - button "Đóng thông báo" [ref=e163] [cursor=pointer]: ×
+      - generic [ref=e164]:
+        - button "Tất cả" [ref=e165] [cursor=pointer]
+        - button "Chưa đọc" [ref=e166] [cursor=pointer]
+        - button "Cần xử lý" [ref=e167] [cursor=pointer]
+      - button "Đánh dấu tất cả đã đọc" [ref=e169] [cursor=pointer]
+  - generic:
+    - dialog "Thông báo":
+      - generic:
+        - generic: "?"
+        - generic:
+          - heading "Thông báo" [level=2]
+      - generic:
+        - generic:
+          - textbox
+        - generic:
+          - button "Hủy"
+          - button "Xác nhận"

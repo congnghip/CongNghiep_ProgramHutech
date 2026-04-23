@@ -1,0 +1,9 @@
+.git
+.playwright-mcp
+.claude
+.superpowers
+node_modules
+backups
+docs
+server.log
+*.docx

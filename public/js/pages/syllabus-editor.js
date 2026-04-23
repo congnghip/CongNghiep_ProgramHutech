@@ -101,7 +101,6 @@ window.SyllabusEditorPage = {
   section9Data: null,
   section10Clos: [],
   section10Mappings: [],
-  section3Draft: null,
   activeTab: 0,
   dirtyMapChanges: null,
 
@@ -110,7 +109,6 @@ window.SyllabusEditorPage = {
     this.section9Data = null;
     this.section10Clos = [];
     this.section10Mappings = [];
-    this.section3Draft = null;
     this.dirtyMapChanges = null;
     container.innerHTML = '<div class="spinner"></div>';
     try {
@@ -119,10 +117,6 @@ window.SyllabusEditorPage = {
       let content = typeof this.syllabus.content === 'string' ? JSON.parse(this.syllabus.content) : (this.syllabus.content || {});
       content = normalizeCtdtSyllabusContent(content);
       this.syllabus.content = content;
-      this.section3Draft = {
-        knowledge_area: content.ctdt_overrides?.section3?.knowledge_area ?? null,
-        course_requirement: content.ctdt_overrides?.section3?.course_requirement ?? null,
-      };
     } catch (e) { container.innerHTML = `<div class="empty-state"><div class="icon">!</div><p>${e.message}</p></div>`; return; }
 
     const statusLabels = { draft:'Nháp', submitted:'Đã nộp', approved:'Đã duyệt', published:'Công bố' };
@@ -257,14 +251,22 @@ window.SyllabusEditorPage = {
   async renderSections1To8(body, editable) {
     const s = this.syllabus || {};
     const c = this.syllabus.content || {};
-    const section3 = this.section3Draft || { knowledge_area: null, course_requirement: null };
-    const knowledgeArea = section3.knowledge_area ?? s.knowledge_area ?? '';
-    const courseRequirement = section3.course_requirement ?? s.course_requirement ?? '';
+    const requirementLabels = { required: 'Bắt buộc', elective: 'Tự chọn' };
+    // knowledge_block_name: tên khối KT được gán trong CTDT (ưu tiên hơn knowledge_area)
+    const knowledgeBlockName = s.knowledge_block_name || '';
+    const knowledgeAreaLabels = { general: 'GD đại cương', professional: 'GD chuyên nghiệp', non_credit: 'Không tích lũy' };
+    const knowledgeArea = s.knowledge_area ?? '';
+    const knowledgeDisplay = knowledgeBlockName
+      ? `<strong>${_esc(knowledgeBlockName)}</strong>`
+      : `<em style="color:var(--text-muted);">Chưa gán khối kiến thức</em>`;
+    // course_type từ version_courses là nguồn đúng cho bắt buộc/tự chọn trong CTDT
+    const courseType = s.course_type || s.course_requirement || '';
+    const courseRequirementLabel = requirementLabels[courseType] || '';
     const creditsDisplay = `${s.credits || 0} (${s.credits_theory || 0}, ${s.credits_practice || 0}) TC`;
     body.innerHTML = `
       <div style="max-width:900px;">
         <div style="margin-bottom:12px;padding:12px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg-secondary);font-size:13px;color:var(--text-muted);">
-          Các mục ngoài 3, 9, 10 được kế thừa từ đề cương gốc và không chỉnh sửa trong đề cương CTDT.
+          Tất cả các mục được kế thừa từ đề cương gốc và CTDT. Chỉ có thể chỉnh sửa tab <strong>CLO</strong>.
         </div>
         <table class="data-table">
           <tbody>
@@ -273,19 +275,8 @@ window.SyllabusEditorPage = {
             <tr>
               <th>3. Thuộc khối kiến thức</th>
               <td>
-                <div style="display:flex;gap:12px;flex-wrap:wrap;">
-                  <select id="ctdt-sec3-knowledge" ${editable ? '' : 'disabled'} style="${INP}max-width:240px;">
-                    <option value="">-- Chọn khối kiến thức --</option>
-                    <option value="general" ${knowledgeArea === 'general' ? 'selected' : ''}>GD đại cương</option>
-                    <option value="professional" ${knowledgeArea === 'professional' ? 'selected' : ''}>GD chuyên nghiệp</option>
-                    <option value="non_credit" ${knowledgeArea === 'non_credit' ? 'selected' : ''}>Không tích lũy</option>
-                  </select>
-                  <select id="ctdt-sec3-requirement" ${editable ? '' : 'disabled'} style="${INP}max-width:240px;">
-                    <option value="">-- Chọn tính chất --</option>
-                    <option value="required" ${courseRequirement === 'required' ? 'selected' : ''}>Bắt buộc</option>
-                    <option value="elective" ${courseRequirement === 'elective' ? 'selected' : ''}>Tự chọn</option>
-                  </select>
-                </div>
+                ${knowledgeDisplay}
+                ${courseRequirementLabel ? `<span style="margin-left:16px;color:var(--text-muted);">·</span> <span style="margin-left:8px;">${courseRequirementLabel}</span>` : ''}
               </td>
             </tr>
             <tr><th>4. Trình độ đào tạo</th><td>${s.training_level || ''}</td></tr>
@@ -295,11 +286,6 @@ window.SyllabusEditorPage = {
             <tr><th>8. Đơn vị quản lý học phần</th><td>${s.dept_name || ''}</td></tr>
           </tbody>
         </table>
-        ${editable ? `
-          <div style="display:flex;justify-content:flex-end;margin-top:12px;">
-            <button class="btn btn-primary btn-sm" onclick="window.SyllabusEditorPage.saveSection3()">Lưu mục 3</button>
-          </div>
-        ` : ''}
 
         <h4 style="font-size:14px;font-weight:600;margin:20px 0 8px;">Phương pháp, hình thức tổ chức dạy học (mục 12)</h4>
         <table class="data-table" id="ctdt-teaching-methods-table">
@@ -315,7 +301,7 @@ window.SyllabusEditorPage = {
     `;
   },
 
-  async renderSection9(body, editable) {
+  async renderSection9(body, _editable) {
     const data = await fetch(`/api/syllabi/${this.syllabusId}/ctdt-section9`).then(r => r.json());
     if (data.error) throw new Error(data.error);
     this.section9Data = data;
@@ -337,11 +323,11 @@ window.SyllabusEditorPage = {
     body.innerHTML = `
       <div style="display:grid;gap:20px;max-width:960px;">
         <div style="margin-bottom:4px;padding:12px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg-secondary);font-size:13px;color:var(--text-muted);">
-          Mục 9 chỉ chỉnh sửa các mapping của học phần hiện tại trong CTDT.
+          Ma trận PLO/PI được cập nhật tự động khi chỉnh sửa ma trận CLO ↔ PI trong tab <strong>CLO</strong>.
         </div>
         <div>
           <h3 style="font-size:15px;font-weight:600;margin-bottom:12px;">9. Ma trận học phần ↔ PLO</h3>
-          <table class="data-table" id="ctdt-section9-plo-table">
+          <table class="data-table">
             <thead><tr><th>PLO</th><th>Mô tả</th><th style="width:80px;text-align:center;">Đạt</th></tr></thead>
             <tbody>
               ${plos.length ? plos.map(plo => `
@@ -349,7 +335,7 @@ window.SyllabusEditorPage = {
                   <td><strong>${plo.code || ''}</strong></td>
                   <td>${plo.description || ''}</td>
                   <td style="text-align:center;">
-                    <input type="checkbox" data-plo-id="${plo.id}" ${(ploMap.get(String(plo.id)) || 0) > 0 ? 'checked' : ''} ${editable ? '' : 'disabled'} style="width:16px;height:16px;cursor:${editable ? 'pointer' : 'default'};">
+                    <input type="checkbox" disabled ${(ploMap.get(String(plo.id)) || 0) > 0 ? 'checked' : ''} style="width:16px;height:16px;cursor:default;">
                   </td>
                 </tr>
               `).join('') : '<tr><td colspan="3" style="text-align:center;color:var(--text-muted);">Chưa có PLO</td></tr>'}
@@ -360,9 +346,8 @@ window.SyllabusEditorPage = {
         <div>
           <h3 style="font-size:15px;font-weight:600;margin-bottom:12px;">9. Ma trận học phần ↔ PI</h3>
           ${!hasPIs ? '<p style="color:var(--text-muted);font-size:13px;">Chưa có PI trong CTDT.</p>' : `
-          <p style="color:var(--text-muted);font-size:12px;margin-bottom:12px;">Chỉ các ô có HP ↔ PLO đã map (≥1) mới được chỉnh sửa.</p>
           <div style="overflow-x:auto;padding-bottom:16px;">
-            <table class="data-table" id="ctdt-section9-pi-table" style="border-collapse:collapse;white-space:nowrap;">
+            <table class="data-table" style="border-collapse:collapse;white-space:nowrap;">
               <thead>
                 <tr>
                   <th rowspan="2" style="position:sticky;left:0;z-index:10;min-width:70px;background:#f8f9fa;box-shadow:inset -1px 0 0 var(--border);">Mã HP</th>
@@ -383,20 +368,10 @@ window.SyllabusEditorPage = {
                   <td style="position:sticky;left:0;z-index:5;font-size:12px;background:#ffffff;box-shadow:inset -1px 0 0 var(--border),inset 0 -1px 0 var(--border);"><strong>${courseCode}</strong></td>
                   ${plos.map(plo => {
                     const pisForPlo = pisByPlo[plo.id] || [];
-                    const isPloMapped = (ploMap.get(String(plo.id)) || 0) > 0;
                     return pisForPlo.map((pi, piIndex) => {
                       const val = piMap.get(String(pi.id)) || 0;
-                      const isDisabled = !(isPloMapped && editable);
-                      return `<td style="text-align:center;${piIndex === 0 ? 'border-left:2px solid var(--border);' : ''}">
-                        <select data-pi-id="${pi.id}"
-                                style="width:34px;padding:1px;font-size:11px;border:1px solid var(--border);border-radius:var(--radius);font-family:inherit;${isDisabled ? 'background:var(--bg-secondary);opacity:0.5;cursor:not-allowed;' : 'cursor:pointer;'}"
-                                ${isDisabled ? 'disabled' : ''}>
-                          <option value="0" ${val === 0 ? 'selected' : ''}>—</option>
-                          <option value="1" ${val === 1 ? 'selected' : ''}>1</option>
-                          <option value="2" ${val === 2 ? 'selected' : ''}>2</option>
-                          <option value="3" ${val === 3 ? 'selected' : ''}>3</option>
-                        </select>
-                      </td>`;
+                      const valLabel = val > 0 ? String(val) : '—';
+                      return `<td style="text-align:center;font-size:12px;${piIndex === 0 ? 'border-left:2px solid var(--border);' : ''}">${valLabel}</td>`;
                     }).join('');
                   }).join('')}
                 </tr>
@@ -438,7 +413,7 @@ window.SyllabusEditorPage = {
     body.innerHTML = `
       <div style="display:grid;gap:20px;max-width:960px;">
         <div style="margin-bottom:4px;padding:12px;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--bg-secondary);font-size:13px;color:var(--text-muted);">
-          Mục 10 giữ CLO đọc-only và chỉ cho phép chỉnh sửa ma trận CLO ↔ PI của CTDT.
+          CLO kế thừa từ đề cương gốc (chỉ đọc). Tích vào ma trận CLO ↔ PI để tự động cập nhật Ma trận PLO/PI.
         </div>
         <div>
           <h3 style="font-size:15px;font-weight:600;margin-bottom:12px;">10. CLO kế thừa từ đề cương gốc</h3>
@@ -474,9 +449,16 @@ window.SyllabusEditorPage = {
                   <tr>
                     <td><strong>${c.code || ''}</strong></td>
                     ${plosWithPIs.map(plo => (pisByPlo[plo.id] || []).map((pi, i) => {
-                      const checked = (mapObj[`${c.id}-${pi.id}`] || 0) > 0;
+                      const val = mapObj[`${c.id}-${pi.id}`] || 0;
                       return `<td style="text-align:center;${i===0?'border-left:2px solid var(--border);':''}">
-                        <input type="checkbox" data-clo="${c.id}" data-pi="${pi.id}" ${checked ? 'checked' : ''} ${editable ? '' : 'disabled'} style="width:15px;height:15px;cursor:${editable ? 'pointer' : 'default'};">
+                        <select data-clo="${c.id}" data-pi="${pi.id}" data-plo="${plo.id}" ${editable ? '' : 'disabled'}
+                          style="width:38px;padding:1px 2px;font-size:11px;border:1px solid var(--border);border-radius:var(--radius);font-family:inherit;text-align:center;cursor:${editable ? 'pointer' : 'default'};"
+                          ${editable ? 'onchange="window.SyllabusEditorPage._onClopiChange()"' : ''}>
+                          <option value="0" ${val===0?'selected':''}>—</option>
+                          <option value="1" ${val===1?'selected':''}>1</option>
+                          <option value="2" ${val===2?'selected':''}>2</option>
+                          <option value="3" ${val===3?'selected':''}>3</option>
+                        </select>
                       </td>`;
                     }).join('')).join('')}
                   </tr>
@@ -484,9 +466,68 @@ window.SyllabusEditorPage = {
               </tbody>
             </table>
           </div>
+          ${editable ? '<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">Chọn mức 1/2/3 (hoặc — để xóa) — tự động lưu và cập nhật Ma trận PLO/PI.</p>' : ''}
         </div>
       </div>
     `;
+  },
+
+  // Debounced auto-save: collects current CLO-PI state then saves after 400ms of inactivity
+  _onClopiChange() {
+    clearTimeout(this._clopiSaveTimer);
+    this._clopiSaveTimer = setTimeout(() => this._saveClopiMap(), 400);
+  },
+
+  async _saveClopiMap() {
+    this._collectCloPiMap();
+    try {
+      const res = await fetch(`/api/syllabi/${this.syllabusId}/clo-pi-map`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mappings: this.dirtyMapChanges || [] }),
+      });
+      const data = await res.json();
+      if (!res.ok) { window.toast.error(data.error || 'Lỗi lưu ma trận CLO↔PI'); return; }
+      this.dirtyMapChanges = null;
+      await this._syncSection9FromClopiMap();
+    } catch (e) {
+      window.toast.error(e.message);
+    }
+  },
+
+  // Re-compute PLO and PI mappings from the CLO-PI table, then save section9
+  async _syncSection9FromClopiMap() {
+    const table = document.getElementById('clo-pi-table');
+    if (!table) return;
+
+    // Collect all select values > 0, with PLO grouping
+    const checkedPloIds = new Set();
+    const piMappings = {};
+    table.querySelectorAll('select[data-clo]').forEach(sel => {
+      const level = parseInt(sel.value, 10) || 0;
+      if (level > 0) {
+        const ploId = parseInt(sel.dataset.plo, 10);
+        const piId = parseInt(sel.dataset.pi, 10);
+        if (ploId) checkedPloIds.add(ploId);
+        if (piId) piMappings[piId] = Math.max(piMappings[piId] || 0, level);
+      }
+    });
+
+    const plo_mappings = Array.from(checkedPloIds).map(id => ({ plo_id: id, contribution_level: 1 }));
+    const pi_mappings = Object.entries(piMappings).map(([piId, level]) => ({
+      pi_id: parseInt(piId, 10),
+      contribution_level: level,
+    }));
+
+    const res = await fetch(`/api/syllabi/${this.syllabusId}/ctdt-section9`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ plo_mappings, pi_mappings }),
+    });
+    const data = await res.json();
+    if (!res.ok) { window.toast.error(data.error || 'Lỗi cập nhật Ma trận PLO/PI'); return; }
+    if (data.section9) this.section9Data = this._normalizeSection9Data(data.section9);
+    window.toast.success('Đã lưu và cập nhật Ma trận PLO/PI');
   },
 
 
@@ -520,69 +561,9 @@ window.SyllabusEditorPage = {
 
   _collectCurrentTabIntoState() {
     switch (this.activeTab) {
-      case 0: this.collectSection3(); break;
       case 1: this._collectCloPiMap(); break;
-      case 2: this.collectSection9?.(); break;
-      // cases 3–5 are read-only; nothing to collect
+      // all other tabs are read-only in CTDT mode; nothing to collect
     }
-  },
-
-  collectSection3() {
-    const knowledgeEl = document.getElementById('ctdt-sec3-knowledge');
-    const requirementEl = document.getElementById('ctdt-sec3-requirement');
-    if (!knowledgeEl || !requirementEl) return;
-    this.section3Draft = {
-      knowledge_area: knowledgeEl.value || null,
-      course_requirement: requirementEl.value || null,
-    };
-  },
-
-  async saveSection3(options = {}) {
-    this.collectSection3();
-    try {
-      const res = await fetch(`/api/syllabi/${this.syllabusId}/ctdt-section3`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(this.section3Draft || {}),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Lỗi lưu mục 3');
-      this.section3Draft = data.section3 || this.section3Draft;
-      this.syllabus.content = {
-        ...this.syllabus.content,
-        ctdt_overrides: {
-          ...(this.syllabus.content.ctdt_overrides || {}),
-          section3: data.section3,
-        },
-      };
-      if (!options.silent) window.toast.success('Đã lưu mục 3');
-      return data;
-    } catch (e) {
-      if (!options.silent) window.toast.error(e.message);
-      throw e;
-    }
-  },
-
-  collectSection9() {
-    const ploTable = document.getElementById('ctdt-section9-plo-table');
-    const piTable = document.getElementById('ctdt-section9-pi-table');
-    if (!ploTable || !piTable) return;
-
-    const plo_mappings = Array.from(ploTable.querySelectorAll('input[type="checkbox"]'))
-      .map(cb => ({
-        plo_id: parseInt(cb.dataset.ploId, 10),
-        contribution_level: cb.checked ? 1 : 0,
-      }))
-      .filter(m => m.contribution_level > 0);
-
-    const pi_mappings = Array.from(piTable.querySelectorAll('select'))
-      .map(sel => ({
-        pi_id: parseInt(sel.dataset.piId, 10),
-        contribution_level: parseInt(sel.value, 10) || 0,
-      }))
-      .filter(m => m.contribution_level > 0);
-
-    this.section9Data = { ...(this.section9Data || {}), plo_mappings, pi_mappings };
   },
 
   _normalizeSection9Data(raw) {
@@ -611,42 +592,16 @@ window.SyllabusEditorPage = {
     };
   },
 
-  async saveSection9(options = {}) {
-    try {
-      this.collectSection9();
-      if (!this.section9Data || (!Array.isArray(this.section9Data.plo_mappings) && !Array.isArray(this.section9Data.pi_mappings))) {
-        const fresh = await fetch(`/api/syllabi/${this.syllabusId}/ctdt-section9`).then(r => r.json());
-        if (fresh.error) throw new Error(fresh.error);
-        this.section9Data = fresh;
-      }
-      this.section9Data = this._normalizeSection9Data(this.section9Data);
-      const res = await fetch(`/api/syllabi/${this.syllabusId}/ctdt-section9`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          plo_mappings: this.section9Data?.plo_mappings || [],
-          pi_mappings: this.section9Data?.pi_mappings || [],
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Lỗi lưu mục 9');
-      if (data.section9) this.section9Data = this._normalizeSection9Data(data.section9);
-      return data;
-    } catch (e) {
-      if (!options.silent) window.toast.error(e.message);
-      throw e;
-    }
-  },
-
   _collectCloPiMap() {
     const table = document.getElementById('clo-pi-table');
     if (!table) return;
     const mappings = [];
-    table.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-      if (cb.checked) mappings.push({
-        clo_id: parseInt(cb.dataset.clo),
-        pi_id: parseInt(cb.dataset.pi),
-        contribution_level: 1,
+    table.querySelectorAll('select[data-clo]').forEach(sel => {
+      const level = parseInt(sel.value, 10) || 0;
+      if (level > 0) mappings.push({
+        clo_id: parseInt(sel.dataset.clo),
+        pi_id: parseInt(sel.dataset.pi),
+        contribution_level: level,
       });
     });
     this.dirtyMapChanges = mappings;
@@ -999,24 +954,17 @@ window.SyllabusEditorPage = {
   },
 
   // ============ SAVE ALL ============
+  // Note: CLO↔PI changes are auto-saved on checkbox change via _onClopiChange().
+  // saveAll() is kept for the header button but only re-renders to reflect latest state.
   async saveAll() {
     try {
       this._collectCurrentTabIntoState();
-      await this.saveSection3({ silent: true });
-      await this.saveSection9({ silent: true });
 
       if (this.dirtyMapChanges) {
-        const res = await fetch(`/api/syllabi/${this.syllabusId}/clo-pi-map`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ mappings: this.dirtyMapChanges }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Lỗi lưu mục 10');
-        this.dirtyMapChanges = null;
+        await this._saveClopiMap();
+      } else {
+        window.toast.success('Đã lưu');
       }
-
-      window.toast.success('Đã lưu mục 3, 9, 10');
       await this.render(document.getElementById('page-content'), this.syllabusId);
     } catch (e) {
       window.toast.error(e.message);

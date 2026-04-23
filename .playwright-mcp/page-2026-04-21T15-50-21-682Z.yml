@@ -1,0 +1,184 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]:
+          - generic [ref=e6]:
+            - generic [ref=e7]: 🎓
+            - heading "HUTECH Program" [level=1] [ref=e8]
+          - button "Thu gọn sidebar" [expanded] [ref=e9] [cursor=pointer]: «
+        - navigation [ref=e10]:
+          - generic "Tổng quan" [ref=e11] [cursor=pointer]:
+            - generic [ref=e12]: 📊
+            - generic [ref=e13]: Tổng quan
+          - generic "Thông báo" [ref=e14] [cursor=pointer]:
+            - generic [ref=e15]: 🔔
+            - generic [ref=e16]: Thông báo
+            - generic [ref=e17]: "4"
+          - generic [ref=e18]: Đào tạo
+          - generic "Chương trình ĐT" [ref=e19] [cursor=pointer]:
+            - generic [ref=e20]: 📋
+            - generic [ref=e21]: Chương trình ĐT
+          - generic "Học phần" [ref=e22] [cursor=pointer]:
+            - generic [ref=e23]: 📚
+            - generic [ref=e24]: Học phần
+          - generic "Phê duyệt" [ref=e25] [cursor=pointer]:
+            - generic [ref=e26]: 📬
+            - generic [ref=e27]: Phê duyệt
+          - generic [ref=e28]: Cài đặt
+          - generic "Phân quyền" [ref=e29] [cursor=pointer]:
+            - generic [ref=e30]: ⚙️
+            - generic [ref=e31]: Phân quyền
+          - generic "Nhật ký" [ref=e32] [cursor=pointer]:
+            - generic [ref=e33]: 📜
+            - generic [ref=e34]: Nhật ký
+        - generic [ref=e35]:
+          - generic [ref=e36]:
+            - generic [ref=e37]: Quản trị viên
+            - generic [ref=e38]: Quản trị hệ thống
+          - generic [ref=e39]:
+            - button "Đổi MK" [ref=e40] [cursor=pointer]
+            - button "Đăng xuất" [ref=e41] [cursor=pointer]
+      - main [ref=e42]:
+        - generic [ref=e58]:
+          - heading "Xin chào, Quản trị viên" [level=1] [ref=e59]
+          - paragraph [ref=e60]: Quản trị hệ thống · Trường Đại học Công nghệ TP.HCM
+        - generic [ref=e61]:
+          - generic [ref=e62]:
+            - generic [ref=e63]: "2"
+            - generic [ref=e64]: Chương trình
+          - generic [ref=e65]:
+            - generic [ref=e66]: "3"
+            - generic [ref=e67]: Khóa
+          - generic [ref=e68]:
+            - generic [ref=e69]: "86"
+            - generic [ref=e70]: Học phần
+          - generic [ref=e71]:
+            - generic [ref=e72]: "9"
+            - generic [ref=e73]: Đề cương
+          - generic [ref=e74]:
+            - generic [ref=e75]: "7"
+            - generic [ref=e76]: Người dùng
+          - generic [ref=e77]:
+            - generic [ref=e78]: "0"
+            - generic [ref=e79]: Chờ duyệt
+        - generic [ref=e80]:
+          - generic [ref=e81]:
+            - heading "Khóa CTĐT" [level=3] [ref=e82]
+            - generic [ref=e83]:
+              - generic [ref=e84]: Nháp
+              - generic [ref=e85]: "3"
+            - generic [ref=e86]:
+              - generic [ref=e87]: Đã nộp
+              - generic [ref=e88]: "0"
+            - generic [ref=e89]:
+              - generic [ref=e90]: Khoa ✓
+              - generic [ref=e91]: "0"
+            - generic [ref=e92]:
+              - generic [ref=e93]: PĐT ✓
+              - generic [ref=e94]: "0"
+            - generic [ref=e95]:
+              - generic [ref=e96]: Công bố
+              - generic [ref=e97]: "0"
+          - generic [ref=e98]:
+            - heading "Đề cương" [level=3] [ref=e99]
+            - generic [ref=e100]:
+              - generic [ref=e101]: Nháp
+              - generic [ref=e102]: "1"
+            - generic [ref=e103]:
+              - generic [ref=e104]: Đã nộp
+              - generic [ref=e105]: "0"
+            - generic [ref=e106]:
+              - generic [ref=e107]: Đã duyệt
+              - generic [ref=e108]: "8"
+            - generic [ref=e109]:
+              - generic [ref=e110]: Công bố
+              - generic [ref=e111]: "0"
+        - generic [ref=e112]:
+          - heading "Hoạt động gần đây" [level=3] [ref=e113]
+          - generic [ref=e114]:
+            - generic [ref=e115]:
+              - generic [ref=e116]: Quản trị viên Xóa học phần trong CTĐT
+              - generic [ref=e117]: 4 ngày trước
+            - generic [ref=e118]:
+              - generic [ref=e119]: Quản trị viên Xóa học phần trong CTĐT
+              - generic [ref=e120]: 4 ngày trước
+            - generic [ref=e121]:
+              - generic [ref=e122]: Quản trị viên Xóa học phần trong CTĐT
+              - generic [ref=e123]: 4 ngày trước
+            - generic [ref=e124]:
+              - generic [ref=e125]: Quản trị viên Xóa học phần trong CTĐT
+              - generic [ref=e126]: 4 ngày trước
+            - generic [ref=e127]:
+              - generic [ref=e128]: Quản trị viên Xóa học phần trong CTĐT
+              - generic [ref=e129]: 4 ngày trước
+            - generic [ref=e130]:
+              - generic [ref=e131]: Quản trị viên Xóa học phần trong CTĐT
+              - generic [ref=e132]: 4 ngày trước
+            - generic [ref=e133]:
+              - generic [ref=e134]: Quản trị viên Xóa học phần trong CTĐT
+              - generic [ref=e135]: 4 ngày trước
+            - generic [ref=e136]:
+              - generic [ref=e137]: Quản trị viên Xóa học phần trong CTĐT
+              - generic [ref=e138]: 4 ngày trước
+            - generic [ref=e139]:
+              - generic [ref=e140]: Quản trị viên Xóa học phần trong CTĐT
+              - generic [ref=e141]: 4 ngày trước
+            - generic [ref=e142]:
+              - generic [ref=e143]: Quản trị viên Xóa học phần trong CTĐT
+              - generic [ref=e144]: 4 ngày trước
+            - generic [ref=e145]:
+              - generic [ref=e146]: Quản trị viên Xóa học phần trong CTĐT
+              - generic [ref=e147]: 4 ngày trước
+            - generic [ref=e148]:
+              - generic [ref=e149]: Quản trị viên Xóa học phần trong CTĐT
+              - generic [ref=e150]: 4 ngày trước
+            - generic [ref=e151]:
+              - generic [ref=e152]: Quản trị viên Xóa học phần trong CTĐT
+              - generic [ref=e153]: 4 ngày trước
+            - generic [ref=e154]:
+              - generic [ref=e155]: Quản trị viên Xóa học phần trong CTĐT
+              - generic [ref=e156]: 4 ngày trước
+            - generic [ref=e157]:
+              - generic [ref=e158]: Quản trị viên Xóa học phần trong CTĐT
+              - generic [ref=e159]: 4 ngày trước
+    - generic:
+      - generic:
+        - generic:
+          - heading "Đổi mật khẩu" [level=2]
+        - generic:
+          - generic:
+            - generic: Mật khẩu hiện tại *
+            - textbox
+          - generic:
+            - generic: Mật khẩu mới *
+            - textbox
+          - generic:
+            - generic: Xác nhận mật khẩu mới *
+            - textbox
+          - generic:
+            - button "Hủy"
+            - button "Đổi mật khẩu"
+    - dialog "Thông báo" [ref=e44]:
+      - generic [ref=e45]:
+        - generic [ref=e46]:
+          - heading "Thông báo" [level=2] [ref=e47]
+          - paragraph [ref=e48]: Các việc cần bạn xử lý và kết quả phê duyệt.
+        - button "Đóng thông báo" [ref=e49] [cursor=pointer]: ×
+      - generic [ref=e50]:
+        - button "Tất cả" [ref=e51] [cursor=pointer]
+        - button "Chưa đọc" [ref=e52] [cursor=pointer]
+        - button "Cần xử lý" [ref=e53] [cursor=pointer]
+      - button "Đánh dấu tất cả đã đọc" [ref=e55] [cursor=pointer]
+  - generic:
+    - dialog "Thông báo":
+      - generic:
+        - generic: "?"
+        - generic:
+          - heading "Thông báo" [level=2]
+      - generic:
+        - generic:
+          - textbox
+        - generic:
+          - button "Hủy"
+          - button "Xác nhận"

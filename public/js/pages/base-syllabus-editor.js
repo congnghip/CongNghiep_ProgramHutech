@@ -171,22 +171,6 @@ window.BaseSyllabusEditorPage = {
 
         <div style="display:flex;gap:12px;">
           <div class="input-group" style="flex:1;">
-            <label>Khối kiến thức</label>
-            <select id="bs-knowledge-area" ${dis}>
-              <option value="">-- Chọn --</option>
-              <option value="general" ${co.knowledge_area==='general'?'selected':''}>GD đại cương</option>
-              <option value="professional" ${co.knowledge_area==='professional'?'selected':''}>GD chuyên nghiệp</option>
-            </select>
-          </div>
-          <div class="input-group" style="flex:1;">
-            <label>Yêu cầu</label>
-            <select id="bs-course-req" ${dis}>
-              <option value="">-- Chọn --</option>
-              <option value="required" ${co.course_requirement==='required'?'selected':''}>Bắt buộc</option>
-              <option value="elective" ${co.course_requirement==='elective'?'selected':''}>Tự chọn</option>
-            </select>
-          </div>
-          <div class="input-group" style="flex:1;">
             <label>Trình độ đào tạo</label>
             <select id="bs-training-level" ${dis}>
               <option value="Đại học" ${(co.training_level||'Đại học')==='Đại học'?'selected':''}>Đại học</option>
@@ -196,7 +180,10 @@ window.BaseSyllabusEditorPage = {
         </div>
 
         <div style="display:flex;gap:12px;">
-          <div class="input-group" style="flex:1;"><label>Học phần tiên quyết (mục 6)</label><input type="text" id="bs-prereq" ${dis} value="${esc(c.prerequisites)}"></div>
+          <div class="input-group" style="flex:1;"><label>Học phần học trước (mục 6)</label><input type="text" id="bs-prereq" ${dis} value="${esc(c.prerequisites)}" placeholder="Tên học phần tiên quyết"></div>
+          <div class="input-group" style="flex:1;"><label>Học phần song hành (mục 6)</label><input type="text" id="bs-prereq-concurrent" ${dis} value="${esc(c.prerequisites_concurrent)}" placeholder="Tên học phần song hành (nếu có)"></div>
+        </div>
+        <div style="display:flex;gap:12px;">
           <div class="input-group" style="flex:1;"><label>Ngôn ngữ giảng dạy</label><input type="text" id="bs-lang-inst" ${dis} value="${esc(c.language_instruction)}"></div>
         </div>
 
@@ -245,6 +232,7 @@ window.BaseSyllabusEditorPage = {
       course_description: desc.value,
       course_objectives: document.getElementById('bs-course-obj').value,
       prerequisites: document.getElementById('bs-prereq').value,
+      prerequisites_concurrent: document.getElementById('bs-prereq-concurrent')?.value || '',
       language_instruction: document.getElementById('bs-lang-inst').value,
       teaching_methods,
     };
@@ -252,8 +240,6 @@ window.BaseSyllabusEditorPage = {
     this._pendingCourseUpdate = {
       name: document.getElementById('bs-name-vi').value,
       name_en: document.getElementById('bs-name-en').value,
-      knowledge_area: document.getElementById('bs-knowledge-area').value || null,
-      course_requirement: document.getElementById('bs-course-req').value || null,
       training_level: document.getElementById('bs-training-level').value,
     };
   },
@@ -595,6 +581,22 @@ window.BaseSyllabusEditorPage = {
         <div class="input-group">
           <textarea id="bs-other-req" ${dis} rows="3" placeholder="Yêu cầu khác (nếu có)">${esc(c.other_requirements)}</textarea>
         </div>
+
+        <h4 style="font-size:14px;font-weight:600;margin:24px 0 8px;">Giảng viên phụ trách học phần</h4>
+        ${this._instructorFormHtml('instr', c.instructor || {}, dis)}
+
+        <h4 style="font-size:14px;font-weight:600;margin:24px 0 8px;">Giảng viên hỗ trợ / Trợ giảng (nếu có)</h4>
+        ${this._instructorFormHtml('asst', c.assistant_instructor || {}, dis)}
+
+        <h4 style="font-size:14px;font-weight:600;margin:24px 0 8px;">Cách liên lạc với giảng viên/trợ giảng</h4>
+        <div class="input-group">
+          <textarea id="bs-contact-info" ${dis} rows="2" placeholder="Ví dụ: Email, giờ tiếp sinh viên...">${esc(c.contact_info)}</textarea>
+        </div>
+
+        <h4 style="font-size:14px;font-weight:600;margin:24px 0 8px;">Ngày ký</h4>
+        <div class="input-group" style="max-width:300px;">
+          <input type="text" id="bs-signature-date" ${dis} placeholder="VD: 01 tháng 09 năm 2025" value="${esc(c.signature_date)}">
+        </div>
       </div>
     `;
   },
@@ -609,6 +611,18 @@ window.BaseSyllabusEditorPage = {
         ${editable ? `<button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="this.closest('.tool-category').remove()">✕</button>` : ''}
       </div>
       <textarea data-field="items" ${dis} rows="3" placeholder="Mỗi dòng = 1 công cụ" style="${BS_INP}">${esc(items)}</textarea>
+    </div>`;
+  },
+
+  _instructorFormHtml(prefix, data, dis) {
+    const esc = s => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    return `<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div class="input-group" style="margin:0;"><label style="font-size:12px;">Họ và tên</label><input type="text" id="bs-${prefix}-name" ${dis} value="${esc(data.name)}"></div>
+      <div class="input-group" style="margin:0;"><label style="font-size:12px;">Học hàm, học vị</label><input type="text" id="bs-${prefix}-title" ${dis} value="${esc(data.title)}"></div>
+      <div class="input-group" style="margin:0;"><label style="font-size:12px;">Địa chỉ cơ quan</label><input type="text" id="bs-${prefix}-address" ${dis} value="${esc(data.address)}"></div>
+      <div class="input-group" style="margin:0;"><label style="font-size:12px;">Điện thoại liên hệ</label><input type="text" id="bs-${prefix}-phone" ${dis} value="${esc(data.phone)}"></div>
+      <div class="input-group" style="margin:0;"><label style="font-size:12px;">Email</label><input type="text" id="bs-${prefix}-email" ${dis} value="${esc(data.email)}"></div>
+      <div class="input-group" style="margin:0;"><label style="font-size:12px;">Website</label><input type="text" id="bs-${prefix}-website" ${dis} value="${esc(data.website)}"></div>
     </div>`;
   },
 
@@ -627,12 +641,24 @@ window.BaseSyllabusEditorPage = {
       category: div.querySelector('[data-field="category"]').value,
       items: div.querySelector('[data-field="items"]').value.split('\n').map(s => s.trim()).filter(Boolean),
     })).filter(t => t.category || t.items.length) : [];
+    const collectInstructor = prefix => ({
+      name: document.getElementById(`bs-${prefix}-name`)?.value || '',
+      title: document.getElementById(`bs-${prefix}-title`)?.value || '',
+      address: document.getElementById(`bs-${prefix}-address`)?.value || '',
+      phone: document.getElementById(`bs-${prefix}-phone`)?.value || '',
+      email: document.getElementById(`bs-${prefix}-email`)?.value || '',
+      website: document.getElementById(`bs-${prefix}-website`)?.value || '',
+    });
     this.baseSyllabus.content = {
       ...this.baseSyllabus.content,
       textbooks: toArr('bs-textbooks'),
       references: toArr('bs-references'),
       tools,
       other_requirements: document.getElementById('bs-other-req')?.value || '',
+      instructor: collectInstructor('instr'),
+      assistant_instructor: collectInstructor('asst'),
+      contact_info: document.getElementById('bs-contact-info')?.value || '',
+      signature_date: document.getElementById('bs-signature-date')?.value || '',
     };
     // Drop legacy v2 course_requirements if still present
     delete this.baseSyllabus.content.course_requirements;

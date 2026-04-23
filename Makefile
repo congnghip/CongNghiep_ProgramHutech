@@ -25,7 +25,7 @@ help: ## Hiển thị các lệnh hỗ trợ
 
 # --- Docker commands ---
 up:
-	docker compose up -d
+	docker compose up -d --build
 
 down:
 	docker compose down

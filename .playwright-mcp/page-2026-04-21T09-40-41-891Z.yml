@@ -1,0 +1,114 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e16]:
+      - generic [ref=e17]:
+        - generic [ref=e18]:
+          - generic [ref=e19]:
+            - generic [ref=e20]: 🎓
+            - heading "HUTECH Program" [level=1] [ref=e21]
+          - button "Thu gọn sidebar" [expanded] [ref=e22] [cursor=pointer]: «
+        - navigation [ref=e23]:
+          - generic "Tổng quan" [ref=e24] [cursor=pointer]:
+            - generic [ref=e25]: 📊
+            - generic [ref=e26]: Tổng quan
+          - generic "Thông báo" [ref=e27] [cursor=pointer]:
+            - generic [ref=e28]: 🔔
+            - generic [ref=e29]: Thông báo
+            - generic [ref=e30]: "4"
+          - generic [ref=e31]: Đào tạo
+          - generic "Ngành học" [ref=e32] [cursor=pointer]:
+            - generic [ref=e33]: 📋
+            - generic [ref=e34]: Ngành học
+          - generic "Học phần" [ref=e35] [cursor=pointer]:
+            - generic [ref=e36]: 📚
+            - generic [ref=e37]: Học phần
+          - generic "Phê duyệt" [ref=e38] [cursor=pointer]:
+            - generic [ref=e39]: 📬
+            - generic [ref=e40]: Phê duyệt
+          - generic [ref=e41]: Cài đặt
+          - generic "Phân quyền" [ref=e42] [cursor=pointer]:
+            - generic [ref=e43]: ⚙️
+            - generic [ref=e44]: Phân quyền
+          - generic "Nhật ký" [ref=e45] [cursor=pointer]:
+            - generic [ref=e46]: 📜
+            - generic [ref=e47]: Nhật ký
+        - generic [ref=e48]:
+          - generic [ref=e49]:
+            - generic [ref=e50]: Quản trị viên
+            - generic [ref=e51]: Quản trị hệ thống
+          - generic [ref=e52]:
+            - button "Đổi MK" [ref=e53] [cursor=pointer]
+            - button "Đăng xuất" [ref=e54] [cursor=pointer]
+      - main [ref=e55]:
+        - generic [ref=e213]:
+          - generic [ref=e214]:
+            - button "← Ngành học" [ref=e215] [cursor=pointer]
+            - heading "7480201 — Công nghệ thông tin" [level=2] [ref=e216]
+          - button "+ Thêm khóa" [ref=e218] [cursor=pointer]
+        - generic [ref=e220]: Đại học
+        - heading "Danh sách khóa" [level=3] [ref=e221]
+        - table [ref=e223]:
+          - rowgroup [ref=e224]:
+            - row "Năm Số CTĐT Thao tác" [ref=e225]:
+              - columnheader "Năm" [ref=e226]
+              - columnheader "Số CTĐT" [ref=e227]
+              - columnheader "Thao tác" [ref=e228]
+          - rowgroup [ref=e229]:
+            - row "Khóa 2024 0 CTĐT Xóa" [ref=e230]:
+              - cell "Khóa 2024" [ref=e231]:
+                - link "Khóa 2024" [ref=e232] [cursor=pointer]:
+                  - /url: "#"
+              - cell "0 CTĐT" [ref=e233]
+              - cell "Xóa" [ref=e234]:
+                - button "Xóa" [ref=e235] [cursor=pointer]
+        - generic:
+          - generic:
+            - generic:
+              - heading "Thêm khóa học" [level=2]
+            - generic:
+              - generic:
+                - generic: Năm nhập học *
+                - spinbutton
+              - generic:
+                - button "Hủy"
+                - button "Thêm"
+    - generic:
+      - generic:
+        - generic:
+          - heading "Đổi mật khẩu" [level=2]
+        - generic:
+          - generic:
+            - generic: Mật khẩu hiện tại *
+            - textbox
+          - generic:
+            - generic: Mật khẩu mới *
+            - textbox
+          - generic:
+            - generic: Xác nhận mật khẩu mới *
+            - textbox
+          - generic:
+            - button "Hủy"
+            - button "Đổi mật khẩu"
+    - dialog "Thông báo" [ref=e158]:
+      - generic [ref=e159]:
+        - generic [ref=e160]:
+          - heading "Thông báo" [level=2] [ref=e161]
+          - paragraph [ref=e162]: Các việc cần bạn xử lý và kết quả phê duyệt.
+        - button "Đóng thông báo" [ref=e163] [cursor=pointer]: ×
+      - generic [ref=e164]:
+        - button "Tất cả" [ref=e165] [cursor=pointer]
+        - button "Chưa đọc" [ref=e166] [cursor=pointer]
+        - button "Cần xử lý" [ref=e167] [cursor=pointer]
+      - button "Đánh dấu tất cả đã đọc" [ref=e169] [cursor=pointer]
+  - generic:
+    - dialog "Thông báo":
+      - generic:
+        - generic: "?"
+        - generic:
+          - heading "Thông báo" [level=2]
+      - generic:
+        - generic:
+          - textbox
+        - generic:
+          - button "Hủy"
+          - button "Xác nhận"
